@@ -1,6 +1,6 @@
 /**
  * Main Application Controller
- * Enhanced with export functionality and advanced controls
+ * Enhanced with lazy-loading sections and on-demand rendering
  */
 
 import * as THREE from "three";
@@ -8,6 +8,7 @@ import { Viewer3D } from "./viewer.js";
 import { ModelLoader } from "./modelLoader.js";
 import { GeometryAnalyzer } from "./geometryAnalyzer.js";
 import { ExportManager } from "./exportManager.js";
+import { SectionManager } from "./sectionManager.js";
 import { showToast, formatFileSize, validateFileType } from "./utils.js";
 import Config from "./config.js";
 
@@ -21,15 +22,25 @@ class App {
     this.currentModelName = null;
     this.similarityResults = [];
 
+    // Lazy loading state
+    this.sectionManager = new SectionManager();
+    this.initializedSections = new Set();
+    this.analysisCache = new Map();
+
     this.init();
   }
 
   init() {
-    // Initialize components
+    // Initialize core components only
     this.viewer = new Viewer3D("viewer");
     this.modelLoader = new ModelLoader();
-    this.geometryAnalyzer = new GeometryAnalyzer();
-    this.exportManager = new ExportManager();
+
+    // Defer heavy components until needed
+    this.geometryAnalyzer = null;
+    this.exportManager = null;
+
+    // Setup lazy-loading sections
+    this.initializeLazySections();
 
     // Setup event listeners
     this.setupEventListeners();
@@ -39,6 +50,121 @@ class App {
 
     // Update empty state
     this.updateEmptyState();
+  }
+
+  /**
+   * Initialize lazy-loading section system
+   */
+  initializeLazySections() {
+    // Register collapsible sections
+    this.sectionManager.registerSection("advanced-controls", {
+      trigger: "settingsBtn",
+      onLoad: () => this.loadAdvancedControls(),
+      persistent: false,
+    });
+
+    this.sectionManager.registerSection("library-section", {
+      trigger: null, // Always visible but content loads on-demand
+      onLoad: () => this.loadLibrarySection(),
+      persistent: true,
+    });
+
+    this.sectionManager.registerSection("results-section", {
+      trigger: null, // Shows when similarity search is triggered
+      onLoad: () => this.loadResultsSection(),
+      persistent: false,
+    });
+
+    // Setup section toggle handlers
+    this.setupSectionToggles();
+  }
+
+  /**
+   * Setup section toggle event handlers
+   */
+  setupSectionToggles() {
+    // Settings button toggles advanced controls
+    document.getElementById("settingsBtn")?.addEventListener("click", () => {
+      this.sectionManager.toggleSection("advanced-controls");
+    });
+
+    // Model info can be collapsed/expanded
+    const modelInfoHeader = document.getElementById("modelInfo");
+    if (modelInfoHeader) {
+      const header = document.createElement("div");
+      header.className = "section-toggle-header";
+      header.innerHTML =
+        '<span>📊 Model Information</span><span class="toggle-icon">▼</span>';
+      modelInfoHeader.insertBefore(header, modelInfoHeader.firstChild);
+
+      header.addEventListener("click", () => {
+        modelInfoHeader.classList.toggle("collapsed");
+        header.querySelector(".toggle-icon").textContent =
+          modelInfoHeader.classList.contains("collapsed") ? "▶" : "▼";
+      });
+    }
+  }
+
+  /**
+   * Load advanced controls section on-demand
+   */
+  loadAdvancedControls() {
+    if (this.initializedSections.has("advanced-controls")) return;
+
+    console.log("[LazyLoad] Initializing advanced controls...");
+
+    // Advanced controls are already in the DOM, just make them interactive
+    const advancedControls = document.getElementById("advancedControls");
+    if (advancedControls) {
+      advancedControls.style.display = "block";
+    }
+
+    this.initializedSections.add("advanced-controls");
+  }
+
+  /**
+   * Load library section on-demand
+   */
+  loadLibrarySection() {
+    if (this.initializedSections.has("library-section")) return;
+
+    console.log("[LazyLoad] Initializing library section...");
+
+    // Library grid already exists, just mark as initialized
+    this.initializedSections.add("library-section");
+  }
+
+  /**
+   * Load results section on-demand
+   */
+  loadResultsSection() {
+    if (this.initializedSections.has("results-section")) return;
+
+    console.log("[LazyLoad] Initializing results section...");
+
+    this.initializedSections.add("results-section");
+  }
+
+  /**
+   * Lazy-load geometry analyzer when first needed
+   */
+  ensureGeometryAnalyzer() {
+    if (!this.geometryAnalyzer) {
+      console.log("[LazyLoad] Initializing GeometryAnalyzer...");
+      this.geometryAnalyzer = new GeometryAnalyzer();
+    }
+    return this.geometryAnalyzer;
+  }
+
+  /**
+   * Lazy-load export manager when first needed
+   */
+  ensureExportManager() {
+    if (!this.exportManager) {
+      console.log("[LazyLoad] Initializing ExportManager...");
+      this.exportManager = new ExportManager();
+    }
+    return this.exportManager;
   }
 
   setupEventListeners() {
@@ -378,14 +504,23 @@ class App {
       // Generate unique name
       const modelName = this.generateModelName(file.name);
 
-      // Analyze geometry
-      const features = this.geometryAnalyzer.analyzeGeometry(
-        result.geometry,
-        modelName
-      );
+      // Check cache first
+      let features = this.analysisCache.get(modelName);
 
       if (!features) {
-        throw new Error("Failed to analyze model geometry");
+        // Analyze geometry on-demand (lazy-load analyzer if needed)
+        const analyzer = this.ensureGeometryAnalyzer();
+        features = analyzer.analyzeGeometry(result.geometry, modelName);
+
+        if (!features) {
+          throw new Error("Failed to analyze model geometry");
+        }
+
+        // Cache the analysis result
+        this.analysisCache.set(modelName, features);
+        console.log(`[Cache] Stored analysis for ${modelName}`);
+      } else {
+        console.log(`[Cache] Retrieved analysis for ${modelName}`);
       }
 
       // Create thumbnail
@@ -591,8 +726,9 @@ class App {
       libraryFeatures[name] = model.features;
     }
 
-    // Find similar models
-    const similar = this.geometryAnalyzer.findSimilar(
+    // Find similar models (lazy-load analyzer if needed)
+    const analyzer = this.ensureGeometryAnalyzer();
+    const similar = analyzer.findSimilar(
       targetModel.features,
       libraryFeatures,
       Config.geometryAnalysis.maxSimilarResults
@@ -740,7 +876,9 @@ class App {
     }
 
     try {
-      this.exportManager.exportBatchAnalysis(this.modelLibrary);
+      // Lazy-load export manager
+      const exporter = this.ensureExportManager();
+      exporter.exportBatchAnalysis(this.modelLibrary);
       showToast("Analysis data exported!", "success");
     } catch (error) {
       showToast("Failed to export data", "error");
@@ -755,7 +893,9 @@ class App {
     }
 
     try {
-      this.exportManager.exportHTMLReport(this.modelLibrary);
+      // Lazy-load export manager
+      const exporter = this.ensureExportManager();
+      exporter.exportHTMLReport(this.modelLibrary);
       showToast("Report generated!", "success");
     } catch (error) {
       showToast("Failed to generate report", "error");
@@ -800,7 +940,9 @@ class App {
     }
 
     try {
-      this.exportManager.exportSimilarityResults(this.similarityResults);
+      // Lazy-load export manager
+      const exporter = this.ensureExportManager();
+      exporter.exportSimilarityResults(this.similarityResults);
       showToast("Similarity results exported!", "success");
     } catch (error) {
       showToast("Failed to export results", "error");
@@ -864,10 +1006,49 @@ class App {
     // Display welcome info in viewer
     console.log("3D Geometric Search Application initialized");
     console.log("Supported formats: glTF/GLB, OBJ/MTL, STL");
+    console.log(
+      "[LazyLoad] Sections will load on-demand for optimal performance"
+    );
+
+    // Log initial section status
+    setTimeout(() => {
+      const stats = this.sectionManager.getStats();
+      console.log("[LazyLoad] Section Status:", stats);
+    }, 100);
+  }
+
+  /**
+   * Get performance stats for lazy-loading system
+   */
+  getPerformanceStats() {
+    return {
+      sections: this.sectionManager.getStats(),
+      cache: {
+        analysisCache: this.analysisCache.size,
+        models: Object.keys(this.modelLibrary).length,
+      },
+      initialized: {
+        geometryAnalyzer: this.geometryAnalyzer !== null,
+        exportManager: this.exportManager !== null,
+      },
+    };
   }
 }
 
 // Initialize app when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   window.app = new App();
+
+  // Expose performance stats to console
+  window.getPerformanceStats = () => {
+    const stats = window.app.getPerformanceStats();
+    console.table(stats.sections.sections);
+    console.log("Cache:", stats.cache);
+    console.log("Initialized:", stats.initialized);
+    return stats;
+  };
+
+  console.log(
+    "💡 Tip: Run getPerformanceStats() in console to see lazy-loading stats"
+  );
 });
