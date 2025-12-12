@@ -2,6 +2,11 @@
  * Main Application Controller
  */
 
+import * as THREE from 'three';
+import { Viewer3D } from './viewer.js';
+import { ModelLoader } from './modelLoader.js';
+import { GeometryAnalyzer } from './geometryAnalyzer.js';
+
 class App {
     constructor() {
         this.viewer = null;

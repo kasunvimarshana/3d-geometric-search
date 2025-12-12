@@ -2,12 +2,16 @@
  * Model Loader - Handles loading of various 3D file formats
  */
 
-class ModelLoader {
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+export class ModelLoader {
     constructor() {
-        this.gltfLoader = new THREE.GLTFLoader();
-        this.objLoader = new THREE.OBJLoader();
-        this.stlLoader = new THREE.STLLoader();
-        this.mtlLoader = new THREE.MTLLoader();
+        this.gltfLoader = new GLTFLoader();
+        this.objLoader = new OBJLoader();
+        this.stlLoader = new STLLoader();
     }
 
     /**
@@ -54,7 +58,7 @@ class ModelLoader {
     }
 
     loadGLTF(contents, resolve, reject, isText = true) {
-        const loader = new THREE.GLTFLoader();
+        const loader = new GLTFLoader();
         
         if (isText) {
             // Parse JSON text
@@ -66,7 +70,7 @@ class ModelLoader {
     }
 
     loadGLB(arrayBuffer, resolve, reject) {
-        const loader = new THREE.GLTFLoader();
+        const loader = new GLTFLoader();
         loader.parse(arrayBuffer, '', (gltf) => {
             resolve(this.processGLTFScene(gltf.scene));
         }, reject);
@@ -74,7 +78,7 @@ class ModelLoader {
 
     loadOBJ(contents, resolve, reject) {
         try {
-            const loader = new THREE.OBJLoader();
+            const loader = new OBJLoader();
             const object = loader.parse(contents);
             resolve(this.processOBJScene(object));
         } catch (error) {
@@ -84,7 +88,7 @@ class ModelLoader {
 
     loadSTL(arrayBuffer, resolve, reject) {
         try {
-            const loader = new THREE.STLLoader();
+            const loader = new STLLoader();
             const geometry = loader.parse(arrayBuffer);
             
             // Create mesh with material

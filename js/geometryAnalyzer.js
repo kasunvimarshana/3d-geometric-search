@@ -2,7 +2,9 @@
  * Geometry Analyzer - Extracts shape features from 3D models
  */
 
-class GeometryAnalyzer {
+import * as THREE from 'three';
+
+export class GeometryAnalyzer {
     constructor() {
         this.features = {};
     }
