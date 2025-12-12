@@ -111,7 +111,16 @@ export class GeometryAnalyzer {
     calculateAspectRatio(geometry) {
         const bbox = this.getBoundingBoxDimensions(geometry);
         const dimensions = [bbox.x, bbox.y, bbox.z].sort((a, b) => b - a);
-        return dimensions[0] / (dimensions[2] || 1); // max / min
+        
+        // Handle degenerate geometry (flat or line-like shapes)
+        if (dimensions[2] === 0) {
+            if (dimensions[0] === 0) {
+                return 1; // Point geometry
+            }
+            return Infinity; // Flat or line geometry
+        }
+        
+        return dimensions[0] / dimensions[2]; // max / min
     }
 
     calculateCenterOfMass(geometry) {

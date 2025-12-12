@@ -37,7 +37,7 @@ export class ModelLoader {
                     } else if (fileName.endsWith('.step') || fileName.endsWith('.stp')) {
                         // STEP format requires specialized parser (opencascade.js)
                         // For now, show a message that it's not yet fully implemented
-                        reject(new Error('STEP format support is in development. Please use glTF, OBJ, or STL formats.'));
+                        reject(new Error('STEP format support is in development. Please use glTF/GLB, OBJ, or STL formats.'));
                     } else {
                         reject(new Error('Unsupported file format'));
                     }
