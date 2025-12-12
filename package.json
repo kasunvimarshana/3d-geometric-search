@@ -1,0 +1,22 @@
+{
+  "name": "3d-geometric-search",
+  "version": "1.0.0",
+  "description": "Web application for 3D geometric search with interactive visualization",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": [
+    "3d",
+    "geometric-search",
+    "three.js",
+    "webgl",
+    "3d-models"
+  ],
+  "author": "Kasun Vimarshana",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.152.0"
+  }
+}
