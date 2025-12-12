@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Geometric Search - Find Similar 3D Models</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>3D Geometric Search</h1>
+            <p class="subtitle">Upload 3D models and find similar shapes by geometry</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📦</div>
+                    <h3>Upload 3D Model</h3>
+                    <p>Drag and drop or click to upload</p>
+                    <p class="format-info">Supported formats: glTF/GLB, STEP, OBJ/MTL, STL</p>
+                    <input type="file" id="fileInput" accept=".gltf,.glb,.step,.stp,.obj,.stl,.mtl" multiple hidden>
+                    <button class="btn-primary" id="uploadBtn">Choose File</button>
+                </div>
+            </section>
+
+            <!-- Viewer Section -->
+            <section class="viewer-section">
+                <div class="viewer-header">
+                    <h2>3D Viewer</h2>
+                    <div class="viewer-controls">
+                        <button class="btn-icon" id="resetViewBtn" title="Reset View">🔄</button>
+                        <button class="btn-icon" id="wireframeBtn" title="Toggle Wireframe">🔲</button>
+                    </div>
+                </div>
+                <div id="viewer" class="viewer-container"></div>
+                <div class="model-info" id="modelInfo">
+                    <div class="info-item">
+                        <span class="label">Vertices:</span>
+                        <span id="vertexCount">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Faces:</span>
+                        <span id="faceCount">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Bounding Box:</span>
+                        <span id="boundingBox">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Library Section -->
+            <section class="library-section">
+                <h2>Model Library</h2>
+                <div class="library-grid" id="libraryGrid">
+                    <!-- Models will be added here dynamically -->
+                </div>
+            </section>
+
+            <!-- Search Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <h2>Similar Models</h2>
+                <div class="results-grid" id="resultsGrid">
+                    <!-- Similar models will be added here dynamically -->
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>Open-source 3D Geometric Search Application</p>
+            <p class="small">Powered by Three.js</p>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading model...</p>
+    </div>
+
+    <!-- Three.js via importmap (ES modules) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./node_modules/three/build/three.module.js",
+            "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <!-- Application Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
