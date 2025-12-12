@@ -1,97 +1,400 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D Geometric Search - Find Similar 3D Models</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <h1>3D Geometric Search</h1>
-            <p class="subtitle">Upload 3D models and find similar shapes by geometry</p>
-        </header>
+      <header>
+        <h1>3D Geometric Search</h1>
+        <p class="subtitle">
+          Upload 3D models and find similar shapes by geometry
+        </p>
+      </header>
 
-        <div class="main-content">
-            <!-- Upload Section -->
-            <section class="upload-section">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📦</div>
-                    <h3>Upload 3D Model</h3>
-                    <p>Drag and drop or click to upload</p>
-                    <p class="format-info">Supported formats: glTF/GLB, STEP, OBJ/MTL, STL</p>
-                    <input type="file" id="fileInput" accept=".gltf,.glb,.step,.stp,.obj,.stl,.mtl" multiple hidden>
-                    <button class="btn-primary" id="uploadBtn">Choose File</button>
-                </div>
-            </section>
+      <div class="main-content">
+        <!-- Upload Section -->
+        <section class="upload-section">
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📦</div>
+            <h3>Upload 3D Model</h3>
+            <p>Drag and drop or click to upload</p>
+            <p class="format-info">
+              Supported formats: glTF/GLB, STEP, OBJ/MTL, STL
+            </p>
+            <input
+              type="file"
+              id="fileInput"
+              accept=".gltf,.glb,.step,.stp,.obj,.stl,.mtl"
+              multiple
+              hidden
+            />
+            <button class="btn-primary" id="uploadBtn">Choose File</button>
+          </div>
+        </section>
 
-            <!-- Viewer Section -->
-            <section class="viewer-section">
-                <div class="viewer-header">
-                    <h2>3D Viewer</h2>
-                    <div class="viewer-controls">
-                        <button class="btn-icon" id="resetViewBtn" title="Reset View">🔄</button>
-                        <button class="btn-icon" id="wireframeBtn" title="Toggle Wireframe">🔲</button>
-                    </div>
-                </div>
-                <div id="viewer" class="viewer-container"></div>
-                <div class="model-info" id="modelInfo">
-                    <div class="info-item">
-                        <span class="label">Vertices:</span>
-                        <span id="vertexCount">-</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Faces:</span>
-                        <span id="faceCount">-</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Bounding Box:</span>
-                        <span id="boundingBox">-</span>
-                    </div>
-                </div>
-            </section>
+        <!-- Viewer Section -->
+        <section class="viewer-section">
+          <div class="viewer-header">
+            <h2>3D Viewer</h2>
+            <div class="viewer-controls">
+              <!-- Zoom Controls -->
+              <div class="control-group-inline">
+                <button class="btn-icon" id="zoomInBtn" title="Zoom In">
+                  🔍+
+                </button>
+                <button class="btn-icon" id="zoomOutBtn" title="Zoom Out">
+                  🔍-
+                </button>
+                <button class="btn-icon" id="fitViewBtn" title="Fit to View">
+                  ⛶
+                </button>
+              </div>
 
-            <!-- Library Section -->
-            <section class="library-section">
-                <h2>Model Library</h2>
-                <div class="library-grid" id="libraryGrid">
-                    <!-- Models will be added here dynamically -->
-                </div>
-            </section>
+              <!-- View Controls -->
+              <button class="btn-icon" id="resetViewBtn" title="Reset View">
+                🔄
+              </button>
+              <button class="btn-icon" id="autoRotateBtn" title="Auto Rotate">
+                🔁
+              </button>
 
-            <!-- Search Results Section -->
-            <section class="results-section" id="resultsSection" style="display: none;">
-                <h2>Similar Models</h2>
-                <div class="results-grid" id="resultsGrid">
-                    <!-- Similar models will be added here dynamically -->
-                </div>
-            </section>
-        </div>
+              <!-- Display Controls -->
+              <button
+                class="btn-icon"
+                id="wireframeBtn"
+                title="Toggle Wireframe"
+              >
+                🔲
+              </button>
+              <button class="btn-icon" id="gridBtn" title="Toggle Grid">
+                📐
+              </button>
+              <button class="btn-icon" id="axesBtn" title="Toggle Axes">
+                🎯
+              </button>
+              <button class="btn-icon" id="shadowsBtn" title="Toggle Shadows">
+                💡
+              </button>
 
-        <footer>
-            <p>Open-source 3D Geometric Search Application</p>
-            <p class="small">Powered by Three.js</p>
-        </footer>
+              <!-- Capture & Settings -->
+              <button
+                class="btn-icon"
+                id="screenshotBtn"
+                title="Take Screenshot"
+              >
+                📷
+              </button>
+              <button
+                class="btn-icon"
+                id="fullscreenBtn"
+                title="Fullscreen (F)"
+              >
+                ⛶
+              </button>
+              <button class="btn-icon" id="settingsBtn" title="Settings">
+                ⚙️
+              </button>
+              <button
+                class="btn-icon"
+                id="keyboardHelpBtn"
+                title="Keyboard Shortcuts"
+              >
+                ⌨️
+              </button>
+            </div>
+          </div>
+
+          <!-- Camera Preset Views -->
+          <div class="camera-presets">
+            <span class="presets-label">Views:</span>
+            <button class="btn-preset" data-view="front">Front</button>
+            <button class="btn-preset" data-view="back">Back</button>
+            <button class="btn-preset" data-view="left">Left</button>
+            <button class="btn-preset" data-view="right">Right</button>
+            <button class="btn-preset" data-view="top">Top</button>
+            <button class="btn-preset" data-view="bottom">Bottom</button>
+          </div>
+
+          <div id="viewer" class="viewer-container">
+            <!-- Zoom Level Indicator -->
+            <div class="zoom-indicator" id="zoomIndicator">
+              Zoom: <span id="zoomLevel">50</span>%
+            </div>
+          </div>
+
+          <!-- Advanced Controls Panel -->
+          <div
+            class="advanced-controls"
+            id="advancedControls"
+            style="display: none"
+          >
+            <h3>Lighting Controls</h3>
+            <div class="control-group">
+              <label>Ambient Light: <span id="ambientValue">0.6</span></label>
+              <input
+                type="range"
+                id="ambientSlider"
+                min="0"
+                max="1"
+                step="0.1"
+                value="0.6"
+              />
+            </div>
+            <div class="control-group">
+              <label
+                >Directional Light:
+                <span id="directionalValue">0.8</span></label
+              >
+              <input
+                type="range"
+                id="directionalSlider"
+                min="0"
+                max="2"
+                step="0.1"
+                value="0.8"
+              />
+            </div>
+            <div class="control-group">
+              <label>Background:</label>
+              <input type="color" id="backgroundColorPicker" value="#1a1a1a" />
+            </div>
+
+            <h3>Model Controls</h3>
+            <div class="control-group">
+              <label>Model Scale: <span id="scaleValue">1.0</span>x</label>
+              <input
+                type="range"
+                id="scaleSlider"
+                min="0.1"
+                max="3"
+                step="0.1"
+                value="1"
+              />
+            </div>
+            <div class="control-group">
+              <label
+                >Rotation Speed: <span id="rotateSpeedValue">2.0</span></label
+              >
+              <input
+                type="range"
+                id="rotateSpeedSlider"
+                min="0.5"
+                max="5"
+                step="0.5"
+                value="2"
+              />
+            </div>
+            <div class="control-group">
+              <button class="btn-secondary" id="focusModelBtn">
+                🎯 Focus on Model
+              </button>
+            </div>
+          </div>
+
+          <div class="model-info" id="modelInfo">
+            <div class="info-item">
+              <span class="label">Vertices:</span>
+              <span id="vertexCount">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Faces:</span>
+              <span id="faceCount">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Bounding Box:</span>
+              <span id="boundingBox">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Volume:</span>
+              <span id="volumeDisplay">-</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Library Section -->
+        <section class="library-section">
+          <div class="section-header">
+            <h2>Model Library</h2>
+            <div class="library-actions">
+              <button
+                class="btn-secondary"
+                id="exportAllBtn"
+                title="Export All Analysis"
+              >
+                📊 Export Data
+              </button>
+              <button
+                class="btn-secondary"
+                id="generateReportBtn"
+                title="Generate HTML Report"
+              >
+                📄 Generate Report
+              </button>
+              <button
+                class="btn-secondary"
+                id="clearLibraryBtn"
+                title="Clear Library"
+              >
+                🗑️ Clear All
+              </button>
+            </div>
+          </div>
+          <div class="library-grid" id="libraryGrid">
+            <!-- Models will be added here dynamically -->
+            <div class="empty-state" id="emptyState">
+              <div class="empty-icon">📦</div>
+              <p>No models loaded yet</p>
+              <p class="small">Upload a 3D model to get started</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Search Results Section -->
+        <section
+          class="results-section"
+          id="resultsSection"
+          style="display: none"
+        >
+          <div class="section-header">
+            <h2>Similar Models</h2>
+            <button
+              class="btn-secondary"
+              id="exportSimilarityBtn"
+              title="Export Similarity Data"
+            >
+              💾 Export Results
+            </button>
+          </div>
+          <div class="results-grid" id="resultsGrid">
+            <!-- Similar models will be added here dynamically -->
+          </div>
+        </section>
+      </div>
+
+      <footer>
+        <p>Open-source 3D Geometric Search Application</p>
+        <p class="small">Powered by Three.js</p>
+      </footer>
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="spinner"></div>
-        <p>Loading model...</p>
+    <div id="loadingOverlay" class="loading-overlay" style="display: none">
+      <div class="spinner"></div>
+      <p>Loading model...</p>
+    </div>
+
+    <!-- Keyboard Shortcuts Help Modal -->
+    <div id="keyboardModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⌨️ Keyboard Shortcuts</h2>
+          <button class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="shortcuts-grid">
+            <div class="shortcut-section">
+              <h3>View Controls</h3>
+              <table class="shortcuts-table">
+                <tr>
+                  <td><kbd>F</kbd></td>
+                  <td>Toggle Fullscreen</td>
+                </tr>
+                <tr>
+                  <td><kbd>R</kbd></td>
+                  <td>Reset View</td>
+                </tr>
+                <tr>
+                  <td><kbd>0</kbd></td>
+                  <td>Fit to View</td>
+                </tr>
+                <tr>
+                  <td><kbd>Space</kbd></td>
+                  <td>Toggle Auto-Rotate</td>
+                </tr>
+                <tr>
+                  <td><kbd>Double-Click</kbd></td>
+                  <td>Focus on Model</td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="shortcut-section">
+              <h3>Zoom Controls</h3>
+              <table class="shortcuts-table">
+                <tr>
+                  <td><kbd>+</kbd> / <kbd>=</kbd></td>
+                  <td>Zoom In</td>
+                </tr>
+                <tr>
+                  <td><kbd>-</kbd></td>
+                  <td>Zoom Out</td>
+                </tr>
+                <tr>
+                  <td><kbd>Scroll Wheel</kbd></td>
+                  <td>Zoom In/Out</td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="shortcut-section">
+              <h3>Display Options</h3>
+              <table class="shortcuts-table">
+                <tr>
+                  <td><kbd>G</kbd></td>
+                  <td>Toggle Grid</td>
+                </tr>
+                <tr>
+                  <td><kbd>A</kbd></td>
+                  <td>Toggle Axes</td>
+                </tr>
+                <tr>
+                  <td><kbd>W</kbd></td>
+                  <td>Toggle Wireframe</td>
+                </tr>
+                <tr>
+                  <td><kbd>S</kbd></td>
+                  <td>Toggle Shadows</td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="shortcut-section">
+              <h3>Mouse Controls</h3>
+              <table class="shortcuts-table">
+                <tr>
+                  <td><kbd>Left Drag</kbd></td>
+                  <td>Rotate Camera</td>
+                </tr>
+                <tr>
+                  <td><kbd>Right Drag</kbd></td>
+                  <td>Pan Camera</td>
+                </tr>
+                <tr>
+                  <td><kbd>Middle Drag</kbd></td>
+                  <td>Zoom</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Three.js via importmap (ES modules) -->
     <script type="importmap">
-    {
+      {
         "imports": {
-            "three": "./node_modules/three/build/three.module.js",
-            "three/addons/": "./node_modules/three/examples/jsm/"
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/": "./node_modules/three/examples/jsm/"
         }
-    }
+      }
     </script>
-    
+
     <!-- Application Scripts -->
     <script type="module" src="js/app.js"></script>
-</body>
+  </body>
 </html>

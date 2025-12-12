@@ -8,6 +8,8 @@ An open-source JavaScript web application for 3D geometric search with interacti
 
 ## Features
 
+### Core Functionality
+
 - 🎯 **3D Geometric Search**: Upload models and find similar shapes based on geometric features
 - 📦 **Multiple Format Support**: glTF/GLB, STEP (in development), OBJ/MTL, and STL
 - 🎨 **Interactive 3D Visualization**: Powered by Three.js with orbit controls
@@ -16,6 +18,31 @@ An open-source JavaScript web application for 3D geometric search with interacti
 - 💅 **Clean, Intuitive UI**: Modern design with drag-and-drop support
 - 📱 **Responsive Design**: Works on desktop and mobile devices
 
+### Advanced Controls
+
+- � **Zoom Controls**: Zoom in/out with buttons, mouse wheel, or fit-to-view
+- 📏 **Zoom Indicator**: Real-time zoom level display (0-100%)
+- 📐 **Camera Presets**: Quick access to front, back, left, right, top, and bottom views
+- 🔁 **Auto-Rotate**: Automatic model rotation for 360° viewing
+- 🎯 **Focus Mode**: Quickly center and frame the current model (double-click)
+- 📏 **Model Scaling**: Adjust model size from 0.1x to 3x
+- ⚙️ **Rotation Speed**: Control auto-rotation speed
+- ⛶ **Fullscreen Mode**: Immersive fullscreen viewing experience
+- ⌨️ **Keyboard Shortcuts**: Comprehensive hotkeys for all major functions
+- �💡 **Lighting Adjustments**: Control ambient and directional light intensity
+- 🔲 **Visual Modes**: Toggle wireframe, grid, axes, and shadows
+- 📷 **Screenshot Capture**: Save high-quality views of your models
+- ⚙️ **Advanced Settings**: Fine-tune viewer appearance and behavior
+- 📊 **Batch Export**: Export analysis data for all models at once
+- 📄 **HTML Reports**: Generate comprehensive analysis reports with thumbnails
+
+### Export Capabilities
+
+- 💾 **Multiple Formats**: Export models as glTF/GLB, OBJ, or STL
+- 📋 **Analysis Data**: Export geometric data as JSON or CSV
+- 📊 **Similarity Results**: Save comparison results
+- 🖼️ **Screenshots**: Capture and download viewer images
+
 ## Live Demo
 
 Open `index.html` in a modern web browser to start using the application.
@@ -23,11 +50,13 @@ Open `index.html` in a modern web browser to start using the application.
 ## Supported Formats
 
 ### ✅ Fully Supported
+
 - **glTF/GLB**: GL Transmission Format - Industry standard for 3D models
 - **OBJ/MTL**: Wavefront OBJ with material definitions
 - **STL**: Stereolithography format - Common in 3D printing
 
 ### 🚧 In Development
+
 - **STEP**: Standard for the Exchange of Product Data (requires OpenCascade.js integration)
 
 ## Getting Started
@@ -40,12 +69,14 @@ Open `index.html` in a modern web browser to start using the application.
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/kasunvimarshana/3d-geometric-search.git
 cd 3d-geometric-search
 ```
 
 2. Open `index.html` in your web browser:
+
 ```bash
 # On macOS
 open index.html
@@ -203,4 +234,4 @@ Kasun Vimarshana
 - [Three.js Documentation](https://threejs.org/docs/)
 - [glTF Specification](https://www.khronos.org/gltf/)
 - [OBJ Format Specification](https://en.wikipedia.org/wiki/Wavefront_.obj_file)
-- [STL Format Specification](https://en.wikipedia.org/wiki/STL_(file_format))
+- [STL Format Specification](<https://en.wikipedia.org/wiki/STL_(file_format)>)
