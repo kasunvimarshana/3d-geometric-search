@@ -47,21 +47,35 @@ export class ModelLoader {
             this.loadSTL(contents, resolve, reject);
           } else if (fileName.endsWith(".step") || fileName.endsWith(".stp")) {
             // STEP format requires specialized parser (opencascade.js)
-            // For now, show a message that it's not yet fully implemented
             reject(
               new Error(
-                "STEP format support is in development. Please use glTF/GLB, OBJ, or STL formats."
+                "STEP format not yet supported. Please convert to glTF, GLB, OBJ, or STL format."
               )
             );
           } else {
-            reject(new Error("Unsupported file format"));
+            const ext = fileName.split(".").pop();
+            reject(
+              new Error(
+                `Unsupported file format: .${ext}. Supported formats: .gltf, .glb, .obj, .stl`
+              )
+            );
           }
         } catch (error) {
-          reject(error);
+          console.error("Model loading error:", error);
+          reject(
+            new Error(
+              `Failed to load model: ${error.message || "Unknown error"}`
+            )
+          );
         }
       };
 
-      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.onerror = () =>
+        reject(
+          new Error(
+            `Failed to read file: ${file.name}. The file may be corrupted or inaccessible.`
+          )
+        );
 
       // Read file based on format
       if (fileName.endsWith(".glb") || fileName.endsWith(".stl")) {
@@ -73,32 +87,63 @@ export class ModelLoader {
   }
 
   loadGLTF(contents, resolve, reject, isText = true) {
-    const loader = new GLTFLoader();
+    try {
+      const loader = new GLTFLoader();
 
-    if (isText) {
-      // Parse JSON text
-      const data = JSON.parse(contents);
-      loader.parse(
-        contents,
-        "",
-        (gltf) => {
-          resolve(this.processGLTFScene(gltf.scene));
-        },
-        reject
-      );
+      if (isText) {
+        // Parse JSON text
+        try {
+          const data = JSON.parse(contents);
+        } catch (error) {
+          reject(new Error("Invalid glTF file: JSON parsing failed"));
+          return;
+        }
+        loader.parse(
+          contents,
+          "",
+          (gltf) => {
+            if (!gltf || !gltf.scene) {
+              reject(new Error("Invalid glTF file: No scene data found"));
+              return;
+            }
+            resolve(this.processGLTFScene(gltf.scene));
+          },
+          (error) => {
+            reject(
+              new Error(
+                `glTF loading failed: ${error.message || "Unknown error"}`
+              )
+            );
+          }
+        );
+      }
+    } catch (error) {
+      reject(new Error(`glTF loading error: ${error.message}`));
     }
   }
 
   loadGLB(arrayBuffer, resolve, reject) {
-    const loader = new GLTFLoader();
-    loader.parse(
-      arrayBuffer,
-      "",
-      (gltf) => {
-        resolve(this.processGLTFScene(gltf.scene));
-      },
-      reject
-    );
+    try {
+      const loader = new GLTFLoader();
+      loader.parse(
+        arrayBuffer,
+        "",
+        (gltf) => {
+          if (!gltf || !gltf.scene) {
+            reject(new Error("Invalid GLB file: No scene data found"));
+            return;
+          }
+          resolve(this.processGLTFScene(gltf.scene));
+        },
+        (error) => {
+          reject(
+            new Error(`GLB loading failed: ${error.message || "Unknown error"}`)
+          );
+        }
+      );
+    } catch (error) {
+      reject(new Error(`GLB loading error: ${error.message}`));
+    }
   }
 
   loadOBJ(contents, resolve, reject) {
@@ -130,6 +175,11 @@ export class ModelLoader {
       const loader = new STLLoader();
       const geometry = loader.parse(arrayBuffer);
 
+      if (!geometry || !geometry.attributes || !geometry.attributes.position) {
+        reject(new Error("Invalid STL file: No geometry data found"));
+        return;
+      }
+
       // Create mesh with material
       const material = new THREE.MeshPhongMaterial({
         color: 0x6699ff,
@@ -143,7 +193,11 @@ export class ModelLoader {
         geometry: geometry,
       });
     } catch (error) {
-      reject(error);
+      reject(
+        new Error(
+          `STL loading failed: ${error.message || "Invalid file format"}`
+        )
+      );
     }
   }
 

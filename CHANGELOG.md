@@ -2,6 +2,98 @@
 
 All notable changes to the 3D Geometric Search project will be documented in this file.
 
+## [1.5.0] - 2025-12-13
+
+### Added
+
+- **Model Interaction System**
+
+  - Click on 3D model components to select and highlight them
+  - Visual selection feedback with emissive glow (orange highlight)
+  - Hover effects with subtle blue highlighting
+  - Raycasting-based object picking for precise interaction
+  - Toggle selection by clicking on the same object again
+  - Click anywhere in empty space to deselect
+  - Cursor changes to pointer when hovering over model parts
+
+- **Event System**
+
+  - modelClick event: Fired when clicking on any part of the model
+  - modelSelect event: Fired when selecting an object (with object details)
+  - modelDeselect event: Fired when deselecting an object
+  - modelHover event: Fired when hovering over model parts
+  - Console logging for all model interaction events
+
+- **Notification System**
+
+  - Toast notifications for user feedback
+  - Four notification types: info, success, warning, error
+  - Auto-hide after 3 seconds
+  - Color-coded with border accents
+  - Smooth slide-in animation
+  - Positioned in top-right corner
+
+- **Interaction Management**
+  - setInteractionEnabled() method to toggle interaction system
+  - Original material storage for proper highlight restoration
+  - Selection state tracking (selectedObject, hoveredObject)
+  - Automatic cleanup on model reset or deselection
+
+### Enhanced
+
+- Reset All now clears any active selections and hover states
+- Model loading automatically enables interaction system
+- Better separation of UI click handlers from 3D model interactions
+
+## [1.4.0] - 2025-12-13
+
+### Added
+
+- **Reset All Feature**
+
+  - Comprehensive reset button (⟲) to restore all settings to default
+  - Keyboard shortcut (Shift+R) for quick access
+  - Resets camera, zoom, rotation, display options, and scale
+  - Exits fullscreen mode if active
+  - Provides user feedback with toast notification
+
+- **State Management**
+
+  - getState() method to save complete viewer state
+  - setState() method to restore saved viewer state
+  - State includes camera position, settings, modes, and options
+  - Enables future save/load functionality
+
+- **Enhanced Error Handling**
+
+  - Descriptive error messages for all file formats (glTF, GLB, OBJ, STL)
+  - Specific error messages for invalid geometry data
+  - User-friendly format suggestions in error messages
+  - Better file reading error handling with detailed feedback
+  - Console logging for debugging while showing user-friendly messages
+
+- **Improved UI Organization**
+
+  - Grouped controls by function (Zoom, View, Display, Settings)
+  - Visual grouping with styled control-group-inline containers
+  - Enhanced hover effects with shadows and color transitions
+  - Improved button active states with consistent styling
+  - Better tooltip descriptions with keyboard shortcuts
+
+- **updateAllButtonStates Method**
+  - Synchronizes all button states with viewer settings
+  - Updates after reset all, state changes, and keyboard actions
+  - Ensures UI always reflects current viewer state
+  - Comprehensive update for all toggleable buttons
+
+### Enhanced
+
+- Control panel organization with grouped buttons
+- Button hover effects with subtle shadows
+- Control group styling with borders and hover states
+- Keyboard shortcut tooltips on all buttons
+- Error messages with actionable suggestions
+
 ## [1.3.0] - 2025-12-13
 
 ### Added

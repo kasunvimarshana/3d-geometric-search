@@ -93,6 +93,12 @@ class App {
       showToast("View reset", "info");
     });
 
+    document.getElementById("resetAllBtn").addEventListener("click", () => {
+      this.viewer.resetAll();
+      this.updateAllButtonStates();
+      showToast("All settings reset to default", "success");
+    });
+
     // Zoom controls
     document.getElementById("zoomInBtn").addEventListener("click", () => {
       this.viewer.zoomIn();
@@ -194,6 +200,15 @@ class App {
         }
       }
 
+      // Handle Reset All with Shift+R
+      if (e.code === "KeyR" && e.shiftKey) {
+        e.preventDefault();
+        this.viewer.resetAll();
+        this.updateAllButtonStates();
+        showToast("All settings reset to default", "success");
+        return;
+      }
+
       // Handle viewer shortcuts
       this.viewer.handleKeyboard(e);
 
@@ -219,6 +234,31 @@ class App {
         const btn = document.getElementById("autoRotateBtn");
         btn.classList.toggle("active", this.viewer.autoRotate);
       }
+    });
+
+    // Listen for reset all event from viewer
+    this.viewer.container.addEventListener("resetAll", () => {
+      this.updateAllButtonStates();
+    });
+
+    // Listen for model interaction events
+    this.viewer.container.addEventListener("modelClick", (event) => {
+      console.log("Model clicked:", event.detail);
+    });
+
+    this.viewer.container.addEventListener("modelSelect", (event) => {
+      const { objectName, modelName } = event.detail;
+      this.showNotification(`Selected: ${objectName}`, "info");
+      console.log("Model selected:", event.detail);
+    });
+
+    this.viewer.container.addEventListener("modelDeselect", (event) => {
+      console.log("Model deselected:", event.detail);
+    });
+
+    this.viewer.container.addEventListener("modelHover", (event) => {
+      // Can be used for tooltip or info display
+      // console.log("Model hover:", event.detail);
     });
 
     // Advanced controls
@@ -605,6 +645,74 @@ class App {
     }
   }
 
+  /**
+   * Update all button states to reflect current viewer settings
+   */
+  updateAllButtonStates() {
+    // Update auto-rotate button
+    const autoRotateBtn = document.getElementById("autoRotateBtn");
+    if (autoRotateBtn) {
+      if (this.viewer.autoRotate) {
+        autoRotateBtn.classList.add("active");
+      } else {
+        autoRotateBtn.classList.remove("active");
+      }
+    }
+
+    // Update wireframe button
+    const wireframeBtn = document.getElementById("wireframeBtn");
+    if (wireframeBtn) {
+      if (this.viewer.wireframeMode) {
+        wireframeBtn.classList.add("active");
+      } else {
+        wireframeBtn.classList.remove("active");
+      }
+    }
+
+    // Update grid button
+    const gridBtn = document.getElementById("gridBtn");
+    if (gridBtn) {
+      if (this.viewer.settings.showGrid) {
+        gridBtn.classList.add("active");
+      } else {
+        gridBtn.classList.remove("active");
+      }
+    }
+
+    // Update axes button
+    const axesBtn = document.getElementById("axesBtn");
+    if (axesBtn) {
+      if (this.viewer.settings.showAxes) {
+        axesBtn.classList.add("active");
+      } else {
+        axesBtn.classList.remove("active");
+      }
+    }
+
+    // Update shadows button
+    const shadowsBtn = document.getElementById("shadowsBtn");
+    if (shadowsBtn) {
+      if (this.viewer.settings.enableShadows) {
+        shadowsBtn.classList.add("active");
+      } else {
+        shadowsBtn.classList.remove("active");
+      }
+    }
+
+    // Update fullscreen button
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    if (fullscreenBtn) {
+      if (this.viewer.isFullscreen) {
+        fullscreenBtn.classList.add("fullscreen-active");
+      } else {
+        fullscreenBtn.classList.remove("fullscreen-active");
+      }
+    }
+
+    // Update zoom indicator
+    this.updateZoomIndicator();
+  }
+
   toggleAdvancedControls() {
     const controls = document.getElementById("advancedControls");
     const isVisible = controls.style.display !== "none";
@@ -725,6 +833,31 @@ class App {
   showLoading(show) {
     const overlay = document.getElementById("loadingOverlay");
     overlay.style.display = show ? "flex" : "none";
+  }
+
+  /**
+   * Show notification message to user
+   * @param {string} message - Message to display
+   * @param {string} type - Notification type: 'info', 'success', 'warning', 'error'
+   */
+  showNotification(message, type = "info") {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById("notification");
+    if (!notification) {
+      notification = document.createElement("div");
+      notification.id = "notification";
+      notification.className = "notification";
+      document.body.appendChild(notification);
+    }
+
+    // Set message and type
+    notification.textContent = message;
+    notification.className = `notification notification-${type} notification-show`;
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      notification.classList.remove("notification-show");
+    }, 3000);
   }
 
   showWelcomeMessage() {

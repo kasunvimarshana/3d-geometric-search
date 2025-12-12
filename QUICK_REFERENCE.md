@@ -45,6 +45,7 @@ http://localhost:8000
 
 - **F** - Toggle fullscreen mode
 - **R** - Reset camera to default position
+- **Shift + R** - Reset all settings to default
 - **G** - Toggle coordinate grid
 - **A** - Toggle coordinate axes
 - **W** - Toggle wireframe mode
@@ -67,6 +68,15 @@ http://localhost:8000
 - **Right Click + Drag** - Pan camera
 - **Scroll Wheel** - Zoom in/out
 - **Double Click** - Focus on model
+- **Click on Model** - Select/deselect model component
+- **Hover over Model** - Highlight model part (blue)
+
+### Model Interaction
+
+- **Click Model Parts** - Select with orange highlight
+- **Click Again** - Toggle selection off
+- **Click Empty Space** - Deselect current selection
+- **Hover** - Blue highlight preview before selection
 
 ## 🎨 UI Controls Reference
 

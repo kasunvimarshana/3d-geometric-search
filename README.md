@@ -24,17 +24,20 @@ An open-source JavaScript web application for 3D geometric search with interacti
 - 📏 **Zoom Indicator**: Real-time zoom level display (0-100%)
 - 📐 **Camera Presets**: Quick access to front, back, left, right, top, and bottom views
 - 🔁 **Auto-Rotate**: Automatic model rotation for 360° viewing
-- 🎯 **Focus Mode**: Quickly center and frame the current model (double-click)
-- 📏 **Model Scaling**: Adjust model size from 0.1x to 3x
+- 🎯 **Focus Mode**: Quickly center and frame the current model (double-click)- 🖱️ **Model Interaction**: Click on 3D model components to select and highlight them
+- ✨ **Hover Effects**: Visual feedback when hovering over model parts- 📏 **Model Scaling**: Adjust model size from 0.1x to 3x
 - ⚙️ **Rotation Speed**: Control auto-rotation speed
 - ⛶ **Fullscreen Mode**: Immersive fullscreen viewing experience
 - ⌨️ **Keyboard Shortcuts**: Comprehensive hotkeys for all major functions
-- �💡 **Lighting Adjustments**: Control ambient and directional light intensity
+- 🔄 **Reset View**: Restore camera to default position (R key)
+- ⟲ **Reset All**: Restore all settings to default state (Shift+R)
+- 💡 **Lighting Adjustments**: Control ambient and directional light intensity
 - 🔲 **Visual Modes**: Toggle wireframe, grid, axes, and shadows
 - 📷 **Screenshot Capture**: Save high-quality views of your models
 - ⚙️ **Advanced Settings**: Fine-tune viewer appearance and behavior
 - 📊 **Batch Export**: Export analysis data for all models at once
 - 📄 **HTML Reports**: Generate comprehensive analysis reports with thumbnails
+- 🛡️ **Error Handling**: Robust error messages and user feedback
 
 ### Export Capabilities
 

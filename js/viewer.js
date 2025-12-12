@@ -21,6 +21,15 @@ export class Viewer3D {
     this.animationId = null;
     this.autoRotate = false;
     this.isFullscreen = false;
+
+    // Model interaction properties
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    this.selectedObject = null;
+    this.hoveredObject = null;
+    this.originalMaterials = new Map();
+    this.interactionEnabled = true;
+
     this.settings = {
       showGrid: true,
       showAxes: Config.debug.showAxesHelper,
@@ -121,6 +130,14 @@ export class Viewer3D {
         this.focusOnModel();
       }
     });
+
+    // Model interaction events
+    this.renderer.domElement.addEventListener("click", (event) =>
+      this.onModelClick(event)
+    );
+    this.renderer.domElement.addEventListener("mousemove", (event) =>
+      this.onModelHover(event)
+    );
 
     // Start animation loop
     this.animate();
@@ -234,6 +251,83 @@ export class Viewer3D {
     this.camera.lookAt(0, 0, 0);
     this.controls.target.set(0, 0, 0);
     this.controls.update();
+  }
+
+  /**
+   * Reset all viewer settings to default state
+   * Includes camera, zoom, rotation, display options, and scale
+   */
+  resetAll() {
+    // Reset camera position
+    this.resetView();
+
+    // Reset auto-rotation
+    if (this.autoRotate) {
+      this.autoRotate = false;
+      this.controls.autoRotate = false;
+    }
+
+    // Reset wireframe mode
+    if (this.wireframeMode) {
+      this.toggleWireframe();
+    }
+
+    // Reset all settings to default
+    this.settings = {
+      showGrid: true,
+      showAxes: Config.debug.showAxesHelper,
+      enableShadows: Config.viewer.enableShadows,
+      ambientIntensity: Config.lighting.ambient.intensity,
+      directionalIntensity: Config.lighting.directional.intensity,
+      modelScale: 1.0,
+      autoRotateSpeed: 0.5,
+    };
+
+    // Apply settings to scene
+    if (this.helpers.grid) {
+      this.helpers.grid.visible = this.settings.showGrid;
+    }
+    if (this.helpers.axes) {
+      this.helpers.axes.visible = this.settings.showAxes;
+    }
+
+    // Reset shadows
+    this.renderer.shadowMap.enabled = this.settings.enableShadows;
+    if (this.lights.directional) {
+      this.lights.directional.castShadow = this.settings.enableShadows;
+    }
+
+    // Reset lighting
+    if (this.lights.ambient) {
+      this.lights.ambient.intensity = this.settings.ambientIntensity;
+    }
+    if (this.lights.directional) {
+      this.lights.directional.intensity = this.settings.directionalIntensity;
+    }
+
+    // Reset model scale if model exists
+    if (this.currentModel) {
+      this.currentModel.scale.setScalar(this.settings.modelScale);
+    }
+
+    // Clear any selections or hover states
+    this.deselectObject();
+    if (this.hoveredObject) {
+      this.unhighlightObject(this.hoveredObject);
+      this.hoveredObject = null;
+    }
+
+    // Exit fullscreen if active
+    if (this.isFullscreen) {
+      this.toggleFullscreen();
+    }
+
+    // Dispatch event for UI update
+    this.container.dispatchEvent(
+      new CustomEvent("resetAll", {
+        detail: { settings: this.settings },
+      })
+    );
   }
 
   toggleWireframe() {
@@ -527,6 +621,213 @@ export class Viewer3D {
   }
 
   /**
+   * Handle mouse click on 3D models
+   */
+  onModelClick(event) {
+    if (!this.interactionEnabled || !this.currentModel) return;
+
+    this.updateMousePosition(event);
+    const intersects = this.getIntersections();
+
+    if (intersects.length > 0) {
+      const object = intersects[0].object;
+      const point = intersects[0].point;
+
+      // Toggle selection
+      if (this.selectedObject === object) {
+        this.deselectObject();
+      } else {
+        this.selectObject(object, point);
+      }
+
+      // Dispatch custom event
+      this.container.dispatchEvent(
+        new CustomEvent("modelClick", {
+          detail: {
+            object: object,
+            point: point,
+            intersection: intersects[0],
+          },
+        })
+      );
+    } else {
+      this.deselectObject();
+    }
+  }
+
+  /**
+   * Handle mouse hover over 3D models
+   */
+  onModelHover(event) {
+    if (!this.interactionEnabled || !this.currentModel) return;
+
+    this.updateMousePosition(event);
+    const intersects = this.getIntersections();
+
+    if (intersects.length > 0) {
+      const object = intersects[0].object;
+
+      if (this.hoveredObject !== object) {
+        // Remove previous hover
+        if (this.hoveredObject && this.hoveredObject !== this.selectedObject) {
+          this.unhighlightObject(this.hoveredObject);
+        }
+
+        // Add new hover
+        this.hoveredObject = object;
+        if (object !== this.selectedObject) {
+          this.highlightObject(object, 0x88aaff, 0.3);
+        }
+
+        // Change cursor
+        this.renderer.domElement.style.cursor = "pointer";
+
+        // Dispatch hover event
+        this.container.dispatchEvent(
+          new CustomEvent("modelHover", {
+            detail: {
+              object: object,
+              point: intersects[0].point,
+            },
+          })
+        );
+      }
+    } else {
+      // No intersection - remove hover
+      if (this.hoveredObject && this.hoveredObject !== this.selectedObject) {
+        this.unhighlightObject(this.hoveredObject);
+      }
+      this.hoveredObject = null;
+      this.renderer.domElement.style.cursor = "default";
+    }
+  }
+
+  /**
+   * Update mouse position for raycasting
+   */
+  updateMousePosition(event) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  /**
+   * Get intersections with 3D objects
+   */
+  getIntersections() {
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    if (!this.currentModel) return [];
+
+    // Only check meshes in the current model
+    const meshes = [];
+    this.currentModel.traverse((child) => {
+      if (child.isMesh) {
+        meshes.push(child);
+      }
+    });
+
+    return this.raycaster.intersectObjects(meshes, false);
+  }
+
+  /**
+   * Select a 3D object
+   */
+  selectObject(object, point) {
+    // Deselect previous
+    if (this.selectedObject) {
+      this.deselectObject();
+    }
+
+    this.selectedObject = object;
+    this.highlightObject(object, 0xffaa00, 0.6);
+
+    // Dispatch selection event
+    this.container.dispatchEvent(
+      new CustomEvent("modelSelect", {
+        detail: {
+          object: object,
+          point: point,
+          objectName: object.name || "Unnamed",
+          modelName: this.currentModel?.name || "Current Model",
+        },
+      })
+    );
+  }
+
+  /**
+   * Deselect current object
+   */
+  deselectObject() {
+    if (this.selectedObject) {
+      this.unhighlightObject(this.selectedObject);
+      const previousObject = this.selectedObject;
+      this.selectedObject = null;
+
+      // Dispatch deselection event
+      this.container.dispatchEvent(
+        new CustomEvent("modelDeselect", {
+          detail: { object: previousObject },
+        })
+      );
+    }
+  }
+
+  /**
+   * Highlight an object
+   */
+  highlightObject(object, color, opacity) {
+    if (!object.isMesh) return;
+
+    // Store original material if not already stored
+    if (!this.originalMaterials.has(object.uuid)) {
+      this.originalMaterials.set(object.uuid, {
+        material: object.material,
+        color: object.material.color?.clone(),
+        emissive: object.material.emissive?.clone(),
+      });
+    }
+
+    // Apply highlight
+    if (object.material.emissive) {
+      object.material.emissive.setHex(color);
+      object.material.emissiveIntensity = opacity;
+    }
+  }
+
+  /**
+   * Remove highlight from object
+   */
+  unhighlightObject(object) {
+    if (!object.isMesh) return;
+
+    const original = this.originalMaterials.get(object.uuid);
+    if (original && object.material.emissive) {
+      if (original.emissive) {
+        object.material.emissive.copy(original.emissive);
+      } else {
+        object.material.emissive.setHex(0x000000);
+      }
+      object.material.emissiveIntensity = 1.0;
+    }
+  }
+
+  /**
+   * Enable or disable model interaction
+   */
+  setInteractionEnabled(enabled) {
+    this.interactionEnabled = enabled;
+    if (!enabled) {
+      this.deselectObject();
+      if (this.hoveredObject) {
+        this.unhighlightObject(this.hoveredObject);
+        this.hoveredObject = null;
+      }
+      this.renderer.domElement.style.cursor = "default";
+    }
+  }
+
+  /**
    * Toggle full-screen mode for the viewer
    * @returns {Promise<boolean>} Fullscreen state after toggle
    */
@@ -671,6 +972,84 @@ export class Viewer3D {
 
     // Render scene
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /**
+   * Get current viewer state for saving/restoring
+   */
+  getState() {
+    return {
+      camera: {
+        position: this.camera.position.clone(),
+        target: this.controls.target.clone(),
+      },
+      settings: { ...this.settings },
+      wireframeMode: this.wireframeMode,
+      autoRotate: this.autoRotate,
+      isFullscreen: this.isFullscreen,
+    };
+  }
+
+  /**
+   * Restore viewer state from saved state object
+   */
+  setState(state) {
+    if (!state) return;
+
+    // Restore camera
+    if (state.camera) {
+      this.camera.position.copy(state.camera.position);
+      this.controls.target.copy(state.camera.target);
+      this.controls.update();
+    }
+
+    // Restore settings
+    if (state.settings) {
+      this.settings = { ...state.settings };
+
+      // Apply settings to scene
+      if (this.helpers.grid) {
+        this.helpers.grid.visible = this.settings.showGrid;
+      }
+      if (this.helpers.axes) {
+        this.helpers.axes.visible = this.settings.showAxes;
+      }
+
+      // Update shadows
+      this.renderer.shadowMap.enabled = this.settings.enableShadows;
+      if (this.lights.directional) {
+        this.lights.directional.castShadow = this.settings.enableShadows;
+      }
+
+      // Update lighting
+      if (this.lights.ambient) {
+        this.lights.ambient.intensity = this.settings.ambientIntensity;
+      }
+      if (this.lights.directional) {
+        this.lights.directional.intensity = this.settings.directionalIntensity;
+      }
+
+      // Update model scale
+      if (this.currentModel) {
+        this.currentModel.scale.setScalar(this.settings.modelScale);
+      }
+    }
+
+    // Restore wireframe mode
+    if (state.wireframeMode !== this.wireframeMode) {
+      this.toggleWireframe();
+    }
+
+    // Restore auto-rotate
+    if (state.autoRotate !== undefined) {
+      this.autoRotate = state.autoRotate;
+      this.controls.autoRotate = state.autoRotate;
+    }
+
+    // Restore fullscreen (if needed)
+    if (state.isFullscreen && !this.isFullscreen) {
+      this.toggleFullscreen();
+    }
   }
 
   dispose() {

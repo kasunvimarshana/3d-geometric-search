@@ -43,68 +43,101 @@
             <div class="viewer-controls">
               <!-- Zoom Controls -->
               <div class="control-group-inline">
-                <button class="btn-icon" id="zoomInBtn" title="Zoom In">
+                <button
+                  class="btn-icon"
+                  id="zoomInBtn"
+                  title="Zoom In (+ or =)"
+                >
                   🔍+
                 </button>
-                <button class="btn-icon" id="zoomOutBtn" title="Zoom Out">
+                <button class="btn-icon" id="zoomOutBtn" title="Zoom Out (-)">
                   🔍-
                 </button>
-                <button class="btn-icon" id="fitViewBtn" title="Fit to View">
+                <button
+                  class="btn-icon"
+                  id="fitViewBtn"
+                  title="Fit to View (0)"
+                >
                   ⛶
                 </button>
               </div>
 
               <!-- View Controls -->
-              <button class="btn-icon" id="resetViewBtn" title="Reset View">
-                🔄
-              </button>
-              <button class="btn-icon" id="autoRotateBtn" title="Auto Rotate">
-                🔁
-              </button>
+              <div class="control-group-inline">
+                <button
+                  class="btn-icon"
+                  id="resetViewBtn"
+                  title="Reset View (R)"
+                >
+                  🔄
+                </button>
+                <button
+                  class="btn-icon"
+                  id="resetAllBtn"
+                  title="Reset All (Shift+R)"
+                >
+                  ⟲
+                </button>
+                <button
+                  class="btn-icon"
+                  id="autoRotateBtn"
+                  title="Auto Rotate (Space)"
+                >
+                  🔁
+                </button>
+              </div>
 
               <!-- Display Controls -->
-              <button
-                class="btn-icon"
-                id="wireframeBtn"
-                title="Toggle Wireframe"
-              >
-                🔲
-              </button>
-              <button class="btn-icon" id="gridBtn" title="Toggle Grid">
-                📐
-              </button>
-              <button class="btn-icon" id="axesBtn" title="Toggle Axes">
-                🎯
-              </button>
-              <button class="btn-icon" id="shadowsBtn" title="Toggle Shadows">
-                💡
-              </button>
+              <div class="control-group-inline">
+                <button
+                  class="btn-icon"
+                  id="wireframeBtn"
+                  title="Toggle Wireframe (W)"
+                >
+                  🔲
+                </button>
+                <button class="btn-icon" id="gridBtn" title="Toggle Grid (G)">
+                  📐
+                </button>
+                <button class="btn-icon" id="axesBtn" title="Toggle Axes (A)">
+                  🎯
+                </button>
+                <button
+                  class="btn-icon"
+                  id="shadowsBtn"
+                  title="Toggle Shadows (S)"
+                >
+                  💡
+                </button>
+              </div>
 
               <!-- Capture & Settings -->
-              <button
-                class="btn-icon"
-                id="screenshotBtn"
-                title="Take Screenshot"
-              >
-                📷
-              </button>
-              <button
-                class="btn-icon"
-                id="fullscreenBtn"
-                title="Fullscreen (F)"
-              >
-                ⛶
-              </button>
-              <button class="btn-icon" id="settingsBtn" title="Settings">
-                ⚙️
-              </button>
-              <button
-                class="btn-icon"
-                id="keyboardHelpBtn"
-                title="Keyboard Shortcuts"
-              >
-                ⌨️
-              </button>
+              <div class="control-group-inline">
+                <button
+                  class="btn-icon"
+                  id="screenshotBtn"
+                  title="Take Screenshot"
+                >
+                  📷
+                </button>
+                <button
+                  class="btn-icon"
+                  id="fullscreenBtn"
+                  title="Fullscreen (F)"
+                >
+                  ⛶
+                </button>
+                <button class="btn-icon" id="settingsBtn" title="Settings">
+                  ⚙️
+                </button>
+                <button
+                  class="btn-icon"
+                  id="keyboardHelpBtn"
+                  title="Keyboard Shortcuts (? or K)"
+                >
+                  ⌨️
+                </button>
+              </div>
             </div>
           </div>
 
@@ -306,6 +339,10 @@
                 <tr>
                   <td><kbd>R</kbd></td>
                   <td>Reset View</td>
+                </tr>
+                <tr>
+                  <td><kbd>Shift</kbd> + <kbd>R</kbd></td>
+                  <td>Reset All Settings</td>
                 </tr>
                 <tr>
                   <td><kbd>0</kbd></td>
