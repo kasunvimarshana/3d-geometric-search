@@ -5,8 +5,10 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { EventHandlerManager } from "./eventBus.js";
 import Config from "./config.js";
+
+// Get EventHandlerManager from global scope
+const EventHandlerManager = window.EventHandlerManager;
 
 export class Viewer3D {
   constructor(containerId) {
@@ -749,6 +751,59 @@ export class Viewer3D {
       console.log("[Viewer] Focused on model");
     } catch (error) {
       console.error("[Viewer] Error focusing on model:", error);
+    }
+  }
+
+  /**
+   * Focus camera on specific object (mesh or group)
+   * Used for focusing on individual model sections
+   */
+  focusOnObject(object) {
+    if (!object) {
+      console.warn("[Viewer] No object to focus on");
+      return;
+    }
+
+    try {
+      // Calculate object bounds
+      const box = new THREE.Box3().setFromObject(object);
+
+      if (box.isEmpty()) {
+        console.warn("[Viewer] Object has empty bounding box");
+        return;
+      }
+
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      // Calculate camera distance
+      const fov = this.camera.fov * (Math.PI / 180);
+      let cameraDistance = Math.abs(maxDim / Math.sin(fov / 2));
+      cameraDistance *= 1.5; // Add padding
+
+      // Update controls target
+      this.controls.target.copy(center);
+
+      // Move camera to new position
+      const direction = new THREE.Vector3();
+      this.camera.getWorldDirection(direction);
+      direction.multiplyScalar(-cameraDistance);
+
+      const newPosition = center.clone().add(direction);
+      this.camera.position.copy(newPosition);
+
+      // Update controls
+      this.controls.update();
+
+      // Select the object if it's a mesh
+      if (object.isMesh) {
+        this.selectObject(object);
+      }
+
+      console.log("[Viewer] Focused on object:", object.name || object.type);
+    } catch (error) {
+      console.error("[Viewer] Error focusing on object:", error);
     }
   }
 

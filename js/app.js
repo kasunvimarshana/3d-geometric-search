@@ -8,10 +8,13 @@ import { Viewer3D } from "./viewer.js";
 import { ModelLoader } from "./modelLoader.js";
 import { GeometryAnalyzer } from "./geometryAnalyzer.js";
 import { ExportManager } from "./exportManager.js";
-import { SectionManager } from "./sectionManager.js";
-import { EventHandlerManager } from "./eventBus.js";
 import { showToast, formatFileSize, validateFileType } from "./utils.js";
 import Config from "./config.js";
+
+// Get global classes loaded as non-module scripts
+const SectionManager = window.SectionManager;
+const EventHandlerManager = window.EventHandlerManager;
+const NavigationManager = window.NavigationManager;
 
 class App {
   constructor() {
@@ -31,6 +34,12 @@ class App {
     // Event handler management for proper cleanup
     this.eventManager = new EventHandlerManager();
 
+    // Navigation manager
+    this.navigationManager = null;
+
+    // Model hierarchy panel
+    this.hierarchyPanel = null;
+
     this.init();
   }
 
@@ -45,6 +54,12 @@ class App {
 
     // Setup lazy-loading sections
     this.initializeLazySections();
+
+    // Initialize navigation system
+    this.initializeNavigation();
+
+    // Initialize model hierarchy panel
+    this.initializeHierarchyPanel();
 
     // Setup event listeners
     this.setupEventListeners();
@@ -78,6 +93,73 @@ class App {
       onLoad: () => this.loadResultsSection(),
       persistent: false,
     });
+  }
+
+  /**
+   * Initialize navigation system
+   */
+  initializeNavigation() {
+    try {
+      // Get EventBus from global scope (loaded as non-module script)
+      const eventBus = window.eventBus;
+
+      if (!eventBus) {
+        console.warn(
+          "EventBus not available, navigation may have limited functionality"
+        );
+      }
+
+      // Create NavigationManager instance
+      this.navigationManager = new NavigationManager(
+        this.eventManager,
+        this.sectionManager,
+        eventBus || { on: () => {}, emit: () => {} } // Fallback
+      );
+
+      // Initialize navigation
+      const initialized = this.navigationManager.init();
+
+      if (initialized) {
+        console.log("Navigation system initialized successfully");
+      } else {
+        console.warn("Navigation system initialization had warnings");
+      }
+    } catch (error) {
+      console.error("Failed to initialize navigation system:", error);
+    }
+  }
+
+  /**
+   * Initialize model hierarchy panel
+   */
+  initializeHierarchyPanel() {
+    try {
+      const eventBus = window.eventBus;
+      const ModelHierarchyPanel = window.ModelHierarchyPanel;
+
+      if (!ModelHierarchyPanel) {
+        console.warn("ModelHierarchyPanel class not available");
+        return;
+      }
+
+      // Create hierarchy panel instance
+      this.hierarchyPanel = new ModelHierarchyPanel(
+        this.viewer,
+        this.eventManager,
+        eventBus || { on: () => {}, emit: () => {} }
+      );
+
+      // Initialize panel
+      const initialized = this.hierarchyPanel.init();
+
+      if (initialized) {
+        console.log("Model hierarchy panel initialized successfully");
+      } else {
+        console.warn("Model hierarchy panel initialization had warnings");
+      }
+    } catch (error) {
+      console.error("Failed to initialize hierarchy panel:", error);
+    }
   }
 
   /**
@@ -981,6 +1063,15 @@ class App {
 
       // Update active state in library
       this.updateLibrarySelection(modelName);
+
+      // Emit event for hierarchy panel to update
+      if (window.eventBus) {
+        window.eventBus.emit("model:loaded", {
+          name: modelName,
+          model: this.viewer.currentModel,
+          features: model.features,
+        });
+      }
 
       console.log(`[App] Displayed model: ${modelName}`);
     } catch (error) {

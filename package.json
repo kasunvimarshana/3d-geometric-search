@@ -1,7 +1,7 @@
 {
   "name": "3d-geometric-search",
-  "version": "1.7.5",
-  "description": "Enhanced web application for 3D geometric search with centralized event management, memory leak prevention, lazy-loading sections, on-demand rendering, interactive visualization, model interaction (click to select, hover effects), raycasting, comprehensive reset features, state management, fullscreen mode, keyboard shortcuts, advanced zoom/scaling controls, improved error handling, and organized UI",
+  "version": "1.8.3",
+  "description": "Enhanced web application for 3D geometric search with comprehensive model hierarchy panel featuring state observation, refresh mechanism, bidirectional synchronization, real-time state monitoring, structured navigation system, hierarchical section listing, centralized event management, memory leak prevention, lazy-loading sections, on-demand rendering, interactive visualization, model interaction (click to select, hover effects), raycasting, comprehensive reset features, state management, fullscreen mode, keyboard shortcuts, advanced zoom/scaling controls, improved error handling, and organized UI",
   "main": "index.html",
   "scripts": {
     "dev": "python3 -m http.server 8000",

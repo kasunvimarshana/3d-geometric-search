@@ -8,13 +8,13 @@
  * - Event handler reference tracking
  */
 
-import { EventHandlerManager } from "./eventBus.js";
-
-export class SectionManager {
+class SectionManager {
   constructor() {
     this.sections = new Map();
     this.loadedSections = new Set();
     this.visibleSections = new Set();
+    // Get EventHandlerManager from global scope
+    const EventHandlerManager = window.EventHandlerManager;
     this.eventManager = new EventHandlerManager();
     this.cleanupFunctions = new Map();
     this.toggleDebounce = new Map(); // Prevent rapid toggles
@@ -429,4 +429,9 @@ export class SectionManager {
 
     console.log("[SectionManager] Cleanup complete");
   }
+}
+
+// Export to global scope
+if (typeof window !== "undefined") {
+  window.SectionManager = SectionManager;
 }

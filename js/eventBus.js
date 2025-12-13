@@ -11,7 +11,7 @@
  * - Wildcard event listeners
  */
 
-export class EventBus {
+class EventBus {
   constructor(options = {}) {
     this.listeners = new Map();
     this.onceListeners = new Map();
@@ -455,7 +455,7 @@ export class EventBus {
  * manager.clear();
  * ```
  */
-export class EventHandlerManager {
+class EventHandlerManager {
   constructor() {
     this.handlers = new Map();
     this.abortControllers = new Map();
@@ -661,9 +661,14 @@ export class EventHandlerManager {
   }
 }
 
-// Export singleton instance
-export const globalEventBus = new EventBus({
-  enableLogging: false,
-  enableHistory: true,
-  maxHistorySize: 100,
-});
+// Export to global scope for use in non-module scripts
+if (typeof window !== "undefined") {
+  window.EventBus = EventBus;
+  window.EventHandlerManager = EventHandlerManager;
+  window.eventBus = new EventBus({
+    enableLogging: false,
+    enableHistory: true,
+    maxHistorySize: 100,
+  });
+  window.globalEventBus = window.eventBus; // Alias for compatibility
+}
