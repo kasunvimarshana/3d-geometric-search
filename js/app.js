@@ -49,6 +49,14 @@ class App {
     showToast(message, type, duration);
   }
 
+  /**
+   * Get current model name
+   * @returns {string|null} Current model name
+   */
+  getCurrentModelName() {
+    return this.currentModelName;
+  }
+
   async handleFiles(files) {
     for (let file of files) {
       await this.loadFile(file);
@@ -284,20 +292,20 @@ class App {
     }
   }
 
+  /**
+   * Update the active state of model cards in the library
+   * @param {string} selectedName - Name of the selected model
+   */
   updateLibrarySelection(selectedName) {
     const cards = document.querySelectorAll(".model-card");
     cards.forEach((card) => {
-      card.classList.remove("active");
+      const cardName = card.dataset.modelName;
+      if (cardName === selectedName) {
+        card.classList.add("active");
+      } else {
+        card.classList.remove("active");
+      }
     });
-
-    // Find and activate the selected card
-    const allCards = Array.from(cards);
-    const selectedCard = allCards.find(
-      (card) => card.querySelector("h4").textContent === selectedName
-    );
-    if (selectedCard) {
-      selectedCard.classList.add("active");
-    }
   }
 
   /**
@@ -308,7 +316,7 @@ class App {
   highlightModelCard(modelName, isHover = false) {
     const cards = document.querySelectorAll(".model-card");
     cards.forEach((card) => {
-      const cardName = card.querySelector("h4").textContent;
+      const cardName = card.dataset.modelName;
       if (cardName === modelName) {
         if (isHover) {
           card.classList.add("highlighted");
@@ -412,7 +420,17 @@ class App {
   toggleAdvancedControls() {
     const controls = document.getElementById("advancedControls");
     const isVisible = controls.style.display !== "none";
-    controls.style.display = isVisible ? "none" : "block";
+    
+    if (isVisible) {
+      controls.style.display = "none";
+    } else {
+      controls.style.display = "block";
+      // Add animation class when showing
+      controls.classList.add("advanced-controls--animate");
+      setTimeout(() => {
+        controls.classList.remove("advanced-controls--animate");
+      }, 200);
+    }
   }
 
   takeScreenshot() {

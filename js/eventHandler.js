@@ -335,9 +335,12 @@ export class EventHandler {
         if (modelName) {
           this.app.highlightModelCard(modelName, true);
           const highlightDuration = 1500; // ms
+          const currentSelection = this.app.getCurrentModelName();
           setTimeout(() => {
             this.app.clearHighlight();
-            this.app.updateLibrarySelection(this.app.currentModelName);
+            if (currentSelection) {
+              this.app.updateLibrarySelection(currentSelection);
+            }
           }, highlightDuration);
         }
       });

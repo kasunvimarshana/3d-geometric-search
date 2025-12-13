@@ -250,6 +250,9 @@ header h1 {
   border: 1px solid var(--color-border);
   padding: 16px;
   margin-top: 12px;
+}
+
+.advanced-controls--animate {
   animation: slideDown 0.2s ease;
 }
 
