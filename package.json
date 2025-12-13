@@ -1,0 +1,31 @@
+{
+  "name": "3d-geometric-search",
+  "version": "1.0.0",
+  "description": "Professional 3D geometric model viewer with section management and navigation",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js",
+    "format": "prettier --write \"src/**/*.{js,css,html}\""
+  },
+  "keywords": [
+    "3d",
+    "viewer",
+    "geometry",
+    "sections",
+    "threejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0"
+  }
+}

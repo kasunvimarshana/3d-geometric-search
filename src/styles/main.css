@@ -1,0 +1,358 @@
+/**
+ * Main stylesheet for 3D Geometric Search application
+ * Clean, professional, minimal design
+ */
+
+/* ========== Reset & Base Styles ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --color-primary: #2c3e50;
+  --color-secondary: #34495e;
+  --color-accent: #3498db;
+  --color-success: #27ae60;
+  --color-danger: #e74c3c;
+  --color-warning: #f39c12;
+  --color-background: #ecf0f1;
+  --color-surface: #ffffff;
+  --color-text: #2c3e50;
+  --color-text-light: #7f8c8d;
+  --color-border: #bdc3c7;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --border-radius: 4px;
+  --transition: 200ms ease;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  overflow: hidden;
+}
+
+/* ========== Layout ========== */
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+#controls-panel {
+  width: 320px;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.controls-header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.controls-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.controls-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+#viewer-container {
+  flex: 1;
+  position: relative;
+  background-color: var(--color-background);
+}
+
+#canvas-3d {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#info-overlay {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+/* ========== Controls ========== */
+.control-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.control-group > label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text);
+}
+
+/* ========== Inputs ========== */
+select,
+input[type="range"] {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-family: var(--font-family);
+  font-size: 14px;
+  background-color: var(--color-surface);
+  transition: border-color var(--transition);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+select:disabled {
+  background-color: var(--color-background);
+  cursor: not-allowed;
+}
+
+input[type="range"] {
+  padding: 0;
+  height: 32px;
+  cursor: pointer;
+}
+
+input[type="range"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#zoom-value {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+/* ========== Buttons ========== */
+button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#load-model-btn {
+  margin-top: var(--spacing-sm);
+  width: 100%;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.button-grid button {
+  width: 100%;
+}
+
+#fullscreen-btn {
+  grid-column: 1 / -1;
+}
+
+/* ========== Sections List ========== */
+#sections-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-surface);
+}
+
+.no-sections {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--color-text-light);
+  font-size: 13px;
+}
+
+.sections-tree {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.section-item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-item:last-child {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm);
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+
+.section-header:hover {
+  background-color: var(--color-background);
+}
+
+.section-toggle {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-right: var(--spacing-xs);
+  border: none;
+  background: none;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-spacer {
+  width: 24px;
+  margin-right: var(--spacing-xs);
+}
+
+.section-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.section-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-surface);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.action-btn:hover {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  transform: scale(1.1);
+}
+
+.section-children {
+  padding-left: var(--spacing-lg);
+}
+
+.section-item.collapsed > .section-children {
+  display: none;
+}
+
+/* ========== Scrollbar Styling ========== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-light);
+}
+
+/* ========== Fullscreen Mode ========== */
+#app.fullscreen #controls-panel {
+  display: none;
+}
+
+#app.fullscreen #viewer-container {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 768px) {
+  #controls-panel {
+    width: 280px;
+  }
+
+  .controls-header h1 {
+    font-size: 16px;
+  }
+
+  .button-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== Utilities ========== */
+.hidden {
+  display: none !important;
+}
+
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}

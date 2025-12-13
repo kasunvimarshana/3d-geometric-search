@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Geometric Search</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <div id="controls-panel">
+      <div class="controls-header">
+        <h1>3D Geometric Search</h1>
+      </div>
+      <div class="controls-content">
+        <div class="control-group">
+          <label for="model-selector">Model:</label>
+          <select id="model-selector">
+            <option value="">Select a model...</option>
+          </select>
+          <button id="load-model-btn" disabled>Load Model</button>
+        </div>
+        
+        <div class="control-group">
+          <label>Sections:</label>
+          <div id="sections-list"></div>
+        </div>
+        
+        <div class="control-group">
+          <label>View Controls:</label>
+          <div class="button-grid">
+            <button id="reset-view-btn" disabled>Reset View</button>
+            <button id="refresh-btn" disabled>Refresh</button>
+            <button id="fullscreen-btn">Fullscreen</button>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <label for="zoom-slider">Zoom:</label>
+          <input type="range" id="zoom-slider" min="1" max="200" value="100" disabled>
+          <span id="zoom-value">100%</span>
+        </div>
+      </div>
+    </div>
+    
+    <div id="viewer-container">
+      <canvas id="canvas-3d"></canvas>
+      <div id="info-overlay">
+        <span id="section-info"></span>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

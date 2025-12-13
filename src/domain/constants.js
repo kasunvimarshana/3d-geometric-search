@@ -1,0 +1,56 @@
+/**
+ * Application-wide constants
+ * Single source of truth for configuration values
+ */
+
+export const EVENTS = {
+  MODEL_LOADED: 'model:loaded',
+  MODEL_LOAD_ERROR: 'model:load:error',
+  SECTION_SELECTED: 'section:selected',
+  SECTION_ISOLATED: 'section:isolated',
+  SECTION_HIGHLIGHTED: 'section:highlighted',
+  ISOLATION_CLEARED: 'isolation:cleared',
+  VIEW_RESET: 'view:reset',
+  ZOOM_CHANGED: 'zoom:changed',
+  FULLSCREEN_TOGGLED: 'fullscreen:toggled',
+  STATE_CHANGED: 'state:changed',
+};
+
+export const CAMERA_DEFAULTS = {
+  FOV: 45,
+  NEAR: 0.1,
+  FAR: 1000,
+  POSITION: { x: 0, y: 5, z: 10 },
+  TARGET: { x: 0, y: 0, z: 0 },
+};
+
+export const RENDERER_CONFIG = {
+  ANTIALIAS: true,
+  ALPHA: true,
+  PIXEL_RATIO: window.devicePixelRatio || 1,
+};
+
+export const COLORS = {
+  BACKGROUND: 0xf5f5f5,
+  HIGHLIGHT: 0x4a90e2,
+  ISOLATED: 0x50c878,
+  DEFAULT: 0xcccccc,
+  AMBIENT_LIGHT: 0xffffff,
+  DIRECTIONAL_LIGHT: 0xffffff,
+};
+
+export const ANIMATION_DURATION = 300; // milliseconds
+
+export const ZOOM_CONFIG = {
+  MIN: 1,
+  MAX: 200,
+  DEFAULT: 100,
+  STEP: 10,
+};
+
+export const MODEL_TYPES = {
+  GLTF: 'gltf',
+  GLB: 'glb',
+  OBJ: 'obj',
+  FBX: 'fbx',
+};
