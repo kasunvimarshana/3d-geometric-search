@@ -1,15 +1,12 @@
 /**
  * Event Handler Module - Clean & Modular
- * Manages all event handling with SOLID principles
- * Features: Separation of concerns, easy to maintain and extend
+ * Manages all event handling with clear separation of concerns
  */
 
 export class EventHandler {
   constructor(app) {
     this.app = app;
     this.eventManager = app.eventManager;
-    this.eventBus = window.eventBus;
-    this.cleanupFunctions = [];
   }
 
   /**
@@ -22,8 +19,6 @@ export class EventHandler {
     this.setupLibraryEvents();
     this.setupKeyboardEvents();
     this.setupModalEvents();
-    this.setupViewerInteractionEvents();
-    this.setupSectionHighlightingEvents();
   }
 
   /**
@@ -145,7 +140,7 @@ export class EventHandler {
       },
       scaleSlider: (e) => {
         const value = parseFloat(e.target.value);
-        this.app.viewer?.setModelScale(value);
+        this.app.viewer?.scaleModel(value);
         const display = document.getElementById("scaleValue");
         if (display) display.textContent = value.toFixed(1);
       },
@@ -179,10 +174,10 @@ export class EventHandler {
    */
   setupLibraryEvents() {
     const libraryHandlers = {
-      exportAllBtn: () => this.app.exportAllAnalysis?.(),
-      generateReportBtn: () => this.app.generateReport?.(),
-      clearLibraryBtn: () => this.handleClearLibrary(),
-      exportSimilarityBtn: () => this.app.exportSimilarityResults?.(),
+      exportAllBtn: () => this.app.exportAllData(),
+      generateReportBtn: () => this.app.generateReport(),
+      clearLibraryBtn: () => this.app.clearLibrary(),
+      exportSimilarityBtn: () => this.app.exportSimilarityResults(),
     };
 
     Object.entries(libraryHandlers).forEach(([id, handler]) => {
@@ -202,10 +197,10 @@ export class EventHandler {
         if (deleteBtn && card) {
           e.stopPropagation();
           const modelName = card.dataset.modelName;
-          if (modelName) this.handleDeleteModel(modelName);
+          if (modelName) this.app.deleteModel(modelName);
         } else if (card) {
           const modelName = card.dataset.modelName;
-          if (modelName) this.app.displayModel?.(modelName);
+          if (modelName) this.app.displayModel(modelName);
         }
       });
     }
@@ -302,74 +297,8 @@ export class EventHandler {
     });
   }
 
-  /**
-   * Setup viewer interaction events (click, hover)
-   */
-  setupViewerInteractionEvents() {
-    if (!this.app.viewer?.renderer) return;
-
-    const canvas = this.app.viewer.renderer.domElement;
-
-    // Double-click to focus
-    this.eventManager.add(canvas, "dblclick", () => {
-      this.app.viewer?.focusOnModel();
-    });
-
-    // Click to select section
-    this.eventManager.add(canvas, "click", (e) => {
-      if (this.app.viewer) {
-        this.app.viewer.updateMousePosition(e);
-        const intersections = this.app.viewer.getIntersections();
-        if (intersections.length > 0) {
-          this.handleSectionClick(intersections[0].object);
-        }
-      }
-    });
-
-    // Hover to highlight
-    this.eventManager.add(
-      canvas,
-      "mousemove",
-      this.throttle((e) => {
-        if (this.app.viewer) {
-          this.app.viewer.updateMousePosition(e);
-          const intersections = this.app.viewer.getIntersections();
-          if (intersections.length > 0) {
-            this.handleSectionHover(intersections[0].object);
-          } else {
-            this.clearSectionHover();
-          }
-        }
-      }, 50)
-    );
-  }
-
-  /**
-   * Setup section highlighting events for bidirectional sync
-   */
-  setupSectionHighlightingEvents() {
-    if (!this.eventBus) return;
-
-    // Listen for section events from hierarchy panel
-    this.eventBus.on("section:click", (data) => {
-      if (data.sectionId) {
-        this.highlightSection(data.sectionId, "list");
-      }
-    });
-
-    this.eventBus.on("section:hover", (data) => {
-      if (data.sectionId) {
-        this.hoverSection(data.sectionId);
-      }
-    });
-
-    this.eventBus.on("section:clear", () => {
-      this.clearSectionHighlight();
-    });
-  }
-
   // ===================================
-  // Handler Methods (Clean & Modular)
+  // Handler Methods
   // ===================================
 
   handleResetView() {
@@ -423,7 +352,7 @@ export class EventHandler {
   }
 
   handleScreenshot() {
-    this.app.takeScreenshot?.();
+    this.app.takeScreenshot();
   }
 
   async handleFullscreen() {
@@ -439,60 +368,18 @@ export class EventHandler {
   }
 
   handleSettings() {
-    this.app.toggleAdvancedControls?.();
+    this.app.toggleAdvancedControls();
   }
 
   handleKeyboardHelp() {
-    this.app.showKeyboardHelp?.();
-  }
-
-  handleClearLibrary() {
-    if (confirm("Clear all models from library?")) {
-      this.app.clearLibrary?.();
-    }
-  }
-
-  handleDeleteModel(modelName) {
-    if (confirm(`Delete model "${modelName}"?`)) {
-      this.app.deleteModel?.(modelName);
-    }
+    this.app.showKeyboardHelp();
   }
 
   handleResetAll() {
     if (confirm("Reset all settings to default?")) {
-      this.app.resetAllSettings?.();
+      this.app.viewer?.resetAll();
+      this.showToast("All settings reset", "success");
     }
-  }
-
-  handleSectionClick(object) {
-    if (!object) return;
-
-    const sectionId = object.uuid;
-    this.eventBus?.emit("model:section:click", { sectionId, object });
-    this.highlightSection(sectionId, "model");
-  }
-
-  handleSectionHover(object) {
-    if (!object) return;
-
-    const sectionId = object.uuid;
-    this.eventBus?.emit("model:section:hover", { sectionId, object });
-  }
-
-  clearSectionHover() {
-    this.eventBus?.emit("model:section:hover:clear");
-  }
-
-  highlightSection(sectionId, source) {
-    this.eventBus?.emit("highlight:section", { sectionId, source });
-  }
-
-  hoverSection(sectionId) {
-    this.eventBus?.emit("hover:section", { sectionId });
-  }
-
-  clearSectionHighlight() {
-    this.eventBus?.emit("highlight:clear");
   }
 
   // ===================================
@@ -502,16 +389,13 @@ export class EventHandler {
   updateZoomIndicator() {
     const zoomLevel = document.getElementById("zoomLevel");
     if (zoomLevel && this.app.viewer) {
-      const distance = this.app.viewer.camera?.position.length() || 50;
-      const zoom = Math.round((distance / 100) * 100);
-      zoomLevel.textContent = zoom;
+      const level = this.app.viewer.getZoomLevel();
+      zoomLevel.textContent = level;
     }
   }
 
   showToast(message, type = "info", duration = 2000) {
-    if (typeof showToast === "function") {
-      showToast(message, type, duration);
-    } else if (this.app.showToast) {
+    if (this.app.showToast) {
       this.app.showToast(message, type, duration);
     }
   }
@@ -520,30 +404,10 @@ export class EventHandler {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
-  throttle(func, wait) {
-    let timeout;
-    let lastCall = 0;
-    return function (...args) {
-      const now = Date.now();
-      if (now - lastCall < wait) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-          lastCall = now;
-          func.apply(this, args);
-        }, wait - (now - lastCall));
-      } else {
-        lastCall = now;
-        func.apply(this, args);
-      }
-    };
-  }
-
   /**
    * Cleanup all event listeners
    */
   cleanup() {
     this.eventManager?.clear();
-    this.cleanupFunctions.forEach((cleanup) => cleanup());
-    this.cleanupFunctions = [];
   }
 }
