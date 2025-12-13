@@ -226,6 +226,27 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## Documentation
+
+### User Guides
+
+- [USAGE.md](USAGE.md) - Comprehensive usage guide
+- [QUICK_START_INTERACTION.md](QUICK_START_INTERACTION.md) - Quick start for model interactions
+- [DEMO.html](DEMO.html) - Interactive feature demonstration
+
+### Technical Documentation
+
+- [LAZY_LOADING_GUIDE.md](LAZY_LOADING_GUIDE.md) - Lazy-loading system architecture (v1.6.0)
+- [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing procedures and benchmarks (v1.6.0)
+- [DEVELOPER.md](DEVELOPER.md) - Technical implementation details
+- [MODEL_INTERACTION_GUIDE.md](MODEL_INTERACTION_GUIDE.md) - Model interaction features (v1.5.0)
+
+### Project Info
+
+- [CHANGELOG.md](CHANGELOG.md) - Version history and changes
+- [v1.6.0_IMPLEMENTATION_SUMMARY.md](v1.6.0_IMPLEMENTATION_SUMMARY.md) - Lazy-loading implementation summary
+- [v1.5.0_IMPLEMENTATION_SUMMARY.md](v1.5.0_IMPLEMENTATION_SUMMARY.md) - Model interaction implementation
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

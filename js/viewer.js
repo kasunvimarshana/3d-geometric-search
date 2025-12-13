@@ -5,6 +5,7 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { EventHandlerManager } from "./eventBus.js";
 import Config from "./config.js";
 
 export class Viewer3D {
@@ -21,6 +22,9 @@ export class Viewer3D {
     this.animationId = null;
     this.autoRotate = false;
     this.isFullscreen = false;
+
+    // Event handler management for proper cleanup
+    this.eventManager = new EventHandlerManager();
 
     // Model interaction properties
     this.raycaster = new THREE.Raycaster();
@@ -107,40 +111,116 @@ export class Viewer3D {
       this.scene.add(this.helpers.axes);
     }
 
-    // Handle window resize
-    window.addEventListener("resize", () => this.onWindowResize());
-
-    // Handle fullscreen change
-    document.addEventListener("fullscreenchange", () =>
-      this.onFullscreenChange()
-    );
-    document.addEventListener("webkitfullscreenchange", () =>
-      this.onFullscreenChange()
-    );
-    document.addEventListener("mozfullscreenchange", () =>
-      this.onFullscreenChange()
-    );
-    document.addEventListener("MSFullscreenChange", () =>
-      this.onFullscreenChange()
-    );
-
-    // Double-click to focus on model
-    this.renderer.domElement.addEventListener("dblclick", () => {
-      if (this.currentModel) {
-        this.focusOnModel();
-      }
-    });
-
-    // Model interaction events
-    this.renderer.domElement.addEventListener("click", (event) =>
-      this.onModelClick(event)
-    );
-    this.renderer.domElement.addEventListener("mousemove", (event) =>
-      this.onModelHover(event)
-    );
+    // Setup event listeners with proper tracking
+    this._setupEventListeners();
 
     // Start animation loop
     this.animate();
+  }
+
+  /**
+   * Create a throttled handler with consistent error handling
+   * @param {Function} func - Function to throttle
+   * @param {number} delay - Throttle delay in ms
+   * @param {string} context - Context for error logging
+   * @returns {Function} Throttled function
+   * @private
+   */
+  _createThrottleHandler(func, delay, context = "handler") {
+    let throttleTimer = null;
+    return (...args) => {
+      if (!throttleTimer) {
+        throttleTimer = setTimeout(() => {
+          try {
+            func.apply(this, args);
+          } catch (error) {
+            console.error(`[Viewer] Error in ${context}:`, error);
+          }
+          throttleTimer = null;
+        }, delay);
+      }
+    };
+  }
+
+  /**
+   * Create a safe handler wrapper with error handling
+   * @param {Function} func - Function to wrap
+   * @param {string} context - Context for error logging
+   * @returns {Function} Wrapped function
+   * @private
+   */
+  _createSafeHandler(func, context = "handler") {
+    return (...args) => {
+      try {
+        return func.apply(this, args);
+      } catch (error) {
+        console.error(`[Viewer] Error in ${context}:`, error);
+      }
+    };
+  }
+
+  /**
+   * Setup all event listeners with proper tracking
+   * @private
+   */
+  _setupEventListeners() {
+    // Handle window resize (throttled for performance)
+    this.eventManager.add(
+      window,
+      "resize",
+      this._createThrottleHandler(
+        () => this.onWindowResize(),
+        250,
+        "resize handler"
+      )
+    );
+
+    // Handle fullscreen change (all vendor prefixes)
+    const fullscreenHandler = this._createSafeHandler(
+      () => this.onFullscreenChange(),
+      "fullscreen handler"
+    );
+
+    this.eventManager.add(document, "fullscreenchange", fullscreenHandler);
+    this.eventManager.add(
+      document,
+      "webkitfullscreenchange",
+      fullscreenHandler
+    );
+    this.eventManager.add(document, "mozfullscreenchange", fullscreenHandler);
+    this.eventManager.add(document, "MSFullscreenChange", fullscreenHandler);
+
+    // Double-click to focus on model
+    this.eventManager.add(
+      this.renderer.domElement,
+      "dblclick",
+      this._createSafeHandler(() => {
+        if (this.currentModel) {
+          this.focusOnModel();
+        }
+      }, "double-click handler")
+    );
+
+    // Model interaction events
+    this.eventManager.add(
+      this.renderer.domElement,
+      "click",
+      this._createSafeHandler(
+        (event) => this.onModelClick(event),
+        "click handler"
+      )
+    );
+
+    // Throttle mousemove for performance (high-frequency event)
+    this.eventManager.add(
+      this.renderer.domElement,
+      "mousemove",
+      this._createThrottleHandler(
+        (event) => this.onModelHover(event),
+        50,
+        "mousemove handler"
+      )
+    );
   }
 
   addLights() {
@@ -225,6 +305,12 @@ export class Viewer3D {
 
     // Reset camera
     this.resetView();
+
+    // Auto-focus on model for optimal initial view
+    // Uses requestAnimationFrame to ensure geometry is ready
+    requestAnimationFrame(() => {
+      this.focusOnModel();
+    });
   }
 
   centerAndScaleModel(object) {
@@ -515,29 +601,51 @@ export class Viewer3D {
   }
 
   /**
-   * Fit camera to view the current model
+   * Fit camera to view the current model optimally
+   * Ensures entire model is visible with proper framing
    */
   fitToView() {
-    if (!this.currentModel) return;
+    if (!this.currentModel) {
+      console.warn("[Viewer] No model to fit to view");
+      return;
+    }
 
-    const box = new THREE.Box3().setFromObject(this.currentModel);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
+    try {
+      // Calculate model bounding box
+      const box = new THREE.Box3().setFromObject(this.currentModel);
 
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = this.camera.fov * (Math.PI / 180);
-    const cameraDistance = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+      // Verify valid bounds
+      if (box.isEmpty()) {
+        console.warn("[Viewer] Model has empty bounding box");
+        return;
+      }
 
-    this.controls.target.copy(center);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
 
-    const direction = new THREE.Vector3()
-      .subVectors(this.camera.position, center)
-      .normalize();
-    this.camera.position
-      .copy(center)
-      .addScaledVector(direction, cameraDistance);
+      // Calculate optimal camera distance based on model size
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = this.camera.fov * (Math.PI / 180);
+      const cameraDistance = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
 
-    this.controls.update();
+      // Update controls target to model center
+      this.controls.target.copy(center);
+
+      // Position camera at optimal distance
+      const direction = new THREE.Vector3()
+        .subVectors(this.camera.position, center)
+        .normalize();
+      this.camera.position
+        .copy(center)
+        .addScaledVector(direction, cameraDistance);
+
+      // Smooth update
+      this.controls.update();
+
+      console.log("[Viewer] Fitted model to view");
+    } catch (error) {
+      console.error("[Viewer] Error fitting to view:", error);
+    }
   }
 
   /**
@@ -608,16 +716,40 @@ export class Viewer3D {
   }
 
   /**
-   * Focus camera on current model
+   * Focus camera on current model with smooth transition
+   * Ensures optimal view of the model from all angles
    */
   focusOnModel() {
-    if (!this.currentModel) return;
+    if (!this.currentModel) {
+      console.warn("[Viewer] No model to focus on");
+      return;
+    }
 
-    const box = new THREE.Box3().setFromObject(this.currentModel);
-    const center = box.getCenter(new THREE.Vector3());
+    try {
+      // Calculate model bounds
+      const box = new THREE.Box3().setFromObject(this.currentModel);
 
-    this.controls.target.copy(center);
-    this.fitToView();
+      // Verify valid bounding box
+      if (box.isEmpty()) {
+        console.warn("[Viewer] Model has empty bounding box");
+        return;
+      }
+
+      const center = box.getCenter(new THREE.Vector3());
+
+      // Update controls target to model center
+      this.controls.target.copy(center);
+
+      // Fit model to view for optimal visibility
+      this.fitToView();
+
+      // Smooth update of controls
+      this.controls.update();
+
+      console.log("[Viewer] Focused on model");
+    } catch (error) {
+      console.error("[Viewer] Error focusing on model:", error);
+    }
   }
 
   /**
@@ -1053,11 +1185,53 @@ export class Viewer3D {
   }
 
   dispose() {
-    if (this.renderer) {
-      this.renderer.dispose();
+    console.log("[Viewer] Disposing viewer resources...");
+
+    try {
+      // Clean up event listeners first
+      this.cleanup();
+
+      // Dispose renderer
+      if (this.renderer) {
+        this.renderer.dispose();
+      }
+
+      // Dispose controls
+      if (this.controls) {
+        this.controls.dispose();
+      }
+
+      // Cancel animation frame
+      if (this.animationId) {
+        cancelAnimationFrame(this.animationId);
+        this.animationId = null;
+      }
+
+      // Clear scene
+      if (this.scene) {
+        this.scene.clear();
+      }
+
+      console.log("[Viewer] Disposal complete");
+    } catch (error) {
+      console.error("[Viewer] Error during disposal:", error);
     }
-    if (this.controls) {
-      this.controls.dispose();
+  }
+
+  /**
+   * Clean up all event listeners
+   * Call this when the viewer is being destroyed
+   */
+  cleanup() {
+    console.log("[Viewer] Cleaning up event listeners...");
+
+    try {
+      if (this.eventManager) {
+        this.eventManager.clear();
+        console.log("[Viewer] Event listeners cleaned up");
+      }
+    } catch (error) {
+      console.error("[Viewer] Error during cleanup:", error);
     }
   }
 }

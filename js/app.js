@@ -9,6 +9,7 @@ import { ModelLoader } from "./modelLoader.js";
 import { GeometryAnalyzer } from "./geometryAnalyzer.js";
 import { ExportManager } from "./exportManager.js";
 import { SectionManager } from "./sectionManager.js";
+import { EventHandlerManager } from "./eventBus.js";
 import { showToast, formatFileSize, validateFileType } from "./utils.js";
 import Config from "./config.js";
 
@@ -26,6 +27,9 @@ class App {
     this.sectionManager = new SectionManager();
     this.initializedSections = new Set();
     this.analysisCache = new Map();
+
+    // Event handler management for proper cleanup
+    this.eventManager = new EventHandlerManager();
 
     this.init();
   }
@@ -60,7 +64,7 @@ class App {
     this.sectionManager.registerSection("advanced-controls", {
       trigger: "settingsBtn",
       onLoad: () => this.loadAdvancedControls(),
-      persistent: false,
+      persistent: true,
     });
 
     this.sectionManager.registerSection("library-section", {
@@ -74,51 +78,22 @@ class App {
       onLoad: () => this.loadResultsSection(),
       persistent: false,
     });
-
-    // Setup section toggle handlers
-    this.setupSectionToggles();
-  }
-
-  /**
-   * Setup section toggle event handlers
-   */
-  setupSectionToggles() {
-    // Settings button toggles advanced controls
-    document.getElementById("settingsBtn")?.addEventListener("click", () => {
-      this.sectionManager.toggleSection("advanced-controls");
-    });
-
-    // Model info can be collapsed/expanded
-    const modelInfoHeader = document.getElementById("modelInfo");
-    if (modelInfoHeader) {
-      const header = document.createElement("div");
-      header.className = "section-toggle-header";
-      header.innerHTML =
-        '<span>📊 Model Information</span><span class="toggle-icon">▼</span>';
-      modelInfoHeader.insertBefore(header, modelInfoHeader.firstChild);
-
-      header.addEventListener("click", () => {
-        modelInfoHeader.classList.toggle("collapsed");
-        header.querySelector(".toggle-icon").textContent =
-          modelInfoHeader.classList.contains("collapsed") ? "▶" : "▼";
-      });
-    }
   }
 
   /**
    * Load advanced controls section on-demand
    */
   loadAdvancedControls() {
-    if (this.initializedSections.has("advanced-controls")) return;
+    // Only initialize once
+    if (this.initializedSections.has("advanced-controls")) {
+      return;
+    }
 
     console.log("[LazyLoad] Initializing advanced controls...");
 
-    // Advanced controls are already in the DOM, just make them interactive
-    const advancedControls = document.getElementById("advancedControls");
-    if (advancedControls) {
-      advancedControls.style.display = "block";
-    }
-
+    // Advanced controls are already in the DOM and interactive
+    // SectionManager handles visibility (display property)
+    // Just mark as initialized
     this.initializedSections.add("advanced-controls");
   }
 
@@ -168,313 +143,732 @@ class App {
   }
 
   setupEventListeners() {
-    // Upload button
+    // Setup all event handlers with proper tracking and error handling
+    this._setupUploadHandlers();
+    this._setupViewerControlHandlers();
+    this._setupKeyboardHandlers();
+    this._setupModelEventHandlers();
+    this._setupAdvancedControlHandlers();
+    this._setupLibraryHandlers();
+    this._setupSectionToggleHandlers();
+  }
+
+  /**
+   * Create a debounced handler with consistent error handling
+   * @param {Function} func - Function to debounce
+   * @param {number} delay - Debounce delay in ms
+   * @returns {Function} Debounced function
+   * @private
+   */
+  _createDebounceHandler(func, delay) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        try {
+          func.apply(this, args);
+        } catch (error) {
+          console.error("[App] Error in debounced handler:", error);
+        }
+      }, delay);
+    };
+  }
+
+  /**
+   * Create a throttled handler with consistent error handling
+   * @param {Function} func - Function to throttle
+   * @param {number} delay - Throttle delay in ms
+   * @returns {Function} Throttled function
+   * @private
+   */
+  _createThrottleHandler(func, delay) {
+    let throttleTimer = null;
+    return function (...args) {
+      if (!throttleTimer) {
+        throttleTimer = setTimeout(() => {
+          try {
+            func.apply(this, args);
+          } catch (error) {
+            console.error("[App] Error in throttled handler:", error);
+          }
+          throttleTimer = null;
+        }, delay);
+      }
+    };
+  }
+
+  /**
+   * Create a safe handler wrapper with error handling and logging
+   * @param {Function} func - Function to wrap
+   * @param {string} context - Context for error logging
+   * @returns {Function} Wrapped function
+   * @private
+   */
+  _createSafeHandler(func, context) {
+    return (...args) => {
+      try {
+        return func.apply(this, args);
+      } catch (error) {
+        console.error(`[App] Error in ${context}:`, error);
+        showToast(`Error: ${context}`, "error");
+      }
+    };
+  }
+
+  /**
+   * Setup section toggle handlers
+   * @private
+   */
+  _setupSectionToggleHandlers() {
+    // Model info section toggle
+    const modelInfoHeader = document.getElementById("modelInfo");
+    if (modelInfoHeader) {
+      const header = document.createElement("div");
+      header.className = "section-toggle-header";
+      header.innerHTML =
+        '<span>📊 Model Information</span><span class="toggle-icon">▼</span>';
+      modelInfoHeader.insertBefore(header, modelInfoHeader.firstChild);
+
+      this.eventManager.add(header, "click", () => {
+        try {
+          modelInfoHeader.classList.toggle("collapsed");
+          const icon = header.querySelector(".toggle-icon");
+          if (icon) {
+            icon.textContent = modelInfoHeader.classList.contains("collapsed")
+              ? "▶"
+              : "▼";
+          }
+        } catch (error) {
+          console.error("[App] Error toggling model info:", error);
+        }
+      });
+    }
+  }
+
+  /**
+   * Setup upload-related event handlers
+   * @private
+   */
+  _setupUploadHandlers() {
     const uploadBtn = document.getElementById("uploadBtn");
     const fileInput = document.getElementById("fileInput");
     const uploadArea = document.getElementById("uploadArea");
 
-    uploadBtn.addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent event from bubbling to uploadArea
-      fileInput.click();
-    });
+    if (!uploadBtn || !fileInput || !uploadArea) {
+      console.warn("[App] Some upload elements not found");
+      return;
+    }
 
-    fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        this.handleFiles(e.target.files);
+    // Upload button - prevent bubbling to uploadArea
+    this.eventManager.add(uploadBtn, "click", (e) => {
+      try {
+        e.stopPropagation();
+        fileInput.click();
+      } catch (error) {
+        console.error("[App] Error in upload button handler:", error);
+        showToast("Error opening file dialog", "error");
       }
     });
 
-    // Drag and drop
-    uploadArea.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      uploadArea.classList.add("drag-over");
+    // File input change
+    this.eventManager.add(fileInput, "change", (e) => {
+      try {
+        if (e.target.files.length > 0) {
+          this.handleFiles(e.target.files);
+        }
+      } catch (error) {
+        console.error("[App] Error handling file input:", error);
+        showToast("Error processing files", "error");
+      }
     });
 
-    uploadArea.addEventListener("dragleave", () => {
-      uploadArea.classList.remove("drag-over");
+    // Drag and drop handlers
+    this.eventManager.add(uploadArea, "dragover", (e) => {
+      try {
+        e.preventDefault();
+        uploadArea.classList.add("drag-over");
+      } catch (error) {
+        console.error("[App] Error in dragover handler:", error);
+      }
     });
 
-    uploadArea.addEventListener("drop", (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove("drag-over");
-      if (e.dataTransfer.files.length > 0) {
-        this.handleFiles(e.dataTransfer.files);
+    this.eventManager.add(uploadArea, "dragleave", () => {
+      try {
+        uploadArea.classList.remove("drag-over");
+      } catch (error) {
+        console.error("[App] Error in dragleave handler:", error);
+      }
+    });
+
+    this.eventManager.add(uploadArea, "drop", (e) => {
+      try {
+        e.preventDefault();
+        uploadArea.classList.remove("drag-over");
+        if (e.dataTransfer.files.length > 0) {
+          this.handleFiles(e.dataTransfer.files);
+        }
+      } catch (error) {
+        console.error("[App] Error in drop handler:", error);
+        showToast("Error processing dropped files", "error");
       }
     });
 
     // Click upload area (but not the button)
-    uploadArea.addEventListener("click", (e) => {
-      // Only trigger if clicking the area itself, not the button
-      if (
-        e.target === uploadArea ||
-        (e.target.closest(".upload-area") && !e.target.closest("#uploadBtn"))
-      ) {
-        fileInput.click();
-      }
-    });
-
-    // Viewer controls
-    document.getElementById("resetViewBtn").addEventListener("click", () => {
-      this.viewer.resetView();
-      showToast("View reset", "info");
-    });
-
-    document.getElementById("resetAllBtn").addEventListener("click", () => {
-      this.viewer.resetAll();
-      this.updateAllButtonStates();
-      showToast("All settings reset to default", "success");
-    });
-
-    // Zoom controls
-    document.getElementById("zoomInBtn").addEventListener("click", () => {
-      this.viewer.zoomIn();
-      this.updateZoomIndicator();
-      showToast("Zoomed in", "info", 1000);
-    });
-
-    document.getElementById("zoomOutBtn").addEventListener("click", () => {
-      this.viewer.zoomOut();
-      this.updateZoomIndicator();
-      showToast("Zoomed out", "info", 1000);
-    });
-
-    document.getElementById("fitViewBtn").addEventListener("click", () => {
-      this.viewer.fitToView();
-      this.updateZoomIndicator();
-      showToast("Fitted to view", "info");
-    });
-
-    // Auto-rotate
-    document.getElementById("autoRotateBtn").addEventListener("click", (e) => {
-      const isRotating = this.viewer.toggleAutoRotate();
-      e.target.classList.toggle("active", isRotating);
-      showToast(
-        isRotating ? "Auto-rotate enabled" : "Auto-rotate disabled",
-        "info"
-      );
-    });
-
-    document.getElementById("wireframeBtn").addEventListener("click", () => {
-      this.viewer.toggleWireframe();
-      showToast("Wireframe toggled", "info");
-    });
-
-    document.getElementById("gridBtn").addEventListener("click", () => {
-      this.viewer.toggleGrid();
-      showToast("Grid toggled", "info");
-    });
-
-    document.getElementById("axesBtn").addEventListener("click", () => {
-      this.viewer.toggleAxes();
-      showToast("Axes toggled", "info");
-    });
-
-    document.getElementById("shadowsBtn").addEventListener("click", () => {
-      this.viewer.toggleShadows();
-      showToast("Shadows toggled", "info");
-    });
-
-    document.getElementById("screenshotBtn").addEventListener("click", () => {
-      this.takeScreenshot();
-    });
-
-    document
-      .getElementById("fullscreenBtn")
-      .addEventListener("click", async () => {
-        const isFullscreen = await this.viewer.toggleFullscreen();
-        const btn = document.getElementById("fullscreenBtn");
-        btn.classList.toggle("fullscreen-active", isFullscreen);
-        showToast(
-          isFullscreen ? "Fullscreen enabled" : "Fullscreen disabled",
-          "info"
-        );
-      });
-
-    document.getElementById("settingsBtn").addEventListener("click", () => {
-      this.toggleAdvancedControls();
-    });
-
-    document.getElementById("keyboardHelpBtn").addEventListener("click", () => {
-      this.showKeyboardHelp();
-    });
-
-    // Keyboard shortcuts modal
-    document.getElementById("closeModalBtn")?.addEventListener("click", () => {
-      this.hideKeyboardHelp();
-    });
-
-    // Close modal on outside click
-    document.getElementById("keyboardModal")?.addEventListener("click", (e) => {
-      if (e.target.id === "keyboardModal") {
-        this.hideKeyboardHelp();
-      }
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      // Don't handle shortcuts if user is typing in an input
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-        return;
-      }
-
-      // Close modal with Escape
-      if (e.code === "Escape") {
-        const modal = document.getElementById("keyboardModal");
-        if (modal && modal.style.display !== "none") {
-          this.hideKeyboardHelp();
-          return;
+    this.eventManager.add(uploadArea, "click", (e) => {
+      try {
+        if (
+          e.target === uploadArea ||
+          (e.target.closest(".upload-area") && !e.target.closest("#uploadBtn"))
+        ) {
+          fileInput.click();
         }
-      }
-
-      // Handle Reset All with Shift+R
-      if (e.code === "KeyR" && e.shiftKey) {
-        e.preventDefault();
-        this.viewer.resetAll();
-        this.updateAllButtonStates();
-        showToast("All settings reset to default", "success");
-        return;
-      }
-
-      // Handle viewer shortcuts
-      this.viewer.handleKeyboard(e);
-
-      // Update UI after keyboard actions
-      if (
-        ["Equal", "Minus", "Digit0", "NumpadAdd", "NumpadSubtract"].includes(
-          e.code
-        )
-      ) {
-        this.updateZoomIndicator();
-      }
-
-      // Update fullscreen button state
-      if (e.code === "KeyF") {
-        setTimeout(() => {
-          const btn = document.getElementById("fullscreenBtn");
-          btn.classList.toggle("fullscreen-active", this.viewer.isFullscreen);
-        }, 200);
-      }
-
-      // Update auto-rotate button state
-      if (e.code === "Space") {
-        const btn = document.getElementById("autoRotateBtn");
-        btn.classList.toggle("active", this.viewer.autoRotate);
+      } catch (error) {
+        console.error("[App] Error in upload area click handler:", error);
       }
     });
+  }
 
-    // Listen for reset all event from viewer
-    this.viewer.container.addEventListener("resetAll", () => {
-      this.updateAllButtonStates();
-    });
-
-    // Listen for model interaction events
-    this.viewer.container.addEventListener("modelClick", (event) => {
-      console.log("Model clicked:", event.detail);
-    });
-
-    this.viewer.container.addEventListener("modelSelect", (event) => {
-      const { objectName, modelName } = event.detail;
-      this.showNotification(`Selected: ${objectName}`, "info");
-      console.log("Model selected:", event.detail);
-    });
-
-    this.viewer.container.addEventListener("modelDeselect", (event) => {
-      console.log("Model deselected:", event.detail);
-    });
-
-    this.viewer.container.addEventListener("modelHover", (event) => {
-      // Can be used for tooltip or info display
-      // console.log("Model hover:", event.detail);
-    });
-
-    // Advanced controls
-    document.getElementById("ambientSlider")?.addEventListener("input", (e) => {
-      const value = parseFloat(e.target.value);
-      this.viewer.setAmbientIntensity(value);
-      document.getElementById("ambientValue").textContent = value.toFixed(1);
-    });
-
-    document
-      .getElementById("directionalSlider")
-      ?.addEventListener("input", (e) => {
-        const value = parseFloat(e.target.value);
-        this.viewer.setDirectionalIntensity(value);
-        document.getElementById("directionalValue").textContent =
-          value.toFixed(1);
-      });
-
-    document
-      .getElementById("backgroundColorPicker")
-      ?.addEventListener("input", (e) => {
-        const color = parseInt(e.target.value.replace("#", ""), 16);
-        this.viewer.setBackgroundColor(color);
-      });
-
-    // Model controls
-    document.getElementById("scaleSlider")?.addEventListener("input", (e) => {
-      const value = parseFloat(e.target.value);
-      this.viewer.scaleModel(value);
-      document.getElementById("scaleValue").textContent = value.toFixed(1);
-    });
-
-    document
-      .getElementById("rotateSpeedSlider")
-      ?.addEventListener("input", (e) => {
-        const value = parseFloat(e.target.value);
-        this.viewer.setAutoRotateSpeed(value);
-        document.getElementById("rotateSpeedValue").textContent =
-          value.toFixed(1);
-      });
-
-    document.getElementById("focusModelBtn")?.addEventListener("click", () => {
-      this.viewer.focusOnModel();
-      this.updateZoomIndicator();
-      showToast("Focused on model", "info");
-    });
-
-    // Camera preset views
-    document.querySelectorAll(".btn-preset").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const view = e.target.getAttribute("data-view");
-        this.viewer.setCameraView(view);
-        showToast(
-          `${view.charAt(0).toUpperCase() + view.slice(1)} view`,
-          "info",
-          1000
-        );
-      });
-    });
-
-    // Update zoom indicator on camera movement
-    if (this.viewer.controls) {
-      this.viewer.controls.addEventListener("change", () => {
-        this.updateZoomIndicator();
+  /**
+   * Setup viewer control event handlers
+   * @private
+   */
+  _setupViewerControlHandlers() {
+    // View reset buttons
+    const resetViewBtn = document.getElementById("resetViewBtn");
+    if (resetViewBtn) {
+      this.eventManager.add(resetViewBtn, "click", () => {
+        try {
+          this.viewer.resetView();
+          showToast("View reset", "info");
+        } catch (error) {
+          console.error("[App] Error resetting view:", error);
+          showToast("Error resetting view", "error");
+        }
       });
     }
 
-    // Library actions
-    document.getElementById("exportAllBtn")?.addEventListener("click", () => {
-      this.exportAllData();
+    const resetAllBtn = document.getElementById("resetAllBtn");
+    if (resetAllBtn) {
+      this.eventManager.add(resetAllBtn, "click", () => {
+        try {
+          this.viewer.resetAll();
+          this.updateAllButtonStates();
+          showToast("All settings reset to default", "success");
+        } catch (error) {
+          console.error("[App] Error resetting all:", error);
+          showToast("Error resetting settings", "error");
+        }
+      });
+    }
+
+    // Zoom controls
+    const zoomInBtn = document.getElementById("zoomInBtn");
+    if (zoomInBtn) {
+      this.eventManager.add(zoomInBtn, "click", () => {
+        try {
+          this.viewer.zoomIn();
+          this.updateZoomIndicator();
+          showToast("Zoomed in", "info", 1000);
+        } catch (error) {
+          console.error("[App] Error zooming in:", error);
+        }
+      });
+    }
+
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    if (zoomOutBtn) {
+      this.eventManager.add(zoomOutBtn, "click", () => {
+        try {
+          this.viewer.zoomOut();
+          this.updateZoomIndicator();
+          showToast("Zoomed out", "info", 1000);
+        } catch (error) {
+          console.error("[App] Error zooming out:", error);
+        }
+      });
+    }
+
+    const fitViewBtn = document.getElementById("fitViewBtn");
+    if (fitViewBtn) {
+      this.eventManager.add(fitViewBtn, "click", () => {
+        try {
+          this.viewer.fitToView();
+          this.updateZoomIndicator();
+          showToast("Fitted to view", "info");
+        } catch (error) {
+          console.error("[App] Error fitting view:", error);
+        }
+      });
+    }
+
+    // Visual toggle buttons
+    const autoRotateBtn = document.getElementById("autoRotateBtn");
+    if (autoRotateBtn) {
+      this.eventManager.add(autoRotateBtn, "click", (e) => {
+        try {
+          const isRotating = this.viewer.toggleAutoRotate();
+          e.target.classList.toggle("active", isRotating);
+          showToast(
+            isRotating ? "Auto-rotate enabled" : "Auto-rotate disabled",
+            "info"
+          );
+        } catch (error) {
+          console.error("[App] Error toggling auto-rotate:", error);
+        }
+      });
+    }
+
+    const wireframeBtn = document.getElementById("wireframeBtn");
+    if (wireframeBtn) {
+      this.eventManager.add(wireframeBtn, "click", () => {
+        try {
+          this.viewer.toggleWireframe();
+          showToast("Wireframe toggled", "info");
+        } catch (error) {
+          console.error("[App] Error toggling wireframe:", error);
+        }
+      });
+    }
+
+    const gridBtn = document.getElementById("gridBtn");
+    if (gridBtn) {
+      this.eventManager.add(gridBtn, "click", () => {
+        try {
+          this.viewer.toggleGrid();
+          showToast("Grid toggled", "info");
+        } catch (error) {
+          console.error("[App] Error toggling grid:", error);
+        }
+      });
+    }
+
+    const axesBtn = document.getElementById("axesBtn");
+    if (axesBtn) {
+      this.eventManager.add(axesBtn, "click", () => {
+        try {
+          this.viewer.toggleAxes();
+          showToast("Axes toggled", "info");
+        } catch (error) {
+          console.error("[App] Error toggling axes:", error);
+        }
+      });
+    }
+
+    const shadowsBtn = document.getElementById("shadowsBtn");
+    if (shadowsBtn) {
+      this.eventManager.add(shadowsBtn, "click", () => {
+        try {
+          this.viewer.toggleShadows();
+          showToast("Shadows toggled", "info");
+        } catch (error) {
+          console.error("[App] Error toggling shadows:", error);
+        }
+      });
+    }
+
+    const screenshotBtn = document.getElementById("screenshotBtn");
+    if (screenshotBtn) {
+      this.eventManager.add(screenshotBtn, "click", () => {
+        try {
+          this.takeScreenshot();
+        } catch (error) {
+          console.error("[App] Error taking screenshot:", error);
+          showToast("Error taking screenshot", "error");
+        }
+      });
+    }
+
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    if (fullscreenBtn) {
+      this.eventManager.add(fullscreenBtn, "click", async () => {
+        try {
+          const isFullscreen = await this.viewer.toggleFullscreen();
+          fullscreenBtn.classList.toggle("fullscreen-active", isFullscreen);
+          showToast(
+            isFullscreen ? "Fullscreen enabled" : "Fullscreen disabled",
+            "info"
+          );
+        } catch (error) {
+          console.error("[App] Error toggling fullscreen:", error);
+          showToast("Error toggling fullscreen", "error");
+        }
+      });
+    }
+
+    const settingsBtn = document.getElementById("settingsBtn");
+    if (settingsBtn) {
+      this.eventManager.add(settingsBtn, "click", (e) => {
+        try {
+          e.preventDefault();
+          e.stopPropagation();
+          this.sectionManager.toggleSection("advanced-controls");
+        } catch (error) {
+          console.error("[App] Error toggling settings:", error);
+        }
+      });
+    }
+
+    const keyboardHelpBtn = document.getElementById("keyboardHelpBtn");
+    if (keyboardHelpBtn) {
+      this.eventManager.add(keyboardHelpBtn, "click", () => {
+        try {
+          this.showKeyboardHelp();
+        } catch (error) {
+          console.error("[App] Error showing keyboard help:", error);
+        }
+      });
+    }
+
+    // Camera preset views
+    document.querySelectorAll(".btn-preset").forEach((btn) => {
+      this.eventManager.add(btn, "click", (e) => {
+        try {
+          const view = e.target.getAttribute("data-view");
+          this.viewer.setCameraView(view);
+          showToast(
+            `${view.charAt(0).toUpperCase() + view.slice(1)} view`,
+            "info",
+            1000
+          );
+        } catch (error) {
+          console.error("[App] Error setting camera view:", error);
+        }
+      });
     });
 
-    document
-      .getElementById("generateReportBtn")
-      ?.addEventListener("click", () => {
-        this.generateReport();
-      });
+    // Update zoom indicator on camera movement (throttled for performance)
+    if (this.viewer.controls) {
+      this.eventManager.add(
+        this.viewer.controls,
+        "change",
+        this._createThrottleHandler(() => {
+          this.updateZoomIndicator();
+        }, 100) // Throttle to 10fps max
+      );
+    }
+  }
 
-    document
-      .getElementById("clearLibraryBtn")
-      ?.addEventListener("click", () => {
-        this.clearLibrary();
+  /**
+   * Setup keyboard event handlers
+   * @private
+   */
+  _setupKeyboardHandlers() {
+    // Keyboard shortcuts modal handlers
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    if (closeModalBtn) {
+      this.eventManager.add(closeModalBtn, "click", () => {
+        try {
+          this.hideKeyboardHelp();
+        } catch (error) {
+          console.error("[App] Error closing modal:", error);
+        }
       });
+    }
 
-    // Export similarity results
-    document
-      .getElementById("exportSimilarityBtn")
-      ?.addEventListener("click", () => {
-        this.exportSimilarityResults();
+    const keyboardModal = document.getElementById("keyboardModal");
+    if (keyboardModal) {
+      this.eventManager.add(keyboardModal, "click", (e) => {
+        try {
+          if (e.target.id === "keyboardModal") {
+            this.hideKeyboardHelp();
+          }
+        } catch (error) {
+          console.error("[App] Error in modal click handler:", error);
+        }
       });
+    }
+
+    // Global keyboard shortcuts
+    this.eventManager.add(document, "keydown", (e) => {
+      try {
+        // Don't handle shortcuts if user is typing in an input
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+          return;
+        }
+
+        // Close modal with Escape
+        if (e.code === "Escape") {
+          const modal = document.getElementById("keyboardModal");
+          if (modal && modal.style.display !== "none") {
+            this.hideKeyboardHelp();
+            return;
+          }
+        }
+
+        // Handle Reset All with Shift+R
+        if (e.code === "KeyR" && e.shiftKey) {
+          e.preventDefault();
+          this.viewer.resetAll();
+          this.updateAllButtonStates();
+          showToast("All settings reset to default", "success");
+          return;
+        }
+
+        // Handle viewer shortcuts
+        this.viewer.handleKeyboard(e);
+
+        // Update UI after keyboard actions
+        if (
+          ["Equal", "Minus", "Digit0", "NumpadAdd", "NumpadSubtract"].includes(
+            e.code
+          )
+        ) {
+          this.updateZoomIndicator();
+        }
+
+        // Update fullscreen button state
+        if (e.code === "KeyF") {
+          setTimeout(() => {
+            try {
+              const btn = document.getElementById("fullscreenBtn");
+              if (btn) {
+                btn.classList.toggle(
+                  "fullscreen-active",
+                  this.viewer.isFullscreen
+                );
+              }
+            } catch (error) {
+              console.error("[App] Error updating fullscreen button:", error);
+            }
+          }, 200);
+        }
+
+        // Update auto-rotate button state
+        if (e.code === "Space") {
+          const btn = document.getElementById("autoRotateBtn");
+          if (btn) {
+            btn.classList.toggle("active", this.viewer.autoRotate);
+          }
+        }
+      } catch (error) {
+        console.error("[App] Error in keyboard handler:", error);
+      }
+    });
+  }
+
+  /**
+   * Setup model interaction event handlers
+   * @private
+   */
+  _setupModelEventHandlers() {
+    if (!this.viewer || !this.viewer.container) return;
+
+    // Listen for reset all event from viewer
+    this.eventManager.add(this.viewer.container, "resetAll", () => {
+      try {
+        this.updateAllButtonStates();
+      } catch (error) {
+        console.error("[App] Error updating button states:", error);
+      }
+    });
+
+    // Listen for model interaction events
+    this.eventManager.add(this.viewer.container, "modelClick", (event) => {
+      try {
+        console.log("Model clicked:", event.detail);
+      } catch (error) {
+        console.error("[App] Error in modelClick handler:", error);
+      }
+    });
+
+    this.eventManager.add(this.viewer.container, "modelSelect", (event) => {
+      try {
+        const { objectName } = event.detail;
+        this.showNotification(`Selected: ${objectName}`, "info");
+        console.log("Model selected:", event.detail);
+      } catch (error) {
+        console.error("[App] Error in modelSelect handler:", error);
+      }
+    });
+
+    this.eventManager.add(this.viewer.container, "modelDeselect", (event) => {
+      try {
+        console.log("Model deselected:", event.detail);
+      } catch (error) {
+        console.error("[App] Error in modelDeselect handler:", error);
+      }
+    });
+
+    this.eventManager.add(this.viewer.container, "modelHover", (event) => {
+      try {
+        // Can be used for tooltip or info display
+        // console.log("Model hover:", event.detail);
+      } catch (error) {
+        console.error("[App] Error in modelHover handler:", error);
+      }
+    });
+  }
+
+  /**
+   * Setup advanced control sliders with debouncing
+   * @private
+   */
+  _setupAdvancedControlHandlers() {
+    // Use utility debounce method for consistency
+    const debounce = this._createDebounceHandler.bind(this);
+
+    // Ambient light slider
+    const ambientSlider = document.getElementById("ambientSlider");
+    const ambientValue = document.getElementById("ambientValue");
+    if (ambientSlider && ambientValue) {
+      this.eventManager.add(
+        ambientSlider,
+        "input",
+        debounce((e) => {
+          try {
+            const value = parseFloat(e.target.value);
+            this.viewer.setAmbientIntensity(value);
+            ambientValue.textContent = value.toFixed(1);
+          } catch (error) {
+            console.error("[App] Error setting ambient intensity:", error);
+          }
+        }, 50)
+      ); // Debounce 50ms for smooth slider movement
+    }
+
+    // Directional light slider
+    const directionalSlider = document.getElementById("directionalSlider");
+    const directionalValue = document.getElementById("directionalValue");
+    if (directionalSlider && directionalValue) {
+      this.eventManager.add(
+        directionalSlider,
+        "input",
+        debounce((e) => {
+          try {
+            const value = parseFloat(e.target.value);
+            this.viewer.setDirectionalIntensity(value);
+            directionalValue.textContent = value.toFixed(1);
+          } catch (error) {
+            console.error("[App] Error setting directional intensity:", error);
+          }
+        }, 50)
+      );
+    }
+
+    // Background color picker
+    const backgroundColorPicker = document.getElementById(
+      "backgroundColorPicker"
+    );
+    if (backgroundColorPicker) {
+      this.eventManager.add(
+        backgroundColorPicker,
+        "input",
+        debounce((e) => {
+          try {
+            const color = parseInt(e.target.value.replace("#", ""), 16);
+            this.viewer.setBackgroundColor(color);
+          } catch (error) {
+            console.error("[App] Error setting background color:", error);
+          }
+        }, 100)
+      );
+    }
+
+    // Model scale slider
+    const scaleSlider = document.getElementById("scaleSlider");
+    const scaleValue = document.getElementById("scaleValue");
+    if (scaleSlider && scaleValue) {
+      this.eventManager.add(
+        scaleSlider,
+        "input",
+        debounce((e) => {
+          try {
+            const value = parseFloat(e.target.value);
+            this.viewer.scaleModel(value);
+            scaleValue.textContent = value.toFixed(1);
+          } catch (error) {
+            console.error("[App] Error scaling model:", error);
+          }
+        }, 50)
+      );
+    }
+
+    // Auto-rotate speed slider
+    const rotateSpeedSlider = document.getElementById("rotateSpeedSlider");
+    const rotateSpeedValue = document.getElementById("rotateSpeedValue");
+    if (rotateSpeedSlider && rotateSpeedValue) {
+      this.eventManager.add(
+        rotateSpeedSlider,
+        "input",
+        debounce((e) => {
+          try {
+            const value = parseFloat(e.target.value);
+            this.viewer.setAutoRotateSpeed(value);
+            rotateSpeedValue.textContent = value.toFixed(1);
+          } catch (error) {
+            console.error("[App] Error setting rotate speed:", error);
+          }
+        }, 50)
+      );
+    }
+
+    // Focus model button
+    const focusModelBtn = document.getElementById("focusModelBtn");
+    if (focusModelBtn) {
+      this.eventManager.add(focusModelBtn, "click", () => {
+        try {
+          this.viewer.focusOnModel();
+          this.updateZoomIndicator();
+          showToast("Focused on model", "info");
+        } catch (error) {
+          console.error("[App] Error focusing model:", error);
+        }
+      });
+    }
+  }
+
+  /**
+   * Setup library action handlers
+   * @private
+   */
+  _setupLibraryHandlers() {
+    const exportAllBtn = document.getElementById("exportAllBtn");
+    if (exportAllBtn) {
+      this.eventManager.add(exportAllBtn, "click", () => {
+        try {
+          this.exportAllData();
+        } catch (error) {
+          console.error("[App] Error exporting all data:", error);
+          showToast("Error exporting data", "error");
+        }
+      });
+    }
+
+    const generateReportBtn = document.getElementById("generateReportBtn");
+    if (generateReportBtn) {
+      this.eventManager.add(generateReportBtn, "click", () => {
+        try {
+          this.generateReport();
+        } catch (error) {
+          console.error("[App] Error generating report:", error);
+          showToast("Error generating report", "error");
+        }
+      });
+    }
+
+    const clearLibraryBtn = document.getElementById("clearLibraryBtn");
+    if (clearLibraryBtn) {
+      this.eventManager.add(clearLibraryBtn, "click", () => {
+        try {
+          this.clearLibrary();
+        } catch (error) {
+          console.error("[App] Error clearing library:", error);
+          showToast("Error clearing library", "error");
+        }
+      });
+    }
+
+    const exportSimilarityBtn = document.getElementById("exportSimilarityBtn");
+    if (exportSimilarityBtn) {
+      this.eventManager.add(exportSimilarityBtn, "click", () => {
+        try {
+          this.exportSimilarityResults();
+        } catch (error) {
+          console.error("[App] Error exporting similarity results:", error);
+          showToast("Error exporting results", "error");
+        }
+      });
+    }
   }
 
   async handleFiles(files) {
@@ -536,7 +930,7 @@ class App {
         fileSize: file.size,
       };
 
-      // Display model
+      // Display model (auto-focuses via displayModel -> viewer.loadModel)
       this.displayModel(modelName);
 
       // Update library grid
@@ -547,6 +941,8 @@ class App {
 
       showToast(`${file.name} loaded successfully!`, "success");
       this.showLoading(false);
+
+      console.log(`[App] Model ${modelName} loaded and focused`);
     } catch (error) {
       console.error("Error loading model:", error);
       showToast(`Error: ${error.message}`, "error");
@@ -569,18 +965,28 @@ class App {
 
   displayModel(modelName) {
     const model = this.modelLibrary[modelName];
-    if (!model) return;
+    if (!model) {
+      console.warn(`[App] Model not found: ${modelName}`);
+      return;
+    }
 
-    this.currentModelName = modelName;
+    try {
+      this.currentModelName = modelName;
 
-    // Load model in viewer
-    this.viewer.loadModel(model.object.clone());
+      // Load model in viewer (auto-focuses via viewer.loadModel)
+      this.viewer.loadModel(model.object.clone());
 
-    // Update model info
-    this.updateModelInfo(model.features);
+      // Update model info
+      this.updateModelInfo(model.features);
 
-    // Update active state in library
-    this.updateLibrarySelection(modelName);
+      // Update active state in library
+      this.updateLibrarySelection(modelName);
+
+      console.log(`[App] Displayed model: ${modelName}`);
+    } catch (error) {
+      console.error(`[App] Error displaying model ${modelName}:`, error);
+      showToast(`Error displaying model: ${error.message}`, "error");
+    }
   }
 
   updateModelInfo(features) {
@@ -849,12 +1255,6 @@ class App {
     this.updateZoomIndicator();
   }
 
-  toggleAdvancedControls() {
-    const controls = document.getElementById("advancedControls");
-    const isVisible = controls.style.display !== "none";
-    controls.style.display = isVisible ? "none" : "block";
-  }
-
   takeScreenshot() {
     try {
       const dataUrl = this.viewer.takeScreenshot();
@@ -1032,6 +1432,48 @@ class App {
         exportManager: this.exportManager !== null,
       },
     };
+  }
+
+  /**
+   * Clean up all event listeners and resources
+   * Call this when the app is being destroyed
+   */
+  cleanup() {
+    console.log("[App] Cleaning up application resources...");
+
+    try {
+      // Clean up all event listeners
+      if (this.eventManager) {
+        this.eventManager.clear();
+        console.log("[App] Event listeners cleaned up");
+      }
+
+      // Clean up section manager
+      if (this.sectionManager) {
+        this.sectionManager.cleanup();
+        console.log("[App] Section manager cleaned up");
+      }
+
+      // Clean up viewer
+      if (this.viewer) {
+        if (typeof this.viewer.cleanup === "function") {
+          this.viewer.cleanup();
+        }
+        console.log("[App] Viewer cleaned up");
+      }
+
+      // Clear caches
+      if (this.analysisCache) {
+        this.analysisCache.clear();
+      }
+      if (this.modelLibrary) {
+        this.modelLibrary = {};
+      }
+
+      console.log("[App] Application cleanup complete");
+    } catch (error) {
+      console.error("[App] Error during cleanup:", error);
+    }
   }
 }
 
