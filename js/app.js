@@ -8,6 +8,7 @@ import { Viewer3D } from "./viewer.js";
 import { ModelLoader } from "./modelLoader.js";
 import { GeometryAnalyzer } from "./geometryAnalyzer.js";
 import { ExportManager } from "./exportManager.js";
+import { EventHandler } from "./eventHandler.js";
 import { showToast, formatFileSize, validateFileType } from "./utils.js";
 import Config from "./config.js";
 
@@ -17,6 +18,7 @@ class App {
     this.modelLoader = null;
     this.geometryAnalyzer = null;
     this.exportManager = null;
+    this.eventHandler = null;
     this.modelLibrary = {};
     this.currentModelName = null;
     this.similarityResults = [];
@@ -30,9 +32,10 @@ class App {
     this.modelLoader = new ModelLoader();
     this.geometryAnalyzer = new GeometryAnalyzer();
     this.exportManager = new ExportManager();
+    this.eventHandler = new EventHandler(this);
 
-    // Setup event listeners
-    this.setupEventListeners();
+    // Setup all event listeners through the event handler
+    this.eventHandler.setupAll();
 
     // Show welcome message
     this.showWelcomeMessage();
@@ -41,274 +44,17 @@ class App {
     this.updateEmptyState();
   }
 
-  setupEventListeners() {
-    // Upload button
-    const uploadBtn = document.getElementById("uploadBtn");
-    const fileInput = document.getElementById("fileInput");
-    const uploadArea = document.getElementById("uploadArea");
+  // Expose showToast as instance method for event handler
+  showToast(message, type, duration) {
+    showToast(message, type, duration);
+  }
 
-    uploadBtn.addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent event from bubbling to uploadArea
-      fileInput.click();
-    });
-
-    fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        this.handleFiles(e.target.files);
-      }
-    });
-
-    // Drag and drop
-    uploadArea.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      uploadArea.classList.add("drag-over");
-    });
-
-    uploadArea.addEventListener("dragleave", () => {
-      uploadArea.classList.remove("drag-over");
-    });
-
-    uploadArea.addEventListener("drop", (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove("drag-over");
-      if (e.dataTransfer.files.length > 0) {
-        this.handleFiles(e.dataTransfer.files);
-      }
-    });
-
-    // Click upload area (but not the button)
-    uploadArea.addEventListener("click", (e) => {
-      // Only trigger if clicking the area itself, not the button
-      if (
-        e.target === uploadArea ||
-        (e.target.closest(".upload-area") && !e.target.closest("#uploadBtn"))
-      ) {
-        fileInput.click();
-      }
-    });
-
-    // Viewer controls
-    document.getElementById("resetViewBtn").addEventListener("click", () => {
-      this.viewer.resetView();
-      showToast("View reset", "info");
-    });
-
-    // Zoom controls
-    document.getElementById("zoomInBtn").addEventListener("click", () => {
-      this.viewer.zoomIn();
-      this.updateZoomIndicator();
-      showToast("Zoomed in", "info", 1000);
-    });
-
-    document.getElementById("zoomOutBtn").addEventListener("click", () => {
-      this.viewer.zoomOut();
-      this.updateZoomIndicator();
-      showToast("Zoomed out", "info", 1000);
-    });
-
-    document.getElementById("fitViewBtn").addEventListener("click", () => {
-      this.viewer.fitToView();
-      this.updateZoomIndicator();
-      showToast("Fitted to view", "info");
-    });
-
-    // Auto-rotate
-    document.getElementById("autoRotateBtn").addEventListener("click", (e) => {
-      const isRotating = this.viewer.toggleAutoRotate();
-      e.target.classList.toggle("active", isRotating);
-      showToast(
-        isRotating ? "Auto-rotate enabled" : "Auto-rotate disabled",
-        "info"
-      );
-    });
-
-    document.getElementById("wireframeBtn").addEventListener("click", () => {
-      this.viewer.toggleWireframe();
-      showToast("Wireframe toggled", "info");
-    });
-
-    document.getElementById("gridBtn").addEventListener("click", () => {
-      this.viewer.toggleGrid();
-      showToast("Grid toggled", "info");
-    });
-
-    document.getElementById("axesBtn").addEventListener("click", () => {
-      this.viewer.toggleAxes();
-      showToast("Axes toggled", "info");
-    });
-
-    document.getElementById("shadowsBtn").addEventListener("click", () => {
-      this.viewer.toggleShadows();
-      showToast("Shadows toggled", "info");
-    });
-
-    document.getElementById("screenshotBtn").addEventListener("click", () => {
-      this.takeScreenshot();
-    });
-
-    document
-      .getElementById("fullscreenBtn")
-      .addEventListener("click", async () => {
-        const isFullscreen = await this.viewer.toggleFullscreen();
-        const btn = document.getElementById("fullscreenBtn");
-        btn.classList.toggle("fullscreen-active", isFullscreen);
-        showToast(
-          isFullscreen ? "Fullscreen enabled" : "Fullscreen disabled",
-          "info"
-        );
-      });
-
-    document.getElementById("settingsBtn").addEventListener("click", () => {
-      this.toggleAdvancedControls();
-    });
-
-    document.getElementById("keyboardHelpBtn").addEventListener("click", () => {
-      this.showKeyboardHelp();
-    });
-
-    // Keyboard shortcuts modal
-    document.getElementById("closeModalBtn")?.addEventListener("click", () => {
-      this.hideKeyboardHelp();
-    });
-
-    // Close modal on outside click
-    document.getElementById("keyboardModal")?.addEventListener("click", (e) => {
-      if (e.target.id === "keyboardModal") {
-        this.hideKeyboardHelp();
-      }
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      // Don't handle shortcuts if user is typing in an input
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-        return;
-      }
-
-      // Close modal with Escape
-      if (e.code === "Escape") {
-        const modal = document.getElementById("keyboardModal");
-        if (modal && modal.style.display !== "none") {
-          this.hideKeyboardHelp();
-          return;
-        }
-      }
-
-      // Handle viewer shortcuts
-      this.viewer.handleKeyboard(e);
-
-      // Update UI after keyboard actions
-      if (
-        ["Equal", "Minus", "Digit0", "NumpadAdd", "NumpadSubtract"].includes(
-          e.code
-        )
-      ) {
-        this.updateZoomIndicator();
-      }
-
-      // Update fullscreen button state
-      if (e.code === "KeyF") {
-        setTimeout(() => {
-          const btn = document.getElementById("fullscreenBtn");
-          btn.classList.toggle("fullscreen-active", this.viewer.isFullscreen);
-        }, 200);
-      }
-
-      // Update auto-rotate button state
-      if (e.code === "Space") {
-        const btn = document.getElementById("autoRotateBtn");
-        btn.classList.toggle("active", this.viewer.autoRotate);
-      }
-    });
-
-    // Advanced controls
-    document.getElementById("ambientSlider")?.addEventListener("input", (e) => {
-      const value = parseFloat(e.target.value);
-      this.viewer.setAmbientIntensity(value);
-      document.getElementById("ambientValue").textContent = value.toFixed(1);
-    });
-
-    document
-      .getElementById("directionalSlider")
-      ?.addEventListener("input", (e) => {
-        const value = parseFloat(e.target.value);
-        this.viewer.setDirectionalIntensity(value);
-        document.getElementById("directionalValue").textContent =
-          value.toFixed(1);
-      });
-
-    document
-      .getElementById("backgroundColorPicker")
-      ?.addEventListener("input", (e) => {
-        const color = parseInt(e.target.value.replace("#", ""), 16);
-        this.viewer.setBackgroundColor(color);
-      });
-
-    // Model controls
-    document.getElementById("scaleSlider")?.addEventListener("input", (e) => {
-      const value = parseFloat(e.target.value);
-      this.viewer.scaleModel(value);
-      document.getElementById("scaleValue").textContent = value.toFixed(1);
-    });
-
-    document
-      .getElementById("rotateSpeedSlider")
-      ?.addEventListener("input", (e) => {
-        const value = parseFloat(e.target.value);
-        this.viewer.setAutoRotateSpeed(value);
-        document.getElementById("rotateSpeedValue").textContent =
-          value.toFixed(1);
-      });
-
-    document.getElementById("focusModelBtn")?.addEventListener("click", () => {
-      this.viewer.focusOnModel();
-      this.updateZoomIndicator();
-      showToast("Focused on model", "info");
-    });
-
-    // Camera preset views
-    document.querySelectorAll(".btn-preset").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const view = e.target.getAttribute("data-view");
-        this.viewer.setCameraView(view);
-        showToast(
-          `${view.charAt(0).toUpperCase() + view.slice(1)} view`,
-          "info",
-          1000
-        );
-      });
-    });
-
-    // Update zoom indicator on camera movement
-    if (this.viewer.controls) {
-      this.viewer.controls.addEventListener("change", () => {
-        this.updateZoomIndicator();
-      });
-    }
-
-    // Library actions
-    document.getElementById("exportAllBtn")?.addEventListener("click", () => {
-      this.exportAllData();
-    });
-
-    document
-      .getElementById("generateReportBtn")
-      ?.addEventListener("click", () => {
-        this.generateReport();
-      });
-
-    document
-      .getElementById("clearLibraryBtn")
-      ?.addEventListener("click", () => {
-        this.clearLibrary();
-      });
-
-    // Export similarity results
-    document
-      .getElementById("exportSimilarityBtn")
-      ?.addEventListener("click", () => {
-        this.exportSimilarityResults();
-      });
+  /**
+   * Get current model name
+   * @returns {string|null} Current model name
+   */
+  getCurrentModelName() {
+    return this.currentModelName;
   }
 
   async handleFiles(files) {
@@ -398,8 +144,12 @@ class App {
 
     this.currentModelName = modelName;
 
+    // Clone the model and set metadata
+    const modelClone = model.object.clone();
+    modelClone.userData.modelName = modelName;
+
     // Load model in viewer
-    this.viewer.loadModel(model.object.clone());
+    this.viewer.loadModel(modelClone);
 
     // Update model info
     this.updateModelInfo(model.features);
@@ -452,6 +202,7 @@ class App {
   createModelCard(name, model) {
     const card = document.createElement("div");
     card.className = "model-card";
+    card.dataset.modelName = name; // Store model name for easy lookup
     if (name === this.currentModelName) {
       card.classList.add("active");
     }
@@ -486,8 +237,24 @@ class App {
     };
     card.appendChild(deleteBtn);
 
-    // Click handler
-    card.onclick = () => this.displayModel(name);
+    // Click handler - display model and highlight
+    card.onclick = () => {
+      this.displayModel(name);
+      this.highlightModelCard(name);
+    };
+
+    // Hover handlers for model highlighting in viewer
+    card.onmouseenter = () => {
+      if (name !== this.currentModelName) {
+        this.highlightModelCard(name, true);
+      }
+    };
+
+    card.onmouseleave = () => {
+      if (name !== this.currentModelName) {
+        this.clearHighlight();
+      }
+    };
 
     return card;
   }
@@ -525,19 +292,64 @@ class App {
     }
   }
 
+  /**
+   * Update the active state of model cards in the library
+   * @param {string} selectedName - Name of the selected model
+   */
   updateLibrarySelection(selectedName) {
     const cards = document.querySelectorAll(".model-card");
     cards.forEach((card) => {
-      card.classList.remove("active");
+      const cardName = card.dataset.modelName;
+      if (cardName === selectedName) {
+        card.classList.add("active");
+      } else {
+        card.classList.remove("active");
+      }
     });
+  }
 
-    // Find and activate the selected card
-    const allCards = Array.from(cards);
-    const selectedCard = allCards.find(
-      (card) => card.querySelector("h4").textContent === selectedName
-    );
-    if (selectedCard) {
-      selectedCard.classList.add("active");
+  /**
+   * Highlight a model card in the library
+   * @param {string} modelName - Name of the model to highlight
+   * @param {boolean} isHover - Whether this is a hover highlight (temporary)
+   */
+  highlightModelCard(modelName, isHover = false) {
+    const cards = document.querySelectorAll(".model-card");
+    cards.forEach((card) => {
+      const cardName = card.dataset.modelName;
+      if (cardName === modelName) {
+        if (isHover) {
+          card.classList.add("highlighted");
+        } else {
+          card.classList.add("active");
+          card.classList.remove("highlighted");
+        }
+      } else {
+        if (isHover) {
+          // Don't remove active state during hover
+          card.classList.remove("highlighted");
+        }
+      }
+    });
+  }
+
+  /**
+   * Clear temporary highlights from model cards
+   */
+  clearHighlight() {
+    const cards = document.querySelectorAll(".model-card");
+    cards.forEach((card) => {
+      card.classList.remove("highlighted");
+    });
+  }
+
+  /**
+   * Highlight model in viewer when card is hovered
+   * @param {string} modelName - Name of the model to highlight in viewer
+   */
+  highlightModelInViewer(modelName) {
+    if (this.viewer && this.viewer.highlightModel) {
+      this.viewer.highlightModel(modelName);
     }
   }
 
@@ -608,7 +420,17 @@ class App {
   toggleAdvancedControls() {
     const controls = document.getElementById("advancedControls");
     const isVisible = controls.style.display !== "none";
-    controls.style.display = isVisible ? "none" : "block";
+    
+    if (isVisible) {
+      controls.style.display = "none";
+    } else {
+      controls.style.display = "block";
+      // Add animation class when showing
+      controls.classList.add("advanced-controls--animate");
+      setTimeout(() => {
+        controls.classList.remove("advanced-controls--animate");
+      }, 200);
+    }
   }
 
   takeScreenshot() {
