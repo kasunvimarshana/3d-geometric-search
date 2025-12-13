@@ -392,22 +392,16 @@ header h1 {
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 60px 20px;
+  padding: 48px 20px;
   color: #999;
 }
 
-.empty-icon {
-  font-size: 5em;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
 .empty-state p {
-  margin: 10px 0;
+  margin: 8px 0;
 }
 
 .empty-state .small {
-  font-size: 0.9em;
+  font-size: 0.85em;
 }
 
 .library-grid,
