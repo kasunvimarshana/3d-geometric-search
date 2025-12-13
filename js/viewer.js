@@ -27,6 +27,7 @@ export class Viewer3D {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
     this.hoveredObject = null;
+    this.originalMaterials = new Map();
     this.settings = {
       showGrid: true,
       showAxes: Config.debug.showAxesHelper,
@@ -36,6 +37,9 @@ export class Viewer3D {
       modelScale: 1.0,
       autoRotateSpeed: 0.5,
     };
+
+    // Initialize event manager for proper event handling
+    this.eventManager = new EventHandlerManager();
 
     this.init();
   }
@@ -1222,6 +1226,16 @@ export class Viewer3D {
   }
 
   /**
+   * Find object in scene by UUID
+   * @param {string} uuid - Object UUID
+   * @returns {THREE.Object3D|null} Found object or null
+   */
+  getObjectByUuid(uuid) {
+    if (!this.currentModel) return null;
+    return this.currentModel.getObjectByProperty("uuid", uuid);
+  }
+
+  /**
    * Highlight an object with enhanced visual effects
    */
   highlightObject(object, color, opacity) {
@@ -1431,6 +1445,39 @@ export class Viewer3D {
       // Ensure indicator is hidden even if restoration fails
       this.hideIsolationIndicator();
     }
+  }
+
+  /**
+   * Clear all highlights from all objects
+   * Used by section highlight manager for cleanup
+   */
+  clearHighlights() {
+    if (!this.currentModel) return;
+
+    this.currentModel.traverse((child) => {
+      if (child.isMesh) {
+        // Restore original material if it was modified
+        if (child.userData.originalMaterial) {
+          child.material = child.userData.originalMaterial;
+          delete child.userData.originalMaterial;
+        }
+
+        // Also restore using originalMaterials map
+        const original = this.originalMaterials.get(child.uuid);
+        if (original) {
+          if (original.emissive && child.material.emissive) {
+            child.material.emissive.copy(original.emissive);
+            child.material.emissiveIntensity = original.emissiveIntensity;
+          }
+          if (original.scale) {
+            child.scale.copy(original.scale);
+          }
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+
+    console.log("[Viewer] All highlights cleared");
   }
 
   /**

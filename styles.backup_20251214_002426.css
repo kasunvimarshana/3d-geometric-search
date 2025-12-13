@@ -57,8 +57,7 @@
   /* Shadows - Subtle */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 
   /* Transitions */
   --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -500,8 +499,6 @@ footer .small {
   width: 100%;
   height: 120px;
   background: #1a1a1a;
-  background-size: cover;
-  background-position: center;
   border-radius: var(--radius-md);
   margin-bottom: var(--space-2);
   overflow: hidden;
@@ -1000,7 +997,6 @@ footer .small {
   align-items: center;
   z-index: 10000;
   color: white;
-  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
@@ -1015,12 +1011,8 @@ footer .small {
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .loading-overlay p {
@@ -1044,7 +1036,6 @@ footer .small {
   align-items: center;
   z-index: 2000;
   padding: var(--space-6);
-  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
@@ -1245,17 +1236,4 @@ kbd {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* ========================================
-   Utility Classes for Inline Style Removal
-   ======================================== */
-
-/* Display utilities */
-.hidden {
-  display: none !important;
-}
-
-.visible {
-  display: block !important;
 }

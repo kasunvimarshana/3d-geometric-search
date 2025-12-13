@@ -138,24 +138,18 @@
             </div>
 
             <!-- Isolation Mode Indicator -->
-            <div
-              class="isolation-indicator"
-              id="isolationIndicator"
-              style="display: none"
-            >
+            <div class="isolation-indicator hidden" id="isolationIndicator">
               <span class="isolation-label">Isolated</span>
             </div>
           </div>
 
           <!-- Advanced Controls Panel -->
-          <div
-            class="advanced-controls"
-            id="advanced-controls"
-            style="display: none"
-          >
+          <div class="advanced-controls hidden" id="advanced-controls">
             <h3>Lighting Controls</h3>
             <div class="control-group">
-              <label>Ambient Light: <span id="ambientValue">0.6</span></label>
+              <label for="ambientSlider"
+                >Ambient Light: <span id="ambientValue">0.6</span></label
+              >
               <input
                 type="range"
                 id="ambientSlider"
@@ -163,10 +157,11 @@
                 max="1"
                 step="0.1"
                 value="0.6"
+                aria-label="Ambient light intensity"
               />
             </div>
             <div class="control-group">
-              <label
+              <label for="directionalSlider"
                 >Directional Light:
                 <span id="directionalValue">0.8</span></label
               >
@@ -177,16 +172,24 @@
                 max="2"
                 step="0.1"
                 value="0.8"
+                aria-label="Directional light intensity"
               />
             </div>
             <div class="control-group">
-              <label>Background:</label>
-              <input type="color" id="backgroundColorPicker" value="#1a1a1a" />
+              <label for="backgroundColorPicker">Background:</label>
+              <input
+                type="color"
+                id="backgroundColorPicker"
+                value="#1a1a1a"
+                aria-label="Background color picker"
+              />
             </div>
 
             <h3>Model Controls</h3>
             <div class="control-group">
-              <label>Model Scale: <span id="scaleValue">1.0</span>x</label>
+              <label for="scaleSlider"
+                >Model Scale: <span id="scaleValue">1.0</span>x</label
+              >
               <input
                 type="range"
                 id="scaleSlider"
@@ -194,10 +197,11 @@
                 max="3"
                 step="0.1"
                 value="1"
+                aria-label="Model scale adjustment"
               />
             </div>
             <div class="control-group">
-              <label
+              <label for="rotateSpeedSlider"
                 >Rotation Speed: <span id="rotateSpeedValue">2.0</span></label
               >
               <input
@@ -207,6 +211,7 @@
                 max="5"
                 step="0.5"
                 value="2"
+                aria-label="Rotation speed adjustment"
               />
             </div>
             <div class="control-group">
@@ -274,11 +279,7 @@
         </section>
 
         <!-- Search Results Section -->
-        <section
-          class="results-section"
-          id="resultsSection"
-          style="display: none"
-        >
+        <section class="results-section hidden" id="resultsSection">
           <div class="section-header">
             <h2>Similar Models</h2>
             <button
@@ -302,13 +303,13 @@
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none">
+    <div id="loadingOverlay" class="loading-overlay hidden">
       <div class="spinner"></div>
       <p>Loading model...</p>
     </div>
 
     <!-- Keyboard Shortcuts Help Modal -->
-    <div id="keyboardModal" class="modal" style="display: none">
+    <div id="keyboardModal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
           <h2>Keyboard Shortcuts</h2>
@@ -423,6 +424,7 @@
     <script src="js/sectionManager.js"></script>
     <script src="js/navigationManager.js"></script>
     <script src="js/modelHierarchyPanel.js"></script>
+    <script src="js/sectionHighlightManager.js"></script>
 
     <!-- Application Scripts -->
     <script type="module" src="js/app.js"></script>

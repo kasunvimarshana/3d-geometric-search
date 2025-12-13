@@ -1,12 +1,15 @@
 /**
- * Event Handler Module
- * Manages all event handling logic in a modular, maintainable way
+ * Event Handler Module - Clean & Modular
+ * Manages all event handling with SOLID principles
+ * Features: Separation of concerns, easy to maintain and extend
  */
 
 export class EventHandler {
   constructor(app) {
     this.app = app;
-    this.eventListeners = new Map();
+    this.eventManager = app.eventManager;
+    this.eventBus = window.eventBus;
+    this.cleanupFunctions = [];
   }
 
   /**
@@ -20,25 +23,7 @@ export class EventHandler {
     this.setupKeyboardEvents();
     this.setupModalEvents();
     this.setupViewerInteractionEvents();
-  }
-
-  /**
-   * Register an event listener and store for cleanup
-   */
-  registerEvent(element, event, handler, options = {}) {
-    const wrappedHandler = options.debounce
-      ? this.debounce(handler, options.debounce)
-      : handler;
-
-    element.addEventListener(event, wrappedHandler);
-
-    // Store for cleanup
-    if (!this.eventListeners.has(element)) {
-      this.eventListeners.set(element, []);
-    }
-    this.eventListeners.get(element).push({ event, handler: wrappedHandler });
-
-    return wrappedHandler;
+    this.setupSectionHighlightingEvents();
   }
 
   /**
@@ -49,316 +34,507 @@ export class EventHandler {
     const fileInput = document.getElementById("fileInput");
     const uploadArea = document.getElementById("uploadArea");
 
-    this.registerEvent(uploadBtn, "click", (e) => {
-      e.stopPropagation();
-      fileInput.click();
-    });
-
-    this.registerEvent(fileInput, "change", (e) => {
-      if (e.target.files.length > 0) {
-        this.app.handleFiles(e.target.files);
-      }
-    });
-
-    this.registerEvent(uploadArea, "dragover", (e) => {
-      e.preventDefault();
-      uploadArea.classList.add("drag-over");
-    });
-
-    this.registerEvent(uploadArea, "dragleave", () => {
-      uploadArea.classList.remove("drag-over");
-    });
-
-    this.registerEvent(uploadArea, "drop", (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove("drag-over");
-      if (e.dataTransfer.files.length > 0) {
-        this.app.handleFiles(e.dataTransfer.files);
-      }
-    });
-
-    this.registerEvent(uploadArea, "click", (e) => {
-      if (
-        e.target === uploadArea ||
-        (e.target.closest(".upload-area") && !e.target.closest("#uploadBtn"))
-      ) {
+    if (uploadBtn && fileInput) {
+      this.eventManager.add(uploadBtn, "click", (e) => {
+        e.stopPropagation();
         fileInput.click();
-      }
-    });
+      });
+
+      this.eventManager.add(fileInput, "change", (e) => {
+        if (e.target.files.length > 0) {
+          this.app.handleFiles(e.target.files);
+        }
+      });
+    }
+
+    if (uploadArea) {
+      this.eventManager.add(uploadArea, "dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("drag-over");
+      });
+
+      this.eventManager.add(uploadArea, "dragleave", () => {
+        uploadArea.classList.remove("drag-over");
+      });
+
+      this.eventManager.add(uploadArea, "drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("drag-over");
+        if (e.dataTransfer.files.length > 0) {
+          this.app.handleFiles(e.dataTransfer.files);
+        }
+      });
+
+      this.eventManager.add(uploadArea, "click", (e) => {
+        if (
+          e.target === uploadArea ||
+          (e.target.closest(".upload-area") && !e.target.closest("#uploadBtn"))
+        ) {
+          fileInput.click();
+        }
+      });
+    }
   }
 
   /**
    * Setup viewer control events
    */
   setupViewerControlEvents() {
-    const controls = {
-      resetViewBtn: () => {
-        this.app.viewer.resetView();
-        this.app.showToast("View reset", "info");
-      },
-      zoomInBtn: () => {
-        this.app.viewer.zoomIn();
-        this.app.updateZoomIndicator();
-      },
-      zoomOutBtn: () => {
-        this.app.viewer.zoomOut();
-        this.app.updateZoomIndicator();
-      },
-      fitViewBtn: () => {
-        this.app.viewer.fitToView();
-        this.app.updateZoomIndicator();
-        this.app.showToast("Fitted to view", "info");
-      },
-      autoRotateBtn: (e) => {
-        const isRotating = this.app.viewer.toggleAutoRotate();
-        e.target.classList.toggle("active", isRotating);
-        this.app.showToast(
-          isRotating ? "Auto-rotate enabled" : "Auto-rotate disabled",
-          "info"
-        );
-      },
-      wireframeBtn: () => {
-        this.app.viewer.toggleWireframe();
-        this.app.showToast("Wireframe toggled", "info");
-      },
-      gridBtn: () => {
-        this.app.viewer.toggleGrid();
-        this.app.showToast("Grid toggled", "info");
-      },
-      axesBtn: () => {
-        this.app.viewer.toggleAxes();
-        this.app.showToast("Axes toggled", "info");
-      },
-      shadowsBtn: () => {
-        this.app.viewer.toggleShadows();
-        this.app.showToast("Shadows toggled", "info");
-      },
-      screenshotBtn: () => {
-        this.app.takeScreenshot();
-      },
-      fullscreenBtn: async () => {
-        const isFullscreen = await this.app.viewer.toggleFullscreen();
-        const btn = document.getElementById("fullscreenBtn");
-        btn.classList.toggle("fullscreen-active", isFullscreen);
-        this.app.showToast(
-          isFullscreen ? "Fullscreen enabled" : "Fullscreen disabled",
-          "info"
-        );
-      },
-      settingsBtn: () => {
-        this.app.toggleAdvancedControls();
-      },
-      keyboardHelpBtn: () => {
-        this.app.showKeyboardHelp();
-      },
+    const controlHandlers = {
+      resetViewBtn: () => this.handleResetView(),
+      zoomInBtn: () => this.handleZoomIn(),
+      zoomOutBtn: () => this.handleZoomOut(),
+      fitViewBtn: () => this.handleFitView(),
+      autoRotateBtn: (e) => this.handleAutoRotate(e),
+      wireframeBtn: () => this.handleWireframe(),
+      gridBtn: () => this.handleGrid(),
+      axesBtn: () => this.handleAxes(),
+      shadowsBtn: () => this.handleShadows(),
+      screenshotBtn: () => this.handleScreenshot(),
+      fullscreenBtn: () => this.handleFullscreen(),
+      settingsBtn: () => this.handleSettings(),
+      keyboardHelpBtn: () => this.handleKeyboardHelp(),
     };
 
-    Object.entries(controls).forEach(([id, handler]) => {
+    // Register control handlers
+    Object.entries(controlHandlers).forEach(([id, handler]) => {
       const element = document.getElementById(id);
       if (element) {
-        this.registerEvent(element, "click", handler);
+        this.eventManager.add(element, "click", handler);
       }
     });
 
     // Camera preset views
     document.querySelectorAll(".btn-preset").forEach((btn) => {
-      this.registerEvent(btn, "click", (e) => {
+      this.eventManager.add(btn, "click", (e) => {
         const view = e.target.getAttribute("data-view");
-        this.app.viewer.setCameraView(view);
-        this.app.showToast(
-          `${view.charAt(0).toUpperCase() + view.slice(1)} view`,
-          "info",
-          1000
-        );
+        if (view && this.app.viewer) {
+          this.app.viewer.setCameraView(view);
+          this.showToast(`${this.capitalize(view)} view`, "info", 1000);
+        }
       });
     });
 
     // Update zoom indicator on camera movement
-    if (this.app.viewer.controls) {
-      this.registerEvent(this.app.viewer.controls, "change", () => {
-        this.app.updateZoomIndicator();
+    if (this.app.viewer?.controls) {
+      this.eventManager.add(this.app.viewer.controls, "change", () => {
+        this.updateZoomIndicator();
       });
     }
   }
 
   /**
-   * Setup advanced control events
+   * Setup advanced control events (sliders, color pickers)
    */
   setupAdvancedControlEvents() {
-    const sliders = {
+    const sliderHandlers = {
       ambientSlider: (e) => {
         const value = parseFloat(e.target.value);
-        this.app.viewer.setAmbientIntensity(value);
-        document.getElementById("ambientValue").textContent = value.toFixed(1);
+        this.app.viewer?.setAmbientIntensity(value);
+        const display = document.getElementById("ambientValue");
+        if (display) display.textContent = value.toFixed(1);
       },
       directionalSlider: (e) => {
         const value = parseFloat(e.target.value);
-        this.app.viewer.setDirectionalIntensity(value);
-        document.getElementById("directionalValue").textContent =
-          value.toFixed(1);
+        this.app.viewer?.setDirectionalIntensity(value);
+        const display = document.getElementById("directionalValue");
+        if (display) display.textContent = value.toFixed(1);
       },
       backgroundColorPicker: (e) => {
-        const color = parseInt(e.target.value.replace("#", ""), 16);
-        this.app.viewer.setBackgroundColor(color);
+        this.app.viewer?.setBackgroundColor(e.target.value);
       },
       scaleSlider: (e) => {
         const value = parseFloat(e.target.value);
-        this.app.viewer.scaleModel(value);
-        document.getElementById("scaleValue").textContent = value.toFixed(1);
+        this.app.viewer?.setModelScale(value);
+        const display = document.getElementById("scaleValue");
+        if (display) display.textContent = value.toFixed(1);
       },
       rotateSpeedSlider: (e) => {
         const value = parseFloat(e.target.value);
-        this.app.viewer.setAutoRotateSpeed(value);
-        document.getElementById("rotateSpeedValue").textContent =
-          value.toFixed(1);
+        this.app.viewer?.setAutoRotateSpeed(value);
+        const display = document.getElementById("rotateSpeedValue");
+        if (display) display.textContent = value.toFixed(1);
       },
     };
 
-    Object.entries(sliders).forEach(([id, handler]) => {
+    Object.entries(sliderHandlers).forEach(([id, handler]) => {
       const element = document.getElementById(id);
       if (element) {
-        this.registerEvent(element, "input", handler);
+        this.eventManager.add(element, "input", handler);
       }
     });
 
+    // Focus model button
     const focusBtn = document.getElementById("focusModelBtn");
     if (focusBtn) {
-      this.registerEvent(focusBtn, "click", () => {
-        this.app.viewer.focusOnModel();
-        this.app.updateZoomIndicator();
-        this.app.showToast("Focused on model", "info");
+      this.eventManager.add(focusBtn, "click", () => {
+        this.app.viewer?.focusOnModel();
+        this.showToast("Focused on model", "info");
       });
     }
   }
 
   /**
-   * Setup library-related events
+   * Setup library events (export, clear, model selection)
    */
   setupLibraryEvents() {
-    const libraryControls = {
-      exportAllBtn: () => this.app.exportAllData(),
-      generateReportBtn: () => this.app.generateReport(),
-      clearLibraryBtn: () => this.app.clearLibrary(),
-      exportSimilarityBtn: () => this.app.exportSimilarityResults(),
+    const libraryHandlers = {
+      exportAllBtn: () => this.app.exportAllAnalysis?.(),
+      generateReportBtn: () => this.app.generateReport?.(),
+      clearLibraryBtn: () => this.handleClearLibrary(),
+      exportSimilarityBtn: () => this.app.exportSimilarityResults?.(),
     };
 
-    Object.entries(libraryControls).forEach(([id, handler]) => {
+    Object.entries(libraryHandlers).forEach(([id, handler]) => {
       const element = document.getElementById(id);
-      if (element) {
-        this.registerEvent(element, "click", handler);
+      if (element && handler) {
+        this.eventManager.add(element, "click", handler);
       }
     });
+
+    // Model card interactions - use event delegation
+    const libraryGrid = document.getElementById("libraryGrid");
+    if (libraryGrid) {
+      this.eventManager.add(libraryGrid, "click", (e) => {
+        const card = e.target.closest(".model-card");
+        const deleteBtn = e.target.closest(".delete-btn");
+
+        if (deleteBtn && card) {
+          e.stopPropagation();
+          const modelName = card.dataset.modelName;
+          if (modelName) this.handleDeleteModel(modelName);
+        } else if (card) {
+          const modelName = card.dataset.modelName;
+          if (modelName) this.app.displayModel?.(modelName);
+        }
+      });
+    }
   }
 
   /**
-   * Setup keyboard events
+   * Setup keyboard shortcuts
    */
   setupKeyboardEvents() {
-    this.registerEvent(document, "keydown", (e) => {
-      // Don't handle shortcuts if user is typing
+    this.eventManager.add(document, "keydown", (e) => {
+      // Don't trigger if user is typing
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
         return;
       }
 
-      // Close modal with Escape
-      if (e.code === "Escape") {
-        const modal = document.getElementById("keyboardModal");
-        if (modal && modal.style.display !== "none") {
-          this.app.hideKeyboardHelp();
-          return;
-        }
-      }
+      const key = e.key.toLowerCase();
 
-      // Handle viewer shortcuts
-      this.app.viewer.handleKeyboard(e);
-
-      // Update UI after keyboard actions
-      if (
-        ["Equal", "Minus", "Digit0", "NumpadAdd", "NumpadSubtract"].includes(
-          e.code
-        )
-      ) {
-        this.app.updateZoomIndicator();
-      }
-
-      // Update fullscreen button state
-      if (e.code === "KeyF") {
-        setTimeout(() => {
-          const btn = document.getElementById("fullscreenBtn");
-          btn.classList.toggle(
-            "fullscreen-active",
-            this.app.viewer.isFullscreen
-          );
-        }, 200);
-      }
-
-      // Update auto-rotate button state
-      if (e.code === "Space") {
-        const btn = document.getElementById("autoRotateBtn");
-        btn.classList.toggle("active", this.app.viewer.autoRotate);
+      switch (key) {
+        case "f":
+          this.handleFullscreen();
+          break;
+        case "r":
+          if (e.shiftKey) {
+            this.handleResetAll();
+          } else {
+            this.handleResetView();
+          }
+          break;
+        case "0":
+          this.handleFitView();
+          break;
+        case " ":
+          e.preventDefault();
+          document.getElementById("autoRotateBtn")?.click();
+          break;
+        case "g":
+          this.handleGrid();
+          break;
+        case "a":
+          this.handleAxes();
+          break;
+        case "w":
+          this.handleWireframe();
+          break;
+        case "s":
+          this.handleShadows();
+          break;
+        case "+":
+        case "=":
+          this.handleZoomIn();
+          break;
+        case "-":
+          this.handleZoomOut();
+          break;
       }
     });
   }
 
   /**
-   * Setup modal-related events
+   * Setup modal events
    */
   setupModalEvents() {
-    const closeBtn = document.getElementById("closeModalBtn");
-    if (closeBtn) {
-      this.registerEvent(closeBtn, "click", () => {
-        this.app.hideKeyboardHelp();
-      });
-    }
+    const keyboardModal = document.getElementById("keyboardModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
 
-    const modal = document.getElementById("keyboardModal");
-    if (modal) {
-      this.registerEvent(modal, "click", (e) => {
-        if (e.target.id === "keyboardModal") {
-          this.app.hideKeyboardHelp();
+    if (closeModalBtn) {
+      this.eventManager.add(closeModalBtn, "click", () => {
+        if (keyboardModal) {
+          keyboardModal.classList.add("hidden");
+          keyboardModal.style.display = "none";
         }
       });
     }
+
+    if (keyboardModal) {
+      this.eventManager.add(keyboardModal, "click", (e) => {
+        if (e.target === keyboardModal) {
+          keyboardModal.classList.add("hidden");
+          keyboardModal.style.display = "none";
+        }
+      });
+    }
+
+    // Close modal on Escape
+    this.eventManager.add(document, "keydown", (e) => {
+      if (
+        e.key === "Escape" &&
+        keyboardModal &&
+        !keyboardModal.classList.contains("hidden")
+      ) {
+        keyboardModal.classList.add("hidden");
+        keyboardModal.style.display = "none";
+      }
+    });
   }
 
   /**
-   * Setup viewer interaction events for model highlighting
+   * Setup viewer interaction events (click, hover)
    */
   setupViewerInteractionEvents() {
-    const viewerElement = document.getElementById("viewer");
-    if (viewerElement) {
-      this.registerEvent(viewerElement, "modelSectionClick", (e) => {
-        const { modelName, object, point } = e.detail;
-        console.log("Model section clicked:", modelName, object.name);
+    if (!this.app.viewer?.renderer) return;
 
-        // Highlight the corresponding model card
-        if (modelName) {
-          this.app.highlightModelCard(modelName, true);
-          const highlightDuration = 1500; // ms
-          const currentSelection = this.app.getCurrentModelName();
-          setTimeout(() => {
-            this.app.clearHighlight();
-            if (currentSelection) {
-              this.app.updateLibrarySelection(currentSelection);
-            }
-          }, highlightDuration);
+    const canvas = this.app.viewer.renderer.domElement;
+
+    // Double-click to focus
+    this.eventManager.add(canvas, "dblclick", () => {
+      this.app.viewer?.focusOnModel();
+    });
+
+    // Click to select section
+    this.eventManager.add(canvas, "click", (e) => {
+      if (this.app.viewer) {
+        this.app.viewer.updateMousePosition(e);
+        const intersections = this.app.viewer.getIntersections();
+        if (intersections.length > 0) {
+          this.handleSectionClick(intersections[0].object);
         }
-      });
-    }
+      }
+    });
+
+    // Hover to highlight
+    this.eventManager.add(
+      canvas,
+      "mousemove",
+      this.throttle((e) => {
+        if (this.app.viewer) {
+          this.app.viewer.updateMousePosition(e);
+          const intersections = this.app.viewer.getIntersections();
+          if (intersections.length > 0) {
+            this.handleSectionHover(intersections[0].object);
+          } else {
+            this.clearSectionHover();
+          }
+        }
+      }, 50)
+    );
   }
 
   /**
-   * Debounce utility function
+   * Setup section highlighting events for bidirectional sync
    */
-  debounce(func, wait) {
+  setupSectionHighlightingEvents() {
+    if (!this.eventBus) return;
+
+    // Listen for section events from hierarchy panel
+    this.eventBus.on("section:click", (data) => {
+      if (data.sectionId) {
+        this.highlightSection(data.sectionId, "list");
+      }
+    });
+
+    this.eventBus.on("section:hover", (data) => {
+      if (data.sectionId) {
+        this.hoverSection(data.sectionId);
+      }
+    });
+
+    this.eventBus.on("section:clear", () => {
+      this.clearSectionHighlight();
+    });
+  }
+
+  // ===================================
+  // Handler Methods (Clean & Modular)
+  // ===================================
+
+  handleResetView() {
+    this.app.viewer?.resetView();
+    this.showToast("View reset", "info");
+  }
+
+  handleZoomIn() {
+    this.app.viewer?.zoomIn();
+    this.updateZoomIndicator();
+  }
+
+  handleZoomOut() {
+    this.app.viewer?.zoomOut();
+    this.updateZoomIndicator();
+  }
+
+  handleFitView() {
+    this.app.viewer?.fitToView();
+    this.updateZoomIndicator();
+    this.showToast("Fitted to view", "info");
+  }
+
+  handleAutoRotate(e) {
+    const isRotating = this.app.viewer?.toggleAutoRotate();
+    e.target.classList.toggle("active", isRotating);
+    this.showToast(
+      isRotating ? "Auto-rotate enabled" : "Auto-rotate disabled",
+      "info"
+    );
+  }
+
+  handleWireframe() {
+    this.app.viewer?.toggleWireframe();
+    this.showToast("Wireframe toggled", "info");
+  }
+
+  handleGrid() {
+    this.app.viewer?.toggleGrid();
+    this.showToast("Grid toggled", "info");
+  }
+
+  handleAxes() {
+    this.app.viewer?.toggleAxes();
+    this.showToast("Axes toggled", "info");
+  }
+
+  handleShadows() {
+    this.app.viewer?.toggleShadows();
+    this.showToast("Shadows toggled", "info");
+  }
+
+  handleScreenshot() {
+    this.app.takeScreenshot?.();
+  }
+
+  async handleFullscreen() {
+    const isFullscreen = await this.app.viewer?.toggleFullscreen();
+    const btn = document.getElementById("fullscreenBtn");
+    if (btn) {
+      btn.classList.toggle("fullscreen-active", isFullscreen);
+    }
+    this.showToast(
+      isFullscreen ? "Fullscreen enabled" : "Fullscreen disabled",
+      "info"
+    );
+  }
+
+  handleSettings() {
+    this.app.toggleAdvancedControls?.();
+  }
+
+  handleKeyboardHelp() {
+    this.app.showKeyboardHelp?.();
+  }
+
+  handleClearLibrary() {
+    if (confirm("Clear all models from library?")) {
+      this.app.clearLibrary?.();
+    }
+  }
+
+  handleDeleteModel(modelName) {
+    if (confirm(`Delete model "${modelName}"?`)) {
+      this.app.deleteModel?.(modelName);
+    }
+  }
+
+  handleResetAll() {
+    if (confirm("Reset all settings to default?")) {
+      this.app.resetAllSettings?.();
+    }
+  }
+
+  handleSectionClick(object) {
+    if (!object) return;
+
+    const sectionId = object.uuid;
+    this.eventBus?.emit("model:section:click", { sectionId, object });
+    this.highlightSection(sectionId, "model");
+  }
+
+  handleSectionHover(object) {
+    if (!object) return;
+
+    const sectionId = object.uuid;
+    this.eventBus?.emit("model:section:hover", { sectionId, object });
+  }
+
+  clearSectionHover() {
+    this.eventBus?.emit("model:section:hover:clear");
+  }
+
+  highlightSection(sectionId, source) {
+    this.eventBus?.emit("highlight:section", { sectionId, source });
+  }
+
+  hoverSection(sectionId) {
+    this.eventBus?.emit("hover:section", { sectionId });
+  }
+
+  clearSectionHighlight() {
+    this.eventBus?.emit("highlight:clear");
+  }
+
+  // ===================================
+  // Utility Methods
+  // ===================================
+
+  updateZoomIndicator() {
+    const zoomLevel = document.getElementById("zoomLevel");
+    if (zoomLevel && this.app.viewer) {
+      const distance = this.app.viewer.camera?.position.length() || 50;
+      const zoom = Math.round((distance / 100) * 100);
+      zoomLevel.textContent = zoom;
+    }
+  }
+
+  showToast(message, type = "info", duration = 2000) {
+    if (typeof showToast === "function") {
+      showToast(message, type, duration);
+    } else if (this.app.showToast) {
+      this.app.showToast(message, type, duration);
+    }
+  }
+
+  capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  throttle(func, wait) {
     let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
+    let lastCall = 0;
+    return function (...args) {
+      const now = Date.now();
+      if (now - lastCall < wait) {
         clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
+        timeout = setTimeout(() => {
+          lastCall = now;
+          func.apply(this, args);
+        }, wait - (now - lastCall));
+      } else {
+        lastCall = now;
+        func.apply(this, args);
+      }
     };
   }
 
@@ -366,11 +542,8 @@ export class EventHandler {
    * Cleanup all event listeners
    */
   cleanup() {
-    this.eventListeners.forEach((listeners, element) => {
-      listeners.forEach(({ event, handler }) => {
-        element.removeEventListener(event, handler);
-      });
-    });
-    this.eventListeners.clear();
+    this.eventManager?.clear();
+    this.cleanupFunctions.forEach((cleanup) => cleanup());
+    this.cleanupFunctions = [];
   }
 }

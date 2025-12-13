@@ -16,6 +16,7 @@ import Config from "./config.js";
 const SectionManager = window.SectionManager;
 const EventHandlerManager = window.EventHandlerManager;
 const NavigationManager = window.NavigationManager;
+const SectionHighlightManager = window.SectionHighlightManager;
 
 class App {
   constructor() {
@@ -42,6 +43,9 @@ class App {
     // Model hierarchy panel
     this.hierarchyPanel = null;
 
+    // Section highlighting manager for bidirectional sync
+    this.highlightManager = null;
+
     this.init();
   }
 
@@ -52,6 +56,21 @@ class App {
     this.geometryAnalyzer = new GeometryAnalyzer();
     this.exportManager = new ExportManager();
     this.eventHandler = new EventHandler(this);
+
+    // Initialize section highlighting manager
+    if (SectionHighlightManager && window.eventBus) {
+      this.highlightManager = new SectionHighlightManager(
+        this.viewer,
+        window.eventBus
+      );
+      console.log("Section highlight manager initialized");
+    }
+
+    // Initialize navigation system
+    this.initializeNavigation();
+
+    // Initialize model hierarchy panel
+    this.initializeHierarchyPanel();
 
     // Setup all event listeners through the event handler
     this.eventHandler.setupAll();
@@ -328,6 +347,12 @@ class App {
       return;
     }
 
+    if (!this.viewer) {
+      console.error("[App] Viewer not initialized");
+      showToast("Error: Viewer not initialized", "error");
+      return;
+    }
+
     this.currentModelName = modelName;
 
     // Clone the model and set metadata
@@ -337,6 +362,7 @@ class App {
     // Load model in viewer
     this.viewer.loadModel(modelClone);
 
+    try {
       // Update model info
       this.updateModelInfo(model.features);
 
@@ -360,23 +386,43 @@ class App {
   }
 
   updateModelInfo(features) {
-    document.getElementById("vertexCount").textContent =
-      features.vertexCount.toLocaleString();
-    document.getElementById("faceCount").textContent = Math.round(
-      features.faceCount
-    ).toLocaleString();
+    if (!features) {
+      console.warn("[App] No features provided to updateModelInfo");
+      return;
+    }
 
-    const bbox = features.boundingBox;
-    document.getElementById("boundingBox").textContent = `${bbox.x.toFixed(
-      2
-    )} × ${bbox.y.toFixed(2)} × ${bbox.z.toFixed(2)}`;
+    const vertexCountEl = document.getElementById("vertexCount");
+    const faceCountEl = document.getElementById("faceCount");
+    const boundingBoxEl = document.getElementById("boundingBox");
+    const volumeDisplayEl = document.getElementById("volumeDisplay");
 
-    document.getElementById("volumeDisplay").textContent =
-      features.volume.toFixed(4);
+    if (vertexCountEl && features.vertexCount !== undefined) {
+      vertexCountEl.textContent = features.vertexCount.toLocaleString();
+    }
+
+    if (faceCountEl && features.faceCount !== undefined) {
+      faceCountEl.textContent = Math.round(features.faceCount).toLocaleString();
+    }
+
+    if (boundingBoxEl && features.boundingBox) {
+      const bbox = features.boundingBox;
+      boundingBoxEl.textContent = `${bbox.x.toFixed(2)} × ${bbox.y.toFixed(
+        2
+      )} × ${bbox.z.toFixed(2)}`;
+    }
+
+    if (volumeDisplayEl && features.volume !== undefined) {
+      volumeDisplayEl.textContent = features.volume.toFixed(4);
+    }
   }
 
   updateLibraryGrid() {
     const grid = document.getElementById("libraryGrid");
+    if (!grid) {
+      console.warn("[App] Library grid element not found");
+      return;
+    }
+
     grid.innerHTML = "";
 
     if (Object.keys(this.modelLibrary).length === 0) {
@@ -395,12 +441,23 @@ class App {
     const emptyState = document.getElementById("emptyState");
 
     if (emptyState) {
-      emptyState.style.display =
-        Object.keys(this.modelLibrary).length === 0 ? "block" : "none";
+      const hasModels = Object.keys(this.modelLibrary).length > 0;
+      if (hasModels) {
+        emptyState.classList.add("hidden");
+        emptyState.style.display = "none";
+      } else {
+        emptyState.classList.remove("hidden");
+        emptyState.style.display = "block";
+      }
     }
   }
 
   createModelCard(name, model) {
+    if (!name || !model) {
+      console.error("[App] Invalid parameters for createModelCard");
+      return document.createElement("div"); // Return empty div
+    }
+
     const card = document.createElement("div");
     card.className = "model-card";
     card.dataset.modelName = name; // Store model name for easy lookup
@@ -411,9 +468,9 @@ class App {
     // Thumbnail
     const thumbnail = document.createElement("div");
     thumbnail.className = "model-thumbnail";
-    thumbnail.style.backgroundImage = `url(${model.thumbnail})`;
-    thumbnail.style.backgroundSize = "cover";
-    thumbnail.style.backgroundPosition = "center";
+    if (model.thumbnail) {
+      thumbnail.style.backgroundImage = `url(${model.thumbnail})`;
+    }
     card.appendChild(thumbnail);
 
     // Title
@@ -424,7 +481,11 @@ class App {
     // Info
     const info = document.createElement("div");
     info.className = "model-card-info";
-    info.textContent = `${model.features.vertexCount.toLocaleString()} vertices`;
+    if (model.features && model.features.vertexCount !== undefined) {
+      info.textContent = `${model.features.vertexCount.toLocaleString()} vertices`;
+    } else {
+      info.textContent = "No data";
+    }
     card.appendChild(info);
 
     // Delete button
@@ -485,7 +546,11 @@ class App {
       if (this.currentModelName) {
         this.findSimilarModels(this.currentModelName);
       } else {
-        document.getElementById("resultsSection").style.display = "none";
+        const resultsSection = document.getElementById("resultsSection");
+        if (resultsSection) {
+          resultsSection.classList.add("hidden");
+          resultsSection.style.display = "none";
+        }
       }
 
       showToast(`Model "${name}" deleted`, "success");
@@ -582,10 +647,12 @@ class App {
     const resultsGrid = document.getElementById("resultsGrid");
 
     if (results.length === 0) {
+      resultsSection.classList.add("hidden");
       resultsSection.style.display = "none";
       return;
     }
 
+    resultsSection.classList.remove("hidden");
     resultsSection.style.display = "block";
     resultsGrid.innerHTML = "";
 
@@ -619,18 +686,22 @@ class App {
   }
 
   toggleAdvancedControls() {
-    const controls = document.getElementById("advancedControls");
-    const isVisible = controls.style.display !== "none";
-    
-    if (isVisible) {
-      controls.style.display = "none";
-    } else {
+    const controls = document.getElementById("advanced-controls");
+    if (!controls) return;
+
+    const isHidden = controls.classList.contains("hidden");
+
+    if (isHidden) {
+      controls.classList.remove("hidden");
       controls.style.display = "block";
       // Add animation class when showing
       controls.classList.add("advanced-controls--animate");
       setTimeout(() => {
         controls.classList.remove("advanced-controls--animate");
       }, 200);
+    } else {
+      controls.classList.add("hidden");
+      controls.style.display = "none";
     }
   }
 
@@ -706,7 +777,11 @@ class App {
 
       // Update UI
       this.updateLibraryGrid();
-      document.getElementById("resultsSection").style.display = "none";
+      const resultsSection = document.getElementById("resultsSection");
+      if (resultsSection) {
+        resultsSection.classList.add("hidden");
+        resultsSection.style.display = "none";
+      }
 
       showToast("Library cleared", "success");
     }
@@ -735,6 +810,7 @@ class App {
   showKeyboardHelp() {
     const modal = document.getElementById("keyboardModal");
     if (modal) {
+      modal.classList.remove("hidden");
       modal.style.display = "flex";
       document.body.style.overflow = "hidden";
     }
@@ -746,14 +822,23 @@ class App {
   hideKeyboardHelp() {
     const modal = document.getElementById("keyboardModal");
     if (modal) {
+      modal.classList.add("hidden");
       modal.style.display = "none";
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = "";
     }
   }
 
   showLoading(show) {
     const overlay = document.getElementById("loadingOverlay");
-    overlay.style.display = show ? "flex" : "none";
+    if (overlay) {
+      if (show) {
+        overlay.classList.remove("hidden");
+        overlay.style.display = "flex";
+      } else {
+        overlay.classList.add("hidden");
+        overlay.style.display = "none";
+      }
+    }
   }
 
   /**
