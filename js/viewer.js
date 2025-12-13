@@ -21,6 +21,9 @@ export class Viewer3D {
     this.animationId = null;
     this.autoRotate = false;
     this.isFullscreen = false;
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    this.hoveredObject = null;
     this.settings = {
       showGrid: true,
       showAxes: Config.debug.showAxesHelper,
@@ -122,8 +125,112 @@ export class Viewer3D {
       }
     });
 
+    // Add mouse interaction for model clicking
+    this.renderer.domElement.addEventListener("click", (event) => {
+      this.handleModelClick(event);
+    });
+
+    this.renderer.domElement.addEventListener("mousemove", (event) => {
+      this.handleMouseMove(event);
+    });
+
     // Start animation loop
     this.animate();
+  }
+
+  /**
+   * Handle mouse movement for highlighting
+   */
+  handleMouseMove(event) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Update raycaster
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    if (this.currentModel) {
+      const intersects = this.raycaster.intersectObject(
+        this.currentModel,
+        true
+      );
+
+      if (intersects.length > 0) {
+        const object = intersects[0].object;
+        if (this.hoveredObject !== object) {
+          this.restoreHoveredObject();
+          this.hoveredObject = object;
+          this.highlightObject(object);
+        }
+        this.renderer.domElement.style.cursor = "pointer";
+      } else {
+        this.restoreHoveredObject();
+        this.hoveredObject = null;
+        this.renderer.domElement.style.cursor = "default";
+      }
+    }
+  }
+
+  /**
+   * Handle click on model
+   */
+  handleModelClick(event) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    if (this.currentModel) {
+      const intersects = this.raycaster.intersectObject(
+        this.currentModel,
+        true
+      );
+
+      if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+        // Emit custom event for the app to handle
+        const clickEvent = new CustomEvent("modelSectionClick", {
+          detail: {
+            object: clickedObject,
+            point: intersects[0].point,
+            modelName: this.currentModel.userData.modelName,
+          },
+        });
+        this.container.dispatchEvent(clickEvent);
+      }
+    }
+  }
+
+  /**
+   * Highlight an object when hovered
+   */
+  highlightObject(object) {
+    if (object.isMesh && !object.userData.isHighlighted) {
+      // Store original material
+      object.userData.originalMaterial = object.material;
+      object.userData.isHighlighted = true;
+
+      // Create highlight material
+      const highlightMaterial = object.material.clone();
+      if (highlightMaterial.emissive) {
+        highlightMaterial.emissive.setHex(0x0284c7);
+        highlightMaterial.emissiveIntensity = 0.3;
+      }
+      object.material = highlightMaterial;
+    }
+  }
+
+  /**
+   * Restore the previously hovered object
+   */
+  restoreHoveredObject() {
+    if (this.hoveredObject && this.hoveredObject.userData.isHighlighted) {
+      if (this.hoveredObject.userData.originalMaterial) {
+        this.hoveredObject.material = this.hoveredObject.userData.originalMaterial;
+      }
+      this.hoveredObject.userData.isHighlighted = false;
+    }
   }
 
   addLights() {
@@ -208,6 +315,10 @@ export class Viewer3D {
 
     // Reset camera
     this.resetView();
+
+    // Clear any hover state
+    this.restoreHoveredObject();
+    this.hoveredObject = null;
   }
 
   centerAndScaleModel(object) {
