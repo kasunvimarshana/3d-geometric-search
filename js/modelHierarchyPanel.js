@@ -284,11 +284,10 @@ class ModelHierarchyPanel {
         );
         if (nodeElement && nodeElement.classList.contains("selected")) {
           // Add a subtle pulse to indicate zoom is maintaining focus
-          nodeElement.style.transition = "box-shadow 0.3s ease";
-          nodeElement.style.boxShadow = "0 0 20px rgba(102, 126, 234, 0.8)";
+          nodeElement.classList.add("zoom-pulse");
 
           setTimeout(() => {
-            nodeElement.style.boxShadow = "";
+            nodeElement.classList.remove("zoom-pulse");
           }, 500);
         }
       }

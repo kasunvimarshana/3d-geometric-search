@@ -1158,8 +1158,7 @@ class App {
 
     // Info
     const info = document.createElement("div");
-    info.style.fontSize = "0.8em";
-    info.style.color = "#666";
+    info.className = "model-card-info";
     info.textContent = `${model.features.vertexCount.toLocaleString()} vertices`;
     card.appendChild(info);
 
