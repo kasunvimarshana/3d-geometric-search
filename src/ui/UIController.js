@@ -18,6 +18,11 @@ export class UIController {
     return {
       modelSelector: document.getElementById('model-selector'),
       loadModelBtn: document.getElementById('load-model-btn'),
+      modelUrlInput: document.getElementById('model-url-input'),
+      loadUrlBtn: document.getElementById('load-url-btn'),
+      modelFileInput: document.getElementById('model-file-input'),
+      loadFileBtn: document.getElementById('load-file-btn'),
+      fileName: document.getElementById('file-name'),
       sectionsList: document.getElementById('sections-list'),
       resetViewBtn: document.getElementById('reset-view-btn'),
       refreshBtn: document.getElementById('refresh-btn'),
@@ -50,7 +55,7 @@ export class UIController {
    */
   populateModelSelector(models) {
     this.elements.modelSelector.innerHTML = '<option value="">Select a model...</option>';
-    
+
     models.forEach(model => {
       const option = document.createElement('option');
       option.value = model.id;
@@ -64,7 +69,7 @@ export class UIController {
    */
   renderSections(sections) {
     this.elements.sectionsList.innerHTML = '';
-    
+
     if (sections.length === 0) {
       this.elements.sectionsList.innerHTML = '<p class="no-sections">No sections available</p>';
       return;
@@ -80,7 +85,7 @@ export class UIController {
    */
   buildSectionTree(sections) {
     const roots = sections.filter(s => !s.parent);
-    
+
     const buildNode = section => {
       const children = sections.filter(s => s.parent === section.id);
       return {

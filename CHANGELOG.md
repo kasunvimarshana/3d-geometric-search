@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-14
+
+### Added - External Model Loading
+
+#### New Features
+
+- **Load from URL**: Load 3D models from external URLs
+  - URL input field in controls panel
+  - Automatic URL validation
+  - CORS-aware loading
+  - Error handling for network issues
+- **Load from Local Files**: Load 3D models from local file system
+  - File picker integration
+  - Support for GLTF and GLB formats
+  - File type validation
+  - Filename display
+- **Enhanced Model Repository**:
+  - `createExternalModel()` - Create models from external sources
+  - `getNameFromSource()` - Extract model names from URLs/files
+  - `getTypeFromSource()` - Detect model format automatically
+- **Improved Model Loader Service**:
+  - File object support using Object URLs
+  - Automatic cleanup of temporary URLs
+  - Backward compatibility with URL strings
+
+#### User Interface
+
+- New "External Model" section in controls panel
+- URL input field with placeholder
+- File input with custom styling
+- "Load URL" and "Load File" buttons
+- Selected filename display
+- Enhanced error messaging
+
+#### Documentation
+
+- New comprehensive guide: `docs/EXTERNAL_MODELS.md`
+- Updated README with external loading instructions
+- API reference for new methods
+- Troubleshooting guide
+- CORS considerations
+- Best practices
+
+### Changed
+
+- ModelLoaderService now handles both File objects and URL strings
+- ApplicationController enhanced with external model handlers
+- UIController updated to support new input elements
+
+### Technical Details
+
+- Maintains clean architecture and SOLID principles
+- Zero breaking changes to existing functionality
+- Seamless integration with current section management
+- Proper error handling and validation
+
 ## [1.0.0] - 2025-12-14
 
 ### Initial Release
@@ -14,6 +70,7 @@ Complete professional 3D model viewer application built from scratch.
 ### Added - Core Features
 
 #### Model Management
+
 - Dynamic model loading system for GLTF/GLB files
 - Model repository with extensible architecture
 - Model caching for improved performance
@@ -21,6 +78,7 @@ Complete professional 3D model viewer application built from scratch.
 - Support for multiple model formats (extensible)
 
 #### Section System
+
 - Automatic section detection from 3D models
 - Hierarchical section organization
 - Section highlighting with visual feedback
@@ -30,6 +88,7 @@ Complete professional 3D model viewer application built from scratch.
 - Real-time section updates
 
 #### 3D Viewer
+
 - Three.js integration for 3D rendering
 - Interactive orbit controls (rotate, pan, zoom)
 - Professional lighting setup (ambient + directional)
@@ -40,6 +99,7 @@ Complete professional 3D model viewer application built from scratch.
 - Responsive canvas sizing
 
 #### User Interface
+
 - Clean, minimal, professional design
 - Control panel with all features
 - Model selector dropdown
@@ -53,6 +113,7 @@ Complete professional 3D model viewer application built from scratch.
 ### Added - Architecture
 
 #### Core Systems
+
 - **EventBus**: Centralized event management following Observer pattern
 - **StateManager**: Centralized state management with history tracking
 - **ViewerController**: 3D scene and rendering management
@@ -60,13 +121,16 @@ Complete professional 3D model viewer application built from scratch.
 - **UIController**: User interface management
 
 #### Services
+
 - **ModelLoaderService**: Model loading and caching
 - **SectionManagerService**: Section management with isolation and highlighting
 
 #### Repositories
+
 - **ModelRepository**: Model data access and section creation
 
 #### Domain Layer
+
 - Domain models (Model, Section, ViewerState)
 - Domain interfaces (IModelLoader, ISectionManager, IEventHandler)
 - Application constants and configuration
@@ -75,6 +139,7 @@ Complete professional 3D model viewer application built from scratch.
 ### Added - Code Quality
 
 #### Architecture Principles
+
 - SOLID principles implementation
 - Clean code architecture
 - Separation of concerns
@@ -83,6 +148,7 @@ Complete professional 3D model viewer application built from scratch.
 - YAGNI (You Aren't Gonna Need It)
 
 #### Design Patterns
+
 - MVC (Model-View-Controller)
 - Observer (Event system)
 - Repository (Data access)
@@ -91,6 +157,7 @@ Complete professional 3D model viewer application built from scratch.
 - Strategy (Model loaders)
 
 #### Code Organization
+
 - Modular file structure
 - Clear naming conventions
 - Consistent formatting
@@ -101,12 +168,14 @@ Complete professional 3D model viewer application built from scratch.
 ### Added - Documentation
 
 #### User Documentation
+
 - Comprehensive README with features and usage
 - Quick start guide (GETTING_STARTED.md)
 - Installation and verification guide
 - Project summary document
 
 #### Developer Documentation
+
 - Architecture documentation (ARCHITECTURE.md)
 - Development guide with examples (DEVELOPMENT.md)
 - Inline code documentation
@@ -114,6 +183,7 @@ Complete professional 3D model viewer application built from scratch.
 - License information (MIT)
 
 #### Configuration
+
 - ESLint configuration for code quality
 - Prettier configuration for formatting
 - Vite configuration for build system
@@ -124,6 +194,7 @@ Complete professional 3D model viewer application built from scratch.
 ### Added - Development Tools
 
 #### Build System
+
 - Vite for fast development and building
 - Hot Module Replacement (HMR)
 - Development server with auto-reload
@@ -131,6 +202,7 @@ Complete professional 3D model viewer application built from scratch.
 - Source maps for debugging
 
 #### Code Quality
+
 - ESLint for code linting
 - Prettier for code formatting
 - npm scripts for common tasks
@@ -139,12 +211,14 @@ Complete professional 3D model viewer application built from scratch.
 ### Technical Details
 
 #### Dependencies
+
 - Three.js ^0.160.0 - 3D graphics
 - Vite ^5.0.0 - Build tool
 - ESLint ^8.55.0 - Code quality
 - Prettier ^3.1.0 - Code formatting
 
 #### File Structure
+
 ```
 22 source files organized in:
 - 6 configuration files
@@ -160,6 +234,7 @@ Complete professional 3D model viewer application built from scratch.
 ```
 
 #### Lines of Code
+
 - ~2,000 lines of JavaScript
 - ~500 lines of CSS
 - ~3,000 lines of documentation
@@ -176,25 +251,29 @@ Complete professional 3D model viewer application built from scratch.
 ✅ Zero technical debt  
 ✅ No legacy code  
 ✅ Extensible design  
-✅ Performance optimized  
+✅ Performance optimized
 
 ### Browser Support
+
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
 - Modern browsers with WebGL support
 
 ### Node.js Support
+
 - Node.js 16.x or higher
 - npm 7.x or higher
 
 ### Known Limitations
+
 - Model files need to be manually added to public/models/
 - Currently supports GLTF/GLB formats (extensible)
 - Section detection based on mesh hierarchy
 - No built-in model editor
 
 ### Future Enhancements (Planned)
+
 - Additional model format support (OBJ, FBX)
 - Model search and filtering
 - Section annotations

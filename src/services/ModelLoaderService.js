@@ -5,6 +5,9 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { IModelLoader } from '../domain/models.js';
 import { MODEL_TYPES } from '../domain/constants.js';
 
@@ -12,6 +15,9 @@ export class ModelLoaderService extends IModelLoader {
   constructor() {
     super();
     this.gltfLoader = new GLTFLoader();
+    this.objLoader = new OBJLoader();
+    this.mtlLoader = new MTLLoader();
+    this.stlLoader = new STLLoader();
     this.textureLoader = new THREE.TextureLoader();
     this.loadedObjects = new Map(); // modelId -> THREE.Object3D
   }
@@ -31,12 +37,23 @@ export class ModelLoaderService extends IModelLoader {
       let object;
 
       switch (model.type) {
-      case MODEL_TYPES.GLTF:
-      case MODEL_TYPES.GLB:
-        object = await this.loadGLTF(model.url);
-        break;
-      default:
-        throw new Error(`Unsupported model type: ${model.type}`);
+        case MODEL_TYPES.GLTF:
+        case MODEL_TYPES.GLB:
+          object = await this.loadGLTF(model.url);
+          break;
+        case MODEL_TYPES.OBJ:
+          object = await this.loadOBJ(model.url);
+          break;
+        case MODEL_TYPES.STL:
+          object = await this.loadSTL(model.url);
+          break;
+        case MODEL_TYPES.STEP:
+        case MODEL_TYPES.STP:
+          throw new Error(
+            'STEP format requires server-side conversion. Please convert to GLTF/GLB format.'
+          );
+        default:
+          throw new Error(`Unsupported model type: ${model.type}`);
       }
 
       // Store the loaded object
@@ -53,11 +70,14 @@ export class ModelLoaderService extends IModelLoader {
    */
   async loadGLTF(url) {
     return new Promise((resolve, reject) => {
+      // Handle File objects by creating an object URL
+      const loadUrl = url instanceof File ? URL.createObjectURL(url) : url;
+
       this.gltfLoader.load(
-        url,
+        loadUrl,
         gltf => {
           const object = gltf.scene;
-          
+
           // Center the model
           const box = new THREE.Box3().setFromObject(object);
           const center = box.getCenter(new THREE.Vector3());
@@ -69,6 +89,11 @@ export class ModelLoaderService extends IModelLoader {
           if (maxDim > 10) {
             const scale = 10 / maxDim;
             object.scale.multiplyScalar(scale);
+          }
+
+          // Clean up object URL if it was created
+          if (url instanceof File) {
+            URL.revokeObjectURL(loadUrl);
           }
 
           resolve(object);
@@ -83,6 +108,107 @@ export class ModelLoaderService extends IModelLoader {
         }
       );
     });
+  }
+
+  /**
+   * Load OBJ model
+   */
+  async loadOBJ(url) {
+    return new Promise((resolve, reject) => {
+      const loadUrl = url instanceof File ? URL.createObjectURL(url) : url;
+
+      this.objLoader.load(
+        loadUrl,
+        object => {
+          // Process and normalize the object
+          const processed = this.processLoadedObject(object);
+
+          // Clean up object URL if it was created
+          if (url instanceof File) {
+            URL.revokeObjectURL(loadUrl);
+          }
+
+          resolve(processed);
+        },
+        xhr => {
+          // Progress callback
+        },
+        error => {
+          if (url instanceof File) {
+            URL.revokeObjectURL(loadUrl);
+          }
+          reject(error);
+        }
+      );
+    });
+  }
+
+  /**
+   * Load STL model
+   */
+  async loadSTL(url) {
+    return new Promise((resolve, reject) => {
+      const loadUrl = url instanceof File ? URL.createObjectURL(url) : url;
+
+      this.stlLoader.load(
+        loadUrl,
+        geometry => {
+          // STL loader returns geometry, not a full object
+          const material = new THREE.MeshStandardMaterial({
+            color: 0x808080,
+            flatShading: false,
+          });
+
+          // Compute normals for smooth shading
+          geometry.computeVertexNormals();
+
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.name = 'STL Model';
+
+          // Process and normalize
+          const group = new THREE.Group();
+          group.add(mesh);
+          const processed = this.processLoadedObject(group);
+
+          // Clean up object URL if it was created
+          if (url instanceof File) {
+            URL.revokeObjectURL(loadUrl);
+          }
+
+          resolve(processed);
+        },
+        xhr => {
+          // Progress callback
+        },
+        error => {
+          if (url instanceof File) {
+            URL.revokeObjectURL(loadUrl);
+          }
+          reject(error);
+        }
+      );
+    });
+  }
+
+  /**
+   * Process and normalize loaded object
+   * Centers and scales the object to fit viewport
+   */
+  processLoadedObject(object) {
+    // Center the model
+    const box = new THREE.Box3().setFromObject(object);
+    const center = box.getCenter(new THREE.Vector3());
+    object.position.sub(center);
+
+    // Normalize scale if needed
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 10) {
+      const scale = 10 / maxDim;
+      object.scale.multiplyScalar(scale);
+    }
+
+    return object;
   }
 
   /**

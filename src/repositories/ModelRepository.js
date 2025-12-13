@@ -44,6 +44,57 @@ export class ModelRepository {
   }
 
   /**
+   * Create a model from external source (URL or File)
+   */
+  createExternalModel(source, name = null) {
+    const id = `external-${Date.now()}`;
+    const modelName = name || this.getNameFromSource(source);
+    const type = this.getTypeFromSource(source);
+
+    return new Model(id, modelName, source, type);
+  }
+
+  /**
+   * Extract name from source (URL or filename)
+   */
+  getNameFromSource(source) {
+    if (source instanceof File) {
+      return source.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    }
+
+    if (typeof source === 'string') {
+      const parts = source.split('/');
+      const filename = parts[parts.length - 1];
+      return filename.replace(/\.[^/.]+$/, '');
+    }
+
+    return 'External Model';
+  }
+
+  /**
+   * Determine model type from source
+   */
+  getTypeFromSource(source) {
+    let filename = '';
+
+    if (source instanceof File) {
+      filename = source.name.toLowerCase();
+    } else if (typeof source === 'string') {
+      filename = source.toLowerCase();
+    }
+
+    // Check all supported formats
+    if (filename.endsWith('.glb')) return 'glb';
+    if (filename.endsWith('.gltf')) return 'gltf';
+    if (filename.endsWith('.obj')) return 'obj';
+    if (filename.endsWith('.stl') || filename.endsWith('.stla')) return 'stl';
+    if (filename.endsWith('.step') || filename.endsWith('.stp')) return 'step';
+    if (filename.endsWith('.mtl')) return 'mtl';
+
+    return 'unknown';
+  }
+
+  /**
    * Create sections for a loaded model
    * This analyzes the 3D object hierarchy and creates logical sections
    */

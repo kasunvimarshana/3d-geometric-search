@@ -17,22 +17,22 @@ export class ApplicationController {
     // Initialize core systems
     this.eventBus = new EventBus();
     this.stateManager = new StateManager(this.eventBus);
-    
+
     // Initialize repositories
     this.modelRepository = new ModelRepository();
-    
+
     // Initialize services
     this.modelLoader = new ModelLoaderService();
     this.sectionManager = new SectionManagerService();
-    
+
     // Initialize controllers
     const canvas = document.getElementById('canvas-3d');
     this.viewerController = new ViewerController(canvas, this.eventBus, this.stateManager);
     this.uiController = new UIController(this.eventBus, this.stateManager);
-    
+
     // Bind event handlers
     this.bindEvents();
-    
+
     // Initialize UI
     this.initialize();
   }
@@ -44,7 +44,7 @@ export class ApplicationController {
     // Populate model selector
     const models = this.modelRepository.getAllModels();
     this.uiController.populateModelSelector(models);
-    
+
     console.log('Application initialized successfully');
   }
 
@@ -55,6 +55,18 @@ export class ApplicationController {
     // UI Events
     document.getElementById('load-model-btn').addEventListener('click', () => {
       this.handleLoadModel();
+    });
+
+    document.getElementById('load-url-btn').addEventListener('click', () => {
+      this.handleLoadModelFromURL();
+    });
+
+    document.getElementById('load-file-btn').addEventListener('click', () => {
+      this.handleLoadModelFromFile();
+    });
+
+    document.getElementById('model-file-input').addEventListener('change', e => {
+      this.handleFileSelected(e);
     });
 
     document.getElementById('reset-view-btn').addEventListener('click', () => {
@@ -106,7 +118,7 @@ export class ApplicationController {
 
       // Get model from repository
       const model = this.modelRepository.getModelById(modelId);
-      
+
       if (!model) {
         throw new Error('Model not found');
       }
@@ -125,7 +137,7 @@ export class ApplicationController {
 
       // Create sections
       const sections = this.modelRepository.createSectionsFromObject(loadedObject, model.id);
-      
+
       // Initialize section manager
       this.sectionManager.initialize(loadedObject);
       sections.forEach(section => this.sectionManager.addSection(section));
@@ -159,11 +171,11 @@ export class ApplicationController {
     this.stateManager.reset();
     this.uiController.updateZoomDisplay(100);
     this.uiController.clearSectionInfo();
-    
+
     // Re-render sections
     const sections = this.stateManager.getSections();
     this.uiController.renderSections(sections);
-    
+
     console.log('View reset');
   }
 
@@ -172,7 +184,7 @@ export class ApplicationController {
    */
   handleRefresh() {
     const currentModel = this.stateManager.getCurrentModel();
-    
+
     if (currentModel) {
       // Clear everything
       this.viewerController.removeModel();
@@ -181,13 +193,13 @@ export class ApplicationController {
       this.uiController.renderSections([]);
       this.uiController.clearSectionInfo();
       this.uiController.disableControls();
-      
+
       // Set the model selector back
       document.getElementById('model-selector').value = currentModel.id;
-      
+
       // Reload the model
       this.handleLoadModel();
-      
+
       console.log('Application refreshed');
     }
   }
@@ -198,15 +210,140 @@ export class ApplicationController {
   handleToggleFullscreen() {
     const app = document.getElementById('app');
     const isFullscreen = app.classList.toggle('fullscreen');
-    
+
     this.stateManager.setFullscreen(isFullscreen);
-    
+
     // Trigger resize to adjust canvas
     setTimeout(() => {
       this.viewerController.handleResize();
     }, 100);
-    
+
     console.log(`Fullscreen: ${isFullscreen ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Handle file selected
+   */
+  handleFileSelected(event) {
+    const file = event.target.files[0];
+    const fileNameSpan = document.getElementById('file-name');
+    const loadFileBtn = document.getElementById('load-file-btn');
+
+    if (file) {
+      fileNameSpan.textContent = file.name;
+      loadFileBtn.disabled = false;
+    } else {
+      fileNameSpan.textContent = '';
+      loadFileBtn.disabled = true;
+    }
+  }
+
+  /**
+   * Handle loading model from URL
+   */
+  async handleLoadModelFromURL() {
+    const urlInput = document.getElementById('model-url-input');
+    const url = urlInput.value.trim();
+
+    if (!url) {
+      this.uiController.showError('Please enter a valid URL');
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch (error) {
+      this.uiController.showError('Invalid URL format');
+      return;
+    }
+
+    // Create model from URL
+    const model = this.modelRepository.createExternalModel(url);
+    await this.loadExternalModel(model);
+  }
+
+  /**
+   * Handle loading model from file
+   */
+  async handleLoadModelFromFile() {
+    const fileInput = document.getElementById('model-file-input');
+    const file = fileInput.files[0];
+
+    if (!file) {
+      this.uiController.showError('Please select a file');
+      return;
+    }
+
+    // Validate file type
+    const validExtensions = ['.gltf', '.glb', '.obj', '.stl', '.stla', '.step', '.stp'];
+    const fileExt = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+    if (!validExtensions.includes(fileExt)) {
+      this.uiController.showError('Please select a GLTF, GLB, OBJ, STL, or STEP file');
+      return;
+    }
+
+    // Special handling for STEP files
+    if (fileExt === '.step' || fileExt === '.stp') {
+      this.uiController.showError(
+        'STEP files require conversion. Please convert to GLTF format first using CAD software (e.g., FreeCAD, Blender).'
+      );
+      return;
+    }
+
+    // Create model from file
+    const model = this.modelRepository.createExternalModel(file);
+    await this.loadExternalModel(model);
+  }
+
+  /**
+   * Load external model (common logic for URL and File)
+   */
+  async loadExternalModel(model) {
+    try {
+      this.uiController.showLoading();
+      this.uiController.disableControls();
+
+      // Load the model
+      const loadedObject = await this.modelLoader.load(model);
+
+      // Clear previous model
+      this.viewerController.removeModel();
+
+      // Add to viewer
+      this.viewerController.addModel(loadedObject);
+
+      // Create sections
+      const sections = this.modelRepository.createSectionsFromObject(loadedObject, model.id);
+
+      // Initialize section manager
+      this.sectionManager.initialize(loadedObject);
+      sections.forEach(section => this.sectionManager.addSection(section));
+
+      // Update state
+      this.stateManager.setCurrentModel(model);
+      this.stateManager.setSections(sections);
+
+      // Update UI
+      this.uiController.renderSections(sections);
+      this.uiController.enableControls();
+      this.uiController.hideLoading();
+
+      // Clear model selector
+      document.getElementById('model-selector').value = '';
+
+      // Emit event
+      this.eventBus.emit(EVENTS.MODEL_LOADED, model);
+
+      console.log(
+        `External model "${model.name}" loaded successfully with ${sections.length} sections`
+      );
+    } catch (error) {
+      console.error('Failed to load external model:', error);
+      this.uiController.showError(`Failed to load model: ${error.message}`);
+      this.uiController.disableControls();
+    }
   }
 
   /**
@@ -271,7 +408,7 @@ export class ApplicationController {
     this.sectionManager.clear();
     this.stateManager.clear();
     this.eventBus.clear();
-    
+
     console.log('Application disposed');
   }
 }

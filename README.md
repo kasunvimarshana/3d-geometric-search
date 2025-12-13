@@ -5,6 +5,7 @@ A professional, clean, and well-architected 3D model viewer with advanced sectio
 ## Features
 
 - **Dynamic Model Loading**: Load and display 3D models (GLTF/GLB format)
+- **External Model Support**: Load models from URLs or local files
 - **Section Management**: Automatic detection and hierarchical organization of model sections
 - **Section Isolation**: Focus on specific sections by hiding others
 - **Section Highlighting**: Visual highlighting of selected sections
@@ -76,17 +77,20 @@ The application follows **SOLID principles** and **clean code architecture**:
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd 3d-geometric-search
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -111,9 +115,26 @@ npm run preview
 
 ### Loading a Model
 
+#### From Built-in Models
+
 1. Select a model from the dropdown menu
 2. Click "Load Model"
 3. The model will appear in the 3D viewer with automatically detected sections
+
+#### From External URL
+
+1. Enter a model URL in the "Model URL" field (e.g., `https://example.com/model.gltf`)
+2. Click "Load URL"
+3. The model will be loaded from the specified URL
+
+#### From Local File
+
+1. Click "Choose File" in the External Model section
+2. Select a GLTF or GLB file from your computer
+3. Click "Load File"
+4. The model will be loaded from your local file system
+
+> **Note**: For more details on loading external models, see [docs/EXTERNAL_MODELS.md](docs/EXTERNAL_MODELS.md)
 
 ### Navigating the 3D View
 
@@ -137,12 +158,21 @@ npm run preview
 
 ## Adding Your Own Models
 
+### Method 1: External Loading (Recommended)
+
+Simply use the External Model feature to load models from:
+
+- Public URLs with CORS enabled
+- Your local file system
+
+### Method 2: Built-in Models
+
 1. Place your GLTF or GLB files in the `public/models/` directory
 
 2. Register them in `src/repositories/ModelRepository.js`:
 
 ```javascript
-new Model('my-model', 'My Model Name', '/models/mymodel.gltf', 'gltf')
+new Model('my-model', 'My Model Name', '/models/mymodel.gltf', 'gltf');
 ```
 
 ## Technology Stack
