@@ -1178,12 +1178,12 @@ export class Viewer3D {
       object.material.needsUpdate = true;
     }
 
-    // Add subtle scale pulse for focused objects
+    // Add subtle scale pulse for focused objects - section list click feedback
     if (opacity > 0.5) {
-      const pulseScale = 1.03; // Slightly more pronounced
+      const pulseScale = 1.05; // More visible pulse for section list interactions
       object.scale.multiplyScalar(pulseScale);
 
-      // Animate back to original scale
+      // Animate back to original scale with smooth transition
       setTimeout(() => {
         if (this.originalMaterials.has(object.uuid)) {
           const original = this.originalMaterials.get(object.uuid);
@@ -1191,7 +1191,7 @@ export class Viewer3D {
             object.scale.copy(original.scale);
           }
         }
-      }, 300);
+      }, 350); // Slightly longer for better visibility
     }
 
     // Emit highlight event
@@ -1670,21 +1670,28 @@ export class Viewer3D {
 
   /**
    * Show isolation mode indicator in UI
+   * @private
    */
   showIsolationIndicator() {
-    const indicator = document.getElementById("isolationIndicator");
-    if (indicator) {
-      indicator.style.display = "flex";
-    }
+    this._toggleIsolationIndicator(true);
   }
 
   /**
    * Hide isolation mode indicator in UI
+   * @private
    */
   hideIsolationIndicator() {
+    this._toggleIsolationIndicator(false);
+  }
+
+  /**
+   * Toggle isolation indicator visibility
+   * @private
+   */
+  _toggleIsolationIndicator(show) {
     const indicator = document.getElementById("isolationIndicator");
     if (indicator) {
-      indicator.style.display = "none";
+      indicator.style.display = show ? "block" : "none";
     }
   }
 }

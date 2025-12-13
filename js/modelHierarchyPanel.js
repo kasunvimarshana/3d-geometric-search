@@ -238,6 +238,9 @@ class ModelHierarchyPanel {
               object: e.detail.object,
               timestamp: Date.now(),
             });
+
+            // Bidirectional highlighting - Update section list visual feedback
+            this.highlightNodeFromModelClick(e.detail.object);
           }
         },
         { id: "hierarchy-model-click" }
@@ -1417,6 +1420,56 @@ class ModelHierarchyPanel {
       expandedNodes: this.expandedNodes.size,
       totalNodes: this.nodeMap.size,
     };
+  }
+
+  /**
+   * Highlight section list node when model is clicked (bidirectional feedback)
+   * @param {THREE.Object3D} object - The clicked 3D object
+   */
+  highlightNodeFromModelClick(object) {
+    try {
+      // Clear previous model-selected highlights
+      const previousHighlights = this.treeContainer.querySelectorAll(
+        ".node-content.model-selected"
+      );
+      previousHighlights.forEach((node) => {
+        node.classList.remove("model-selected");
+      });
+
+      // Find corresponding node in hierarchy
+      const nodeId = this.objectToNode.get(object);
+      if (nodeId) {
+        const nodeElement = this.treeContainer.querySelector(
+          `[data-node-id="${nodeId}"] > .node-content`
+        );
+
+        if (nodeElement) {
+          // Add visual highlight to indicate model selection
+          nodeElement.classList.add("model-selected");
+
+          // Scroll into view for better visibility
+          requestAnimationFrame(() => {
+            nodeElement.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest",
+              inline: "nearest",
+            });
+          });
+
+          // Auto-remove highlight after 3 seconds for clean UI
+          setTimeout(() => {
+            if (nodeElement.classList.contains("model-selected")) {
+              nodeElement.classList.remove("model-selected");
+            }
+          }, 3000);
+        }
+      }
+    } catch (error) {
+      console.error(
+        "[ModelHierarchyPanel] Error highlighting node from model click:",
+        error
+      );
+    }
   }
 
   /**
