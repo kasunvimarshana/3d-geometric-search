@@ -24,6 +24,8 @@ export const Config = {
     modelScaleMin: 0.1,
     modelScaleMax: 3.0,
     modelScaleDefault: 1.0,
+    highlightColor: 0x0284c7,
+    highlightIntensity: 0.3,
   },
 
   // Lighting Configuration
@@ -111,13 +113,13 @@ export const Config = {
 
   // Color Scheme
   colors: {
-    primary: "#667eea",
-    secondary: "#764ba2",
-    accent: "#00d4ff",
-    success: "#00d68f",
-    warning: "#ffaa00",
-    danger: "#ff3b30",
-    background: "#f8f9ff",
+    primary: "#333333",
+    secondary: "#666666",
+    accent: "#0284c7",
+    success: "#2d8659",
+    warning: "#d97706",
+    danger: "#c93a2e",
+    background: "#fafafa",
     text: "#333333",
     textLight: "#666666",
   },

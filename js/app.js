@@ -8,6 +8,7 @@ import { Viewer3D } from "./viewer.js";
 import { ModelLoader } from "./modelLoader.js";
 import { GeometryAnalyzer } from "./geometryAnalyzer.js";
 import { ExportManager } from "./exportManager.js";
+import { EventHandler } from "./eventHandler.js";
 import { showToast, formatFileSize, validateFileType } from "./utils.js";
 import Config from "./config.js";
 
@@ -22,6 +23,7 @@ class App {
     this.modelLoader = null;
     this.geometryAnalyzer = null;
     this.exportManager = null;
+    this.eventHandler = null;
     this.modelLibrary = {};
     this.currentModelName = null;
     this.similarityResults = [];
@@ -47,22 +49,12 @@ class App {
     // Initialize core components only
     this.viewer = new Viewer3D("viewer");
     this.modelLoader = new ModelLoader();
+    this.geometryAnalyzer = new GeometryAnalyzer();
+    this.exportManager = new ExportManager();
+    this.eventHandler = new EventHandler(this);
 
-    // Defer heavy components until needed
-    this.geometryAnalyzer = null;
-    this.exportManager = null;
-
-    // Setup lazy-loading sections
-    this.initializeLazySections();
-
-    // Initialize navigation system
-    this.initializeNavigation();
-
-    // Initialize model hierarchy panel
-    this.initializeHierarchyPanel();
-
-    // Setup event listeners
-    this.setupEventListeners();
+    // Setup all event listeners through the event handler
+    this.eventHandler.setupAll();
 
     // Show welcome message
     this.showWelcomeMessage();
@@ -224,748 +216,17 @@ class App {
     return this.exportManager;
   }
 
-  setupEventListeners() {
-    // Setup all event handlers with proper tracking and error handling
-    this._setupUploadHandlers();
-    this._setupViewerControlHandlers();
-    this._setupKeyboardHandlers();
-    this._setupModelEventHandlers();
-    this._setupAdvancedControlHandlers();
-    this._setupLibraryHandlers();
-    this._setupSectionToggleHandlers();
+  // Expose showToast as instance method for event handler
+  showToast(message, type, duration) {
+    showToast(message, type, duration);
   }
 
   /**
-   * Create a debounced handler with consistent error handling
-   * @param {Function} func - Function to debounce
-   * @param {number} delay - Debounce delay in ms
-   * @returns {Function} Debounced function
-   * @private
+   * Get current model name
+   * @returns {string|null} Current model name
    */
-  _createDebounceHandler(func, delay) {
-    let timeoutId;
-    return function (...args) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        try {
-          func.apply(this, args);
-        } catch (error) {
-          console.error("[App] Error in debounced handler:", error);
-        }
-      }, delay);
-    };
-  }
-
-  /**
-   * Create a throttled handler with consistent error handling
-   * @param {Function} func - Function to throttle
-   * @param {number} delay - Throttle delay in ms
-   * @returns {Function} Throttled function
-   * @private
-   */
-  _createThrottleHandler(func, delay) {
-    let throttleTimer = null;
-    return function (...args) {
-      if (!throttleTimer) {
-        throttleTimer = setTimeout(() => {
-          try {
-            func.apply(this, args);
-          } catch (error) {
-            console.error("[App] Error in throttled handler:", error);
-          }
-          throttleTimer = null;
-        }, delay);
-      }
-    };
-  }
-
-  /**
-   * Create a safe handler wrapper with error handling and logging
-   * @param {Function} func - Function to wrap
-   * @param {string} context - Context for error logging
-   * @returns {Function} Wrapped function
-   * @private
-   */
-  _createSafeHandler(func, context) {
-    return (...args) => {
-      try {
-        return func.apply(this, args);
-      } catch (error) {
-        console.error(`[App] Error in ${context}:`, error);
-        showToast(`Error: ${context}`, "error");
-      }
-    };
-  }
-
-  /**
-   * Setup section toggle handlers
-   * @private
-   */
-  _setupSectionToggleHandlers() {
-    // Model info section toggle
-    const modelInfoHeader = document.getElementById("modelInfo");
-    if (modelInfoHeader) {
-      const header = document.createElement("div");
-      header.className = "section-toggle-header";
-      header.innerHTML =
-        '<span>📊 Model Information</span><span class="toggle-icon">▼</span>';
-      modelInfoHeader.insertBefore(header, modelInfoHeader.firstChild);
-
-      this.eventManager.add(header, "click", () => {
-        try {
-          modelInfoHeader.classList.toggle("collapsed");
-          const icon = header.querySelector(".toggle-icon");
-          if (icon) {
-            icon.textContent = modelInfoHeader.classList.contains("collapsed")
-              ? "▶"
-              : "▼";
-          }
-        } catch (error) {
-          console.error("[App] Error toggling model info:", error);
-        }
-      });
-    }
-  }
-
-  /**
-   * Setup upload-related event handlers
-   * @private
-   */
-  _setupUploadHandlers() {
-    const uploadBtn = document.getElementById("uploadBtn");
-    const fileInput = document.getElementById("fileInput");
-    const uploadArea = document.getElementById("uploadArea");
-
-    if (!uploadBtn || !fileInput || !uploadArea) {
-      console.warn("[App] Some upload elements not found");
-      return;
-    }
-
-    // Upload button - prevent bubbling to uploadArea
-    this.eventManager.add(uploadBtn, "click", (e) => {
-      try {
-        e.stopPropagation();
-        fileInput.click();
-      } catch (error) {
-        console.error("[App] Error in upload button handler:", error);
-        showToast("Error opening file dialog", "error");
-      }
-    });
-
-    // File input change
-    this.eventManager.add(fileInput, "change", (e) => {
-      try {
-        if (e.target.files.length > 0) {
-          this.handleFiles(e.target.files);
-        }
-      } catch (error) {
-        console.error("[App] Error handling file input:", error);
-        showToast("Error processing files", "error");
-      }
-    });
-
-    // Drag and drop handlers
-    this.eventManager.add(uploadArea, "dragover", (e) => {
-      try {
-        e.preventDefault();
-        uploadArea.classList.add("drag-over");
-      } catch (error) {
-        console.error("[App] Error in dragover handler:", error);
-      }
-    });
-
-    this.eventManager.add(uploadArea, "dragleave", () => {
-      try {
-        uploadArea.classList.remove("drag-over");
-      } catch (error) {
-        console.error("[App] Error in dragleave handler:", error);
-      }
-    });
-
-    this.eventManager.add(uploadArea, "drop", (e) => {
-      try {
-        e.preventDefault();
-        uploadArea.classList.remove("drag-over");
-        if (e.dataTransfer.files.length > 0) {
-          this.handleFiles(e.dataTransfer.files);
-        }
-      } catch (error) {
-        console.error("[App] Error in drop handler:", error);
-        showToast("Error processing dropped files", "error");
-      }
-    });
-
-    // Click upload area (but not the button)
-    this.eventManager.add(uploadArea, "click", (e) => {
-      try {
-        if (
-          e.target === uploadArea ||
-          (e.target.closest(".upload-area") && !e.target.closest("#uploadBtn"))
-        ) {
-          fileInput.click();
-        }
-      } catch (error) {
-        console.error("[App] Error in upload area click handler:", error);
-      }
-    });
-  }
-
-  /**
-   * Setup viewer control event handlers
-   * @private
-   */
-  _setupViewerControlHandlers() {
-    // View reset buttons
-    const resetViewBtn = document.getElementById("resetViewBtn");
-    if (resetViewBtn) {
-      this.eventManager.add(resetViewBtn, "click", () => {
-        try {
-          this.viewer.resetView();
-          this.updateZoomIndicator(); // Update zoom indicator after reset
-          showToast("View reset", "info");
-        } catch (error) {
-          console.error("[App] Error resetting view:", error);
-          showToast("Error resetting view", "error");
-        }
-      });
-    }
-
-    const resetAllBtn = document.getElementById("resetAllBtn");
-    if (resetAllBtn) {
-      this.eventManager.add(resetAllBtn, "click", () => {
-        try {
-          this.viewer.resetAll();
-          this.updateAllButtonStates();
-          this.updateScaleIndicator();
-          showToast("All settings reset to default", "success");
-        } catch (error) {
-          console.error("[App] Error resetting all:", error);
-          showToast("Error resetting settings", "error");
-        }
-      });
-    }
-
-    // Zoom controls
-    const zoomInBtn = document.getElementById("zoomInBtn");
-    if (zoomInBtn) {
-      this.eventManager.add(zoomInBtn, "click", () => {
-        try {
-          this.viewer.zoomIn();
-          this.updateZoomIndicator();
-          showToast("Zoomed in", "info", 1000);
-        } catch (error) {
-          console.error("[App] Error zooming in:", error);
-        }
-      });
-    }
-
-    const zoomOutBtn = document.getElementById("zoomOutBtn");
-    if (zoomOutBtn) {
-      this.eventManager.add(zoomOutBtn, "click", () => {
-        try {
-          this.viewer.zoomOut();
-          this.updateZoomIndicator();
-          showToast("Zoomed out", "info", 1000);
-        } catch (error) {
-          console.error("[App] Error zooming out:", error);
-        }
-      });
-    }
-
-    const fitViewBtn = document.getElementById("fitViewBtn");
-    if (fitViewBtn) {
-      this.eventManager.add(fitViewBtn, "click", () => {
-        try {
-          this.viewer.fitToView();
-          this.updateZoomIndicator();
-          showToast("Fitted to view", "info");
-        } catch (error) {
-          console.error("[App] Error fitting view:", error);
-        }
-      });
-    }
-
-    // Visual toggle buttons
-    const autoRotateBtn = document.getElementById("autoRotateBtn");
-    if (autoRotateBtn) {
-      this.eventManager.add(autoRotateBtn, "click", (e) => {
-        try {
-          const isRotating = this.viewer.toggleAutoRotate();
-          e.target.classList.toggle("active", isRotating);
-          showToast(
-            isRotating ? "Auto-rotate enabled" : "Auto-rotate disabled",
-            "info"
-          );
-        } catch (error) {
-          console.error("[App] Error toggling auto-rotate:", error);
-        }
-      });
-    }
-
-    const wireframeBtn = document.getElementById("wireframeBtn");
-    if (wireframeBtn) {
-      this.eventManager.add(wireframeBtn, "click", () => {
-        try {
-          this.viewer.toggleWireframe();
-          showToast("Wireframe toggled", "info");
-        } catch (error) {
-          console.error("[App] Error toggling wireframe:", error);
-        }
-      });
-    }
-
-    const gridBtn = document.getElementById("gridBtn");
-    if (gridBtn) {
-      this.eventManager.add(gridBtn, "click", () => {
-        try {
-          this.viewer.toggleGrid();
-          showToast("Grid toggled", "info");
-        } catch (error) {
-          console.error("[App] Error toggling grid:", error);
-        }
-      });
-    }
-
-    const axesBtn = document.getElementById("axesBtn");
-    if (axesBtn) {
-      this.eventManager.add(axesBtn, "click", () => {
-        try {
-          this.viewer.toggleAxes();
-          showToast("Axes toggled", "info");
-        } catch (error) {
-          console.error("[App] Error toggling axes:", error);
-        }
-      });
-    }
-
-    const shadowsBtn = document.getElementById("shadowsBtn");
-    if (shadowsBtn) {
-      this.eventManager.add(shadowsBtn, "click", () => {
-        try {
-          this.viewer.toggleShadows();
-          showToast("Shadows toggled", "info");
-        } catch (error) {
-          console.error("[App] Error toggling shadows:", error);
-        }
-      });
-    }
-
-    const screenshotBtn = document.getElementById("screenshotBtn");
-    if (screenshotBtn) {
-      this.eventManager.add(screenshotBtn, "click", () => {
-        try {
-          this.takeScreenshot();
-        } catch (error) {
-          console.error("[App] Error taking screenshot:", error);
-          showToast("Error taking screenshot", "error");
-        }
-      });
-    }
-
-    const fullscreenBtn = document.getElementById("fullscreenBtn");
-    if (fullscreenBtn) {
-      this.eventManager.add(fullscreenBtn, "click", async () => {
-        try {
-          const isFullscreen = await this.viewer.toggleFullscreen();
-          fullscreenBtn.classList.toggle("fullscreen-active", isFullscreen);
-          showToast(
-            isFullscreen ? "Fullscreen enabled" : "Fullscreen disabled",
-            "info"
-          );
-        } catch (error) {
-          console.error("[App] Error toggling fullscreen:", error);
-          showToast("Error toggling fullscreen", "error");
-        }
-      });
-    }
-
-    const settingsBtn = document.getElementById("settingsBtn");
-    if (settingsBtn) {
-      this.eventManager.add(settingsBtn, "click", (e) => {
-        try {
-          e.preventDefault();
-          e.stopPropagation();
-          this.sectionManager.toggleSection("advanced-controls");
-        } catch (error) {
-          console.error("[App] Error toggling settings:", error);
-        }
-      });
-    }
-
-    const keyboardHelpBtn = document.getElementById("keyboardHelpBtn");
-    if (keyboardHelpBtn) {
-      this.eventManager.add(keyboardHelpBtn, "click", () => {
-        try {
-          this.showKeyboardHelp();
-        } catch (error) {
-          console.error("[App] Error showing keyboard help:", error);
-        }
-      });
-    }
-
-    // Camera preset views
-    document.querySelectorAll(".btn-preset").forEach((btn) => {
-      this.eventManager.add(btn, "click", (e) => {
-        try {
-          const view = e.target.getAttribute("data-view");
-          this.viewer.setCameraView(view);
-          showToast(
-            `${view.charAt(0).toUpperCase() + view.slice(1)} view`,
-            "info",
-            1000
-          );
-        } catch (error) {
-          console.error("[App] Error setting camera view:", error);
-        }
-      });
-    });
-
-    // Update zoom indicator on camera movement (throttled for performance)
-    if (this.viewer.controls) {
-      this.eventManager.add(
-        this.viewer.controls,
-        "change",
-        this._createThrottleHandler(() => {
-          this.updateZoomIndicator();
-        }, 100) // Throttle to 10fps max
-      );
-    }
-  }
-
-  /**
-   * Setup keyboard event handlers
-   * @private
-   */
-  _setupKeyboardHandlers() {
-    // Keyboard shortcuts modal handlers
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    if (closeModalBtn) {
-      this.eventManager.add(closeModalBtn, "click", () => {
-        try {
-          this.hideKeyboardHelp();
-        } catch (error) {
-          console.error("[App] Error closing modal:", error);
-        }
-      });
-    }
-
-    const keyboardModal = document.getElementById("keyboardModal");
-    if (keyboardModal) {
-      this.eventManager.add(keyboardModal, "click", (e) => {
-        try {
-          if (e.target.id === "keyboardModal") {
-            this.hideKeyboardHelp();
-          }
-        } catch (error) {
-          console.error("[App] Error in modal click handler:", error);
-        }
-      });
-    }
-
-    // Global keyboard shortcuts
-    this.eventManager.add(document, "keydown", (e) => {
-      try {
-        // Don't handle shortcuts if user is typing in an input
-        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-          return;
-        }
-
-        // Close modal with Escape
-        if (e.code === "Escape") {
-          const modal = document.getElementById("keyboardModal");
-          if (modal && modal.style.display !== "none") {
-            this.hideKeyboardHelp();
-            return;
-          }
-        }
-
-        // Handle Reset All with Shift+R
-        if (e.code === "KeyR" && e.shiftKey) {
-          e.preventDefault();
-          this.viewer.resetAll();
-          this.updateAllButtonStates();
-          this.updateScaleIndicator();
-          showToast("All settings reset to default", "success");
-          return;
-        }
-
-        // Handle viewer shortcuts
-        this.viewer.handleKeyboard(e);
-
-        // Update UI after keyboard actions
-        if (
-          ["Equal", "Minus", "Digit0", "NumpadAdd", "NumpadSubtract"].includes(
-            e.code
-          )
-        ) {
-          this.updateZoomIndicator();
-        }
-
-        // Update fullscreen button state
-        if (e.code === "KeyF") {
-          setTimeout(() => {
-            try {
-              const btn = document.getElementById("fullscreenBtn");
-              if (btn) {
-                btn.classList.toggle(
-                  "fullscreen-active",
-                  this.viewer.isFullscreen
-                );
-              }
-            } catch (error) {
-              console.error("[App] Error updating fullscreen button:", error);
-            }
-          }, 200);
-        }
-
-        // Update auto-rotate button state
-        if (e.code === "Space") {
-          const btn = document.getElementById("autoRotateBtn");
-          if (btn) {
-            btn.classList.toggle("active", this.viewer.autoRotate);
-          }
-        }
-      } catch (error) {
-        console.error("[App] Error in keyboard handler:", error);
-      }
-    });
-  }
-
-  /**
-   * Setup model interaction event handlers
-   * @private
-   */
-  _setupModelEventHandlers() {
-    if (!this.viewer || !this.viewer.container) return;
-
-    // Listen for view reset event (R key)
-    this.eventManager.add(this.viewer.container, "viewReset", () => {
-      try {
-        this.updateZoomIndicator();
-        console.log("[App] View reset complete");
-      } catch (error) {
-        console.error("[App] Error handling view reset:", error);
-      }
-    });
-
-    // Listen for reset all event from viewer (Shift+R)
-    this.eventManager.add(this.viewer.container, "resetAll", () => {
-      try {
-        this.updateAllButtonStates();
-        this.updateZoomIndicator();
-        this.updateScaleIndicator();
-      } catch (error) {
-        console.error("[App] Error updating button states:", error);
-      }
-    });
-
-    // Listen for model interaction events
-    this.eventManager.add(this.viewer.container, "modelClick", (event) => {
-      try {
-        console.log("Model clicked:", event.detail);
-      } catch (error) {
-        console.error("[App] Error in modelClick handler:", error);
-      }
-    });
-
-    this.eventManager.add(this.viewer.container, "modelSelect", (event) => {
-      try {
-        const { objectName } = event.detail;
-        this.showNotification(`Selected: ${objectName}`, "info");
-        console.log("Model selected:", event.detail);
-      } catch (error) {
-        console.error("[App] Error in modelSelect handler:", error);
-      }
-    });
-
-    this.eventManager.add(this.viewer.container, "modelDeselect", (event) => {
-      try {
-        console.log("Model deselected:", event.detail);
-      } catch (error) {
-        console.error("[App] Error in modelDeselect handler:", error);
-      }
-    });
-
-    this.eventManager.add(this.viewer.container, "modelHover", (event) => {
-      try {
-        // Can be used for tooltip or info display
-        // console.log("Model hover:", event.detail);
-      } catch (error) {
-        console.error("[App] Error in modelHover handler:", error);
-      }
-    });
-  }
-
-  /**
-   * Setup advanced control sliders with debouncing
-   * @private
-   */
-  _setupAdvancedControlHandlers() {
-    // Use utility debounce method for consistency
-    const debounce = this._createDebounceHandler.bind(this);
-
-    // Ambient light slider
-    const ambientSlider = document.getElementById("ambientSlider");
-    const ambientValue = document.getElementById("ambientValue");
-    if (ambientSlider && ambientValue) {
-      this.eventManager.add(
-        ambientSlider,
-        "input",
-        debounce((e) => {
-          try {
-            const value = parseFloat(e.target.value);
-            this.viewer.setAmbientIntensity(value);
-            ambientValue.textContent = value.toFixed(1);
-          } catch (error) {
-            console.error("[App] Error setting ambient intensity:", error);
-          }
-        }, 50)
-      ); // Debounce 50ms for smooth slider movement
-    }
-
-    // Directional light slider
-    const directionalSlider = document.getElementById("directionalSlider");
-    const directionalValue = document.getElementById("directionalValue");
-    if (directionalSlider && directionalValue) {
-      this.eventManager.add(
-        directionalSlider,
-        "input",
-        debounce((e) => {
-          try {
-            const value = parseFloat(e.target.value);
-            this.viewer.setDirectionalIntensity(value);
-            directionalValue.textContent = value.toFixed(1);
-          } catch (error) {
-            console.error("[App] Error setting directional intensity:", error);
-          }
-        }, 50)
-      );
-    }
-
-    // Background color picker
-    const backgroundColorPicker = document.getElementById(
-      "backgroundColorPicker"
-    );
-    if (backgroundColorPicker) {
-      this.eventManager.add(
-        backgroundColorPicker,
-        "input",
-        debounce((e) => {
-          try {
-            const color = parseInt(e.target.value.replace("#", ""), 16);
-            this.viewer.setBackgroundColor(color);
-          } catch (error) {
-            console.error("[App] Error setting background color:", error);
-          }
-        }, 100)
-      );
-    }
-
-    // Model scale slider
-    const scaleSlider = document.getElementById("scaleSlider");
-    const scaleValue = document.getElementById("scaleValue");
-    if (scaleSlider && scaleValue) {
-      this.eventManager.add(
-        scaleSlider,
-        "input",
-        debounce((e) => {
-          try {
-            const value = parseFloat(e.target.value);
-            this.viewer.scaleModel(value);
-            scaleValue.textContent = value.toFixed(1);
-          } catch (error) {
-            console.error("[App] Error scaling model:", error);
-          }
-        }, 50)
-      );
-    }
-
-    // Auto-rotate speed slider
-    const rotateSpeedSlider = document.getElementById("rotateSpeedSlider");
-    const rotateSpeedValue = document.getElementById("rotateSpeedValue");
-    if (rotateSpeedSlider && rotateSpeedValue) {
-      this.eventManager.add(
-        rotateSpeedSlider,
-        "input",
-        debounce((e) => {
-          try {
-            const value = parseFloat(e.target.value);
-            this.viewer.setAutoRotateSpeed(value);
-            rotateSpeedValue.textContent = value.toFixed(1);
-          } catch (error) {
-            console.error("[App] Error setting rotate speed:", error);
-          }
-        }, 50)
-      );
-    }
-
-    // Focus model button
-    const focusModelBtn = document.getElementById("focusModelBtn");
-    if (focusModelBtn) {
-      this.eventManager.add(focusModelBtn, "click", () => {
-        try {
-          this.viewer.focusOnModel();
-          this.updateZoomIndicator();
-          showToast("Focused on model", "info");
-        } catch (error) {
-          console.error("[App] Error focusing model:", error);
-        }
-      });
-    }
-  }
-
-  /**
-   * Setup library action handlers
-   * @private
-   */
-  _setupLibraryHandlers() {
-    const exportAllBtn = document.getElementById("exportAllBtn");
-    if (exportAllBtn) {
-      this.eventManager.add(exportAllBtn, "click", () => {
-        try {
-          this.exportAllData();
-        } catch (error) {
-          console.error("[App] Error exporting all data:", error);
-          showToast("Error exporting data", "error");
-        }
-      });
-    }
-
-    const generateReportBtn = document.getElementById("generateReportBtn");
-    if (generateReportBtn) {
-      this.eventManager.add(generateReportBtn, "click", () => {
-        try {
-          this.generateReport();
-        } catch (error) {
-          console.error("[App] Error generating report:", error);
-          showToast("Error generating report", "error");
-        }
-      });
-    }
-
-    const clearLibraryBtn = document.getElementById("clearLibraryBtn");
-    if (clearLibraryBtn) {
-      this.eventManager.add(clearLibraryBtn, "click", () => {
-        try {
-          this.clearLibrary();
-        } catch (error) {
-          console.error("[App] Error clearing library:", error);
-          showToast("Error clearing library", "error");
-        }
-      });
-    }
-
-    const exportSimilarityBtn = document.getElementById("exportSimilarityBtn");
-    if (exportSimilarityBtn) {
-      this.eventManager.add(exportSimilarityBtn, "click", () => {
-        try {
-          this.exportSimilarityResults();
-        } catch (error) {
-          console.error("[App] Error exporting similarity results:", error);
-          showToast("Error exporting results", "error");
-        }
-      });
-    }
+  getCurrentModelName() {
+    return this.currentModelName;
   }
 
   async handleFiles(files) {
@@ -1067,11 +328,14 @@ class App {
       return;
     }
 
-    try {
-      this.currentModelName = modelName;
+    this.currentModelName = modelName;
 
-      // Load model in viewer (auto-focuses via viewer.loadModel)
-      this.viewer.loadModel(model.object.clone());
+    // Clone the model and set metadata
+    const modelClone = model.object.clone();
+    modelClone.userData.modelName = modelName;
+
+    // Load model in viewer
+    this.viewer.loadModel(modelClone);
 
       // Update model info
       this.updateModelInfo(model.features);
@@ -1139,6 +403,7 @@ class App {
   createModelCard(name, model) {
     const card = document.createElement("div");
     card.className = "model-card";
+    card.dataset.modelName = name; // Store model name for easy lookup
     if (name === this.currentModelName) {
       card.classList.add("active");
     }
@@ -1172,8 +437,24 @@ class App {
     };
     card.appendChild(deleteBtn);
 
-    // Click handler
-    card.onclick = () => this.displayModel(name);
+    // Click handler - display model and highlight
+    card.onclick = () => {
+      this.displayModel(name);
+      this.highlightModelCard(name);
+    };
+
+    // Hover handlers for model highlighting in viewer
+    card.onmouseenter = () => {
+      if (name !== this.currentModelName) {
+        this.highlightModelCard(name, true);
+      }
+    };
+
+    card.onmouseleave = () => {
+      if (name !== this.currentModelName) {
+        this.clearHighlight();
+      }
+    };
 
     return card;
   }
@@ -1211,19 +492,64 @@ class App {
     }
   }
 
+  /**
+   * Update the active state of model cards in the library
+   * @param {string} selectedName - Name of the selected model
+   */
   updateLibrarySelection(selectedName) {
     const cards = document.querySelectorAll(".model-card");
     cards.forEach((card) => {
-      card.classList.remove("active");
+      const cardName = card.dataset.modelName;
+      if (cardName === selectedName) {
+        card.classList.add("active");
+      } else {
+        card.classList.remove("active");
+      }
     });
+  }
 
-    // Find and activate the selected card
-    const allCards = Array.from(cards);
-    const selectedCard = allCards.find(
-      (card) => card.querySelector("h4").textContent === selectedName
-    );
-    if (selectedCard) {
-      selectedCard.classList.add("active");
+  /**
+   * Highlight a model card in the library
+   * @param {string} modelName - Name of the model to highlight
+   * @param {boolean} isHover - Whether this is a hover highlight (temporary)
+   */
+  highlightModelCard(modelName, isHover = false) {
+    const cards = document.querySelectorAll(".model-card");
+    cards.forEach((card) => {
+      const cardName = card.dataset.modelName;
+      if (cardName === modelName) {
+        if (isHover) {
+          card.classList.add("highlighted");
+        } else {
+          card.classList.add("active");
+          card.classList.remove("highlighted");
+        }
+      } else {
+        if (isHover) {
+          // Don't remove active state during hover
+          card.classList.remove("highlighted");
+        }
+      }
+    });
+  }
+
+  /**
+   * Clear temporary highlights from model cards
+   */
+  clearHighlight() {
+    const cards = document.querySelectorAll(".model-card");
+    cards.forEach((card) => {
+      card.classList.remove("highlighted");
+    });
+  }
+
+  /**
+   * Highlight model in viewer when card is hovered
+   * @param {string} modelName - Name of the model to highlight in viewer
+   */
+  highlightModelInViewer(modelName) {
+    if (this.viewer && this.viewer.highlightModel) {
+      this.viewer.highlightModel(modelName);
     }
   }
 
@@ -1292,86 +618,20 @@ class App {
     }
   }
 
-  /**
-   * Update scale indicator and slider to reflect current model scale
-   */
-  updateScaleIndicator() {
-    const scaleValue = document.getElementById("scaleValue");
-    const scaleSlider = document.getElementById("scaleSlider");
-    if (scaleValue && this.viewer.settings) {
-      scaleValue.textContent = this.viewer.settings.modelScale.toFixed(1);
+  toggleAdvancedControls() {
+    const controls = document.getElementById("advancedControls");
+    const isVisible = controls.style.display !== "none";
+    
+    if (isVisible) {
+      controls.style.display = "none";
+    } else {
+      controls.style.display = "block";
+      // Add animation class when showing
+      controls.classList.add("advanced-controls--animate");
+      setTimeout(() => {
+        controls.classList.remove("advanced-controls--animate");
+      }, 200);
     }
-    if (scaleSlider && this.viewer.settings) {
-      scaleSlider.value = this.viewer.settings.modelScale;
-    }
-  }
-
-  /**
-   * Update all button states to reflect current viewer settings
-   */
-  updateAllButtonStates() {
-    // Update auto-rotate button
-    const autoRotateBtn = document.getElementById("autoRotateBtn");
-    if (autoRotateBtn) {
-      if (this.viewer.autoRotate) {
-        autoRotateBtn.classList.add("active");
-      } else {
-        autoRotateBtn.classList.remove("active");
-      }
-    }
-
-    // Update wireframe button
-    const wireframeBtn = document.getElementById("wireframeBtn");
-    if (wireframeBtn) {
-      if (this.viewer.wireframeMode) {
-        wireframeBtn.classList.add("active");
-      } else {
-        wireframeBtn.classList.remove("active");
-      }
-    }
-
-    // Update grid button
-    const gridBtn = document.getElementById("gridBtn");
-    if (gridBtn) {
-      if (this.viewer.settings.showGrid) {
-        gridBtn.classList.add("active");
-      } else {
-        gridBtn.classList.remove("active");
-      }
-    }
-
-    // Update axes button
-    const axesBtn = document.getElementById("axesBtn");
-    if (axesBtn) {
-      if (this.viewer.settings.showAxes) {
-        axesBtn.classList.add("active");
-      } else {
-        axesBtn.classList.remove("active");
-      }
-    }
-
-    // Update shadows button
-    const shadowsBtn = document.getElementById("shadowsBtn");
-    if (shadowsBtn) {
-      if (this.viewer.settings.enableShadows) {
-        shadowsBtn.classList.add("active");
-      } else {
-        shadowsBtn.classList.remove("active");
-      }
-    }
-
-    // Update fullscreen button
-    const fullscreenBtn = document.getElementById("fullscreenBtn");
-    if (fullscreenBtn) {
-      if (this.viewer.isFullscreen) {
-        fullscreenBtn.classList.add("fullscreen-active");
-      } else {
-        fullscreenBtn.classList.remove("fullscreen-active");
-      }
-    }
-
-    // Update zoom indicator
-    this.updateZoomIndicator();
   }
 
   takeScreenshot() {
