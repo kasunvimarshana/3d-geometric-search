@@ -1317,6 +1317,58 @@ kbd {
   font-weight: 600;
 }
 
+/* Focus indicator */
+.hierarchy-focus-indicator {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.3),
+    rgba(118, 75, 162, 0.3)
+  );
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: #ffffff;
+  font-weight: 600;
+  margin-top: 8px;
+  border-left: 3px solid #667eea;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+.hierarchy-focus-indicator.active {
+  animation: focusIndicatorPulse 1.5s ease-in-out infinite;
+}
+
+.hierarchy-focus-indicator .focus-icon {
+  font-size: 1.2em;
+  animation: cameraIconRotate 2s ease-in-out infinite;
+}
+
+@keyframes focusIndicatorPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+  }
+}
+
+@keyframes cameraIconRotate {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(5deg);
+  }
+}
+
 .hierarchy-tree {
   flex: 1;
   overflow-y: auto;
@@ -1354,32 +1406,129 @@ kbd {
 .node-content:hover {
   background: rgba(102, 126, 234, 0.15);
   color: white;
+  transition: all 0.2s ease-out;
+  cursor: pointer;
 }
 
 .node-content.selected {
   background: linear-gradient(
     135deg,
-    rgba(102, 126, 234, 0.3) 0%,
-    rgba(118, 75, 162, 0.3) 100%
+    rgba(102, 126, 234, 0.4) 0%,
+    rgba(118, 75, 162, 0.4) 100%
   );
   color: white;
   font-weight: 600;
-  border-left: 3px solid #667eea;
+  border-left: 4px solid #667eea;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3),
+    inset 0 0 10px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Highlight pulse animation for viewer interactions */
+/* Keyboard navigation focus state */
+.node-content:focus,
+.node-content:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enhanced focused state with ring */
+.node-content.focused {
+  animation: focusRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.5),
+    0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+@keyframes focusRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.8),
+      0 0 10px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(102, 126, 234, 0),
+      0 0 25px rgba(102, 126, 234, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.8),
+      0 0 10px rgba(102, 126, 234, 0.4);
+  }
+}
+
+/* Active focus state (during camera movement) - Enhanced */
+.node-content.focus-active {
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.65) 0%,
+    rgba(118, 75, 162, 0.65) 100%
+  );
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.85),
+    0 0 30px rgba(102, 126, 234, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.25);
+  transform: scale(1.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 10;
+}
+
+/* Camera focus indicator */
+.node-content.focus-active::after {
+  content: "📷";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1em;
+  opacity: 0.9;
+  animation: cameraFocusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes cameraFocusPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
+  }
+}
+
+/* Highlight pulse animation for viewer interactions - Enhanced */
 .node-content.highlight-pulse {
-  animation: highlightPulse 1.5s ease-in-out;
+  animation: highlightPulse 2s ease-in-out;
+  z-index: 10;
 }
 
 @keyframes highlightPulse {
-  0%,
-  100% {
+  0% {
     box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    background: transparent;
+    transform: scale(1);
+  }
+  25% {
+    box-shadow: 0 0 20px 8px rgba(102, 126, 234, 0.85);
+    background: rgba(102, 126, 234, 0.55);
+    transform: scale(1.03);
   }
   50% {
-    box-shadow: 0 0 15px 5px rgba(102, 126, 234, 0.6);
-    background: rgba(102, 126, 234, 0.4);
+    box-shadow: 0 0 30px 12px rgba(102, 126, 234, 0.95),
+      inset 0 0 15px rgba(255, 255, 255, 0.25);
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.65) 0%,
+      rgba(118, 75, 162, 0.65) 100%
+    );
+    transform: scale(1.04);
+  }
+  75% {
+    box-shadow: 0 0 20px 8px rgba(102, 126, 234, 0.75);
+    background: rgba(102, 126, 234, 0.45);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    background: transparent;
+    transform: scale(1);
   }
 }
 

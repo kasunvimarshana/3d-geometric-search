@@ -131,6 +131,15 @@ class ModelHierarchyPanel {
     statsBar.innerHTML = '<span class="stats-item">Ready</span>';
     header.appendChild(statsBar);
 
+    // Add focus mode indicator
+    const focusIndicator = document.createElement("div");
+    focusIndicator.className = "hierarchy-focus-indicator";
+    focusIndicator.id = "hierarchyFocusIndicator";
+    focusIndicator.innerHTML =
+      '<span class="focus-icon">📷</span> Auto-Focus Active';
+    focusIndicator.style.display = "none";
+    header.appendChild(focusIndicator);
+
     this.treeContainer = document.createElement("div");
     this.treeContainer.className = "hierarchy-tree";
     this.treeContainer.innerHTML =
@@ -176,6 +185,19 @@ class ModelHierarchyPanel {
         if (e.key === "Escape" && this.isOpen) {
           this.closePanel();
         }
+
+        // Arrow key navigation when panel is open
+        if (this.isOpen && this.selectedNode) {
+          if (e.key === "Enter") {
+            // Enter key focuses on selected node
+            e.preventDefault();
+            this.focusOnNode(this.selectedNode);
+          } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            // Arrow keys for navigation
+            e.preventDefault();
+            this.navigateWithArrowKeys(e.key);
+          }
+        }
       },
       { id: "hierarchy-escape" }
     );
@@ -201,20 +223,106 @@ class ModelHierarchyPanel {
       this.updateStats("cleared");
     });
 
-    // Listen for model clicks to sync selection
+    // Listen for model clicks to sync selection with automatic focus
     if (this.viewer.container) {
       this.eventManager.add(
         this.viewer.container,
         "modelClick",
         (e) => {
           if (e.detail && e.detail.object) {
+            // Seamless sync from viewer to hierarchy
             this.selectObjectInTree(e.detail.object);
-            this.highlightInHierarchy(e.detail.object);
+
+            // Emit for external listeners
+            this.eventBus.emit("viewer:object-selected", {
+              object: e.detail.object,
+              timestamp: Date.now(),
+            });
           }
         },
         { id: "hierarchy-model-click" }
       );
     }
+
+    // Listen for external focus requests
+    this.eventBus.on("hierarchy:focus-request", (data) => {
+      if (data.nodeId) {
+        this.focusOnNode(data.nodeId);
+      } else if (data.object) {
+        const nodeId = this.objectToNode.get(data.object);
+        if (nodeId) {
+          this.focusOnNode(nodeId);
+        }
+      }
+    });
+
+    // Listen for viewer focus events (integration with default model focus)
+    this.eventBus.on("viewer:focus-on-model", () => {
+      // When entire model is focused, select root node without camera movement
+      const rootNodeId = Array.from(this.nodeMap.keys()).find(
+        (id) => !id.includes("/")
+      );
+      if (rootNodeId && !this.isOpen) {
+        this.openPanel();
+      }
+      if (rootNodeId) {
+        this.selectNode(rootNodeId, {
+          fromViewer: true,
+          autoFocus: false,
+          scrollIntoView: true,
+          openPanel: false,
+        });
+      }
+    });
+
+    // Listen for zoom changes to maintain highlight state
+    this.eventBus.on("viewer:zoom-changed", (data) => {
+      // Re-highlight selected node to maintain visibility during zoom
+      if (this.selectedNode && data.selectedObject) {
+        const nodeElement = this.treeContainer.querySelector(
+          `[data-node-id="${this.selectedNode}"] > .node-content`
+        );
+        if (nodeElement && nodeElement.classList.contains("selected")) {
+          // Add a subtle pulse to indicate zoom is maintaining focus
+          nodeElement.style.transition = "box-shadow 0.3s ease";
+          nodeElement.style.boxShadow = "0 0 20px rgba(102, 126, 234, 0.8)";
+
+          setTimeout(() => {
+            nodeElement.style.boxShadow = "";
+          }, 500);
+        }
+      }
+    });
+
+    // Listen for fullscreen changes to persist highlights
+    this.eventBus.on("viewer:fullscreen-changed", (data) => {
+      // Maintain selected node highlight during fullscreen transitions
+      if (this.selectedNode) {
+        setTimeout(() => {
+          const nodeElement = this.treeContainer.querySelector(
+            `[data-node-id="${this.selectedNode}"] > .node-content`
+          );
+          if (nodeElement) {
+            // Re-apply selected class to ensure visibility
+            nodeElement.classList.add("selected");
+
+            // Show temporary focus indicator
+            this.showFocusIndicator();
+            setTimeout(() => {
+              this.hideFocusIndicator();
+            }, 1000);
+          }
+        }, 200);
+      }
+    });
+
+    // Listen for view reset to clear selections
+    this.eventBus.on("viewer:view-reset", () => {
+      // Clear any active selections and visual feedback
+      this.clearSelection();
+
+      console.log("[ModelHierarchy] Responded to view reset");
+    });
 
     // Start state monitoring if model is loaded
     this.startStateMonitoring();
@@ -266,6 +374,42 @@ class ModelHierarchyPanel {
     if (changesDetected) {
       this.updateStats("updated");
     }
+  }
+
+  /**
+   * Clear current selection and visual feedback
+   */
+  clearSelection() {
+    // Clear visual selection in UI
+    const prevSelected = this.treeContainer.querySelector(
+      ".node-content.selected"
+    );
+    if (prevSelected) {
+      prevSelected.classList.remove("selected");
+      prevSelected.classList.remove("focused");
+      prevSelected.classList.remove("focus-active");
+      prevSelected.classList.remove("highlight-pulse");
+    }
+
+    // Clear all focused states
+    this.treeContainer
+      .querySelectorAll(".node-content.focused")
+      .forEach((node) => {
+        node.classList.remove("focused");
+      });
+
+    // Hide focus indicator
+    this.hideFocusIndicator();
+
+    // Clear selection state
+    this.selectedNode = null;
+
+    // Emit event
+    this.eventBus.emit("hierarchy:selection-cleared", {
+      timestamp: Date.now(),
+    });
+
+    console.log("[ModelHierarchy] Selection cleared");
   }
 
   /**
@@ -367,7 +511,29 @@ class ModelHierarchyPanel {
   }
 
   /**
-   * Highlight object in hierarchy (called from viewer interaction)
+   * Expand all parent nodes for a given node ID
+   */
+  expandParentNodes(nodeId) {
+    const parts = nodeId.split("/");
+    let currentPath = "";
+
+    // Build and expand each parent level
+    for (let i = 0; i < parts.length - 1; i++) {
+      currentPath = parts.slice(0, i + 1).join("/");
+
+      const listItem = this.treeContainer.querySelector(
+        `[data-node-id="${currentPath}"]`
+      );
+
+      if (listItem && !this.expandedNodes.has(currentPath)) {
+        this.expandedNodes.add(currentPath);
+        listItem.classList.add("expanded");
+      }
+    }
+  }
+
+  /**
+   * Highlight object in hierarchy with enhanced visual feedback
    */
   highlightInHierarchy(object) {
     const nodeId = this.objectToNode.get(object);
@@ -405,15 +571,26 @@ class ModelHierarchyPanel {
       `[data-node-id="${nodeId}"]`
     );
     if (nodeElement) {
-      nodeElement.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      nodeElement.scrollIntoView({ behavior: "smooth", block: "center" });
 
-      // Add highlight effect
+      // Add enhanced highlight effect with multiple visual states
       const nodeContent = nodeElement.querySelector(".node-content");
       if (nodeContent) {
-        nodeContent.classList.add("highlight-pulse");
+        // Add both highlight-pulse and focus-active for stronger effect
+        nodeContent.classList.add("highlight-pulse", "focused");
+
+        // Show focus indicator in header
+        this.showFocusIndicator();
+
         setTimeout(() => {
           nodeContent.classList.remove("highlight-pulse");
-        }, 1500);
+          this.hideFocusIndicator();
+        }, 2000); // Extended duration for better visibility
+
+        // Keep focused state slightly longer
+        setTimeout(() => {
+          nodeContent.classList.remove("focused");
+        }, 3000);
       }
     }
   }
@@ -549,6 +726,9 @@ class ModelHierarchyPanel {
     // Node content wrapper
     const nodeContent = document.createElement("div");
     nodeContent.className = "node-content";
+    nodeContent.setAttribute("tabindex", "0"); // Make focusable for keyboard navigation
+    nodeContent.setAttribute("role", "button");
+    nodeContent.setAttribute("aria-label", `${node.type}: ${node.name}`);
 
     // Expand/collapse button for nodes with children
     if (node.children.length > 0) {
@@ -586,7 +766,7 @@ class ModelHierarchyPanel {
     const label = document.createElement("span");
     label.className = "node-label";
     label.textContent = node.name;
-    label.title = `${node.type}: ${node.name}\nClick to select, Double-click to focus`;
+    label.title = `${node.type}: ${node.name}\nClick to focus and navigate`;
 
     // Add info badge
     if (node.meshCount > 0) {
@@ -609,16 +789,31 @@ class ModelHierarchyPanel {
 
     nodeContent.appendChild(label);
 
-    // Click handler for selection
+    // Click handler for automatic focus (seamless navigation)
     this.eventManager.add(
       nodeContent,
       "click",
       (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.selectNode(node.id);
+        // Automatically focus on click for seamless navigation
+        this.focusOnNode(node.id);
       },
       { id: `hierarchy-select-${node.id}` }
+    );
+
+    // Keyboard handler for accessibility (Enter or Space)
+    this.eventManager.add(
+      nodeContent,
+      "keydown",
+      (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          this.focusOnNode(node.id);
+        }
+      },
+      { id: `hierarchy-keyboard-${node.id}` }
     );
 
     // Double-click to focus
@@ -664,15 +859,28 @@ class ModelHierarchyPanel {
   }
 
   /**
-   * Select node in tree
+   * Select node in tree with automatic focus management
    */
-  selectNode(nodeId) {
+  selectNode(nodeId, options = {}) {
+    const {
+      fromViewer = false,
+      autoFocus = false,
+      scrollIntoView = true,
+      openPanel = true,
+    } = options;
+
+    // Automatically open panel if closed (unless from viewer click)
+    if (openPanel && !this.isOpen && !fromViewer) {
+      this.openPanel();
+    }
+
     // Clear previous selection
     const prevSelected = this.treeContainer.querySelector(
       ".node-content.selected"
     );
     if (prevSelected) {
       prevSelected.classList.remove("selected");
+      prevSelected.classList.remove("focused");
     }
 
     // Select new node
@@ -682,62 +890,223 @@ class ModelHierarchyPanel {
 
     if (nodeElement) {
       nodeElement.classList.add("selected");
+
+      // Set DOM focus for keyboard navigation (unless from viewer)
+      if (!fromViewer) {
+        nodeElement.focus();
+      }
+
+      // Add focused class for enhanced visual feedback
+      if (autoFocus || !fromViewer) {
+        nodeElement.classList.add("focused");
+
+        // Remove focused class after animation
+        setTimeout(() => {
+          nodeElement.classList.remove("focused");
+        }, 2000);
+      }
+
       this.selectedNode = nodeId;
 
-      // Highlight in viewer
-      const object = this.nodeMap.get(nodeId);
-      if (object && object.isMesh) {
-        this.viewer.selectObject(object);
+      // Scroll into view with padding
+      if (scrollIntoView) {
+        requestAnimationFrame(() => {
+          nodeElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        });
+      }
+
+      // Highlight in viewer if not already from viewer
+      if (!fromViewer) {
+        const object = this.nodeMap.get(nodeId);
+        if (object) {
+          // Select in viewer
+          if (object.isMesh && this.viewer.selectObject) {
+            this.viewer.selectObject(object);
+          }
+
+          // Auto-focus if requested
+          if (autoFocus && this.viewer.focusOnObject) {
+            this.viewer.focusOnObject(object);
+          }
+        }
       }
 
       // Emit event
       this.eventBus.emit("hierarchy:node-selected", {
         nodeId,
-        object,
+        object: this.nodeMap.get(nodeId),
+        fromViewer,
+        autoFocus,
       });
     }
   }
 
   /**
-   * Focus on node (zoom and center)
+   * Focus on node (zoom and center) with seamless navigation
+   * @param {string} nodeId - Node identifier
+   * @param {object} options - Focus options
    */
-  focusOnNode(nodeId) {
+  focusOnNode(nodeId, options = {}) {
+    const { fromViewer = false, smooth = true } = options;
+
     const object = this.nodeMap.get(nodeId);
-    if (!object) return;
+    if (!object) {
+      console.warn(
+        `[ModelHierarchy] Cannot focus: object not found for node ${nodeId}`
+      );
+      return;
+    }
 
     try {
-      // Focus on the specific object
-      this.viewer.focusOnObject(object);
+      // Expand parent nodes for visibility
+      this.expandParentNodes(nodeId);
 
-      // Select in tree
-      this.selectNode(nodeId);
+      // Automatically open panel if closed
+      if (!this.isOpen) {
+        this.openPanel();
+      }
+
+      // Select in tree with focus enabled (only if not from viewer)
+      if (!fromViewer) {
+        this.selectNode(nodeId, {
+          autoFocus: true,
+          scrollIntoView: true,
+          openPanel: false, // Already opened above
+        });
+      }
+
+      // Focus on the specific object in viewer with smooth transition
+      if (this.viewer.focusOnObject) {
+        this.viewer.focusOnObject(object);
+      }
+
+      // Add visual feedback with smooth animation
+      const nodeElement = this.treeContainer.querySelector(
+        `[data-node-id="${nodeId}"] > .node-content`
+      );
+      if (nodeElement) {
+        // Add focus-active class for enhanced visual feedback
+        nodeElement.classList.add("focus-active");
+
+        // Show focus indicator temporarily
+        this.showFocusIndicator();
+
+        // Smooth scroll into view
+        if (smooth) {
+          requestAnimationFrame(() => {
+            nodeElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          });
+        }
+
+        // Remove class after animation completes
+        setTimeout(() => {
+          nodeElement.classList.remove("focus-active");
+          this.hideFocusIndicator();
+        }, 1500);
+      }
 
       // Emit event
       this.eventBus.emit("hierarchy:node-focused", {
         nodeId,
         object,
+        fromViewer,
+        smooth,
+        timestamp: Date.now(),
       });
+
+      console.log(`[ModelHierarchy] Focused on node: ${nodeId}`);
     } catch (error) {
       console.error("[ModelHierarchy] Error focusing on node:", error);
     }
   }
 
   /**
-   * Select object in tree (from external click)
+   * Show focus indicator in panel header
+   */
+  showFocusIndicator() {
+    const indicator = document.getElementById("hierarchyFocusIndicator");
+    if (indicator) {
+      indicator.style.display = "flex";
+      indicator.classList.add("active");
+    }
+  }
+
+  /**
+   * Hide focus indicator in panel header
+   */
+  hideFocusIndicator() {
+    const indicator = document.getElementById("hierarchyFocusIndicator");
+    if (indicator) {
+      indicator.style.display = "none";
+      indicator.classList.remove("active");
+    }
+  }
+
+  /**
+   * Select object in tree (from viewer interaction) with seamless sync
    */
   selectObjectInTree(object) {
     const nodeId = this.objectToNode.get(object);
-    if (nodeId) {
-      this.selectNode(nodeId);
-
-      // Scroll into view
-      const nodeElement = this.treeContainer.querySelector(
-        `[data-node-id="${nodeId}"]`
-      );
-      if (nodeElement) {
-        nodeElement.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+    if (!nodeId) {
+      console.warn("[ModelHierarchy] Object not found in tree:", object);
+      return;
     }
+
+    // Automatically open panel for visibility
+    if (!this.isOpen) {
+      this.openPanel();
+    }
+
+    // Expand parent nodes to make selection visible
+    this.expandParentNodes(nodeId);
+
+    // Focus on the object (not just select) for seamless navigation
+    if (this.viewer.focusOnObject) {
+      this.viewer.focusOnObject(object);
+    }
+
+    // Select with viewer flag to prevent circular updates
+    this.selectNode(nodeId, {
+      fromViewer: true,
+      autoFocus: false, // Already focused above
+      scrollIntoView: true,
+      openPanel: false, // Already opened above
+    });
+
+    // Highlight in hierarchy with enhanced feedback
+    this.highlightInHierarchy(object);
+
+    // Add focus-active visual feedback
+    const nodeElement = this.treeContainer.querySelector(
+      `[data-node-id="${nodeId}"] > .node-content`
+    );
+    if (nodeElement) {
+      nodeElement.classList.add("focus-active");
+
+      // Show focus indicator
+      this.showFocusIndicator();
+
+      setTimeout(() => {
+        nodeElement.classList.remove("focus-active");
+        this.hideFocusIndicator();
+      }, 1500);
+    }
+
+    // Emit focus event (not just selection)
+    this.eventBus.emit("hierarchy:node-focused", {
+      nodeId,
+      object,
+      fromViewer: true,
+      timestamp: Date.now(),
+    });
+
+    console.log(`[ModelHierarchy] Focused from viewer: ${nodeId}`);
   }
 
   /**
@@ -767,6 +1136,42 @@ class ModelHierarchyPanel {
     this.isOpen = false;
     this.panel.classList.remove("open");
     this.eventBus.emit("hierarchy:closed");
+  }
+
+  /**
+   * Navigate with arrow keys for keyboard accessibility
+   */
+  navigateWithArrowKeys(key) {
+    if (!this.selectedNode) return;
+
+    const allNodes = Array.from(this.nodeMap.keys());
+    const currentIndex = allNodes.indexOf(this.selectedNode);
+
+    if (currentIndex === -1) return;
+
+    let targetIndex;
+    if (key === "ArrowDown") {
+      targetIndex = currentIndex + 1;
+    } else if (key === "ArrowUp") {
+      targetIndex = currentIndex - 1;
+    }
+
+    // Wrap around
+    if (targetIndex >= allNodes.length) {
+      targetIndex = 0;
+    } else if (targetIndex < 0) {
+      targetIndex = allNodes.length - 1;
+    }
+
+    const targetNodeId = allNodes[targetIndex];
+    if (targetNodeId) {
+      // Select and scroll into view, but don't focus camera (only Enter does that)
+      this.selectNode(targetNodeId, {
+        autoFocus: false,
+        scrollIntoView: true,
+        openPanel: false,
+      });
+    }
   }
 
   /**

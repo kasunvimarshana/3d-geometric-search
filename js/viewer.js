@@ -333,20 +333,73 @@ export class Viewer3D {
     this.controls.target.set(0, 0, 0);
   }
 
+  /**
+   * Reset view to default camera position and clear all selections
+   * Triggered by 'R' key - comprehensive workspace reset
+   */
   resetView() {
+    // Clear any active selections first
+    this.deselectObject();
+    if (this.hoveredObject) {
+      this.unhighlightObject(this.hoveredObject);
+      this.hoveredObject = null;
+    }
+
+    // Reset controls target to origin
+    this.controls.target.set(0, 0, 0);
+
+    // Reset camera to default position
     const camPos = Config.viewer.defaultCameraPosition;
     this.camera.position.set(camPos.x, camPos.y, camPos.z);
     this.camera.lookAt(0, 0, 0);
-    this.controls.target.set(0, 0, 0);
+
+    // Update controls smoothly
     this.controls.update();
+
+    // If model exists, ensure it's centered and properly scaled
+    if (this.currentModel) {
+      // Reset model position to origin
+      this.currentModel.position.set(0, 0, 0);
+
+      // Reset model rotation
+      this.currentModel.rotation.set(0, 0, 0);
+
+      // Ensure model scale is at default
+      if (this.settings.modelScale !== 1.0) {
+        this.currentModel.scale.setScalar(1.0);
+        this.settings.modelScale = 1.0;
+      }
+    }
+
+    // Emit event for UI synchronization (hierarchy panel, etc.)
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:view-reset", {
+        cameraPosition: { x: camPos.x, y: camPos.y, z: camPos.z },
+        controlsTarget: { x: 0, y: 0, z: 0 },
+        timestamp: Date.now(),
+      });
+    }
+
+    // Dispatch custom event for legacy support
+    this.container.dispatchEvent(
+      new CustomEvent("viewReset", {
+        detail: {
+          cameraPosition: this.camera.position.clone(),
+          controlsTarget: this.controls.target.clone(),
+        },
+      })
+    );
+
+    console.log("[Viewer] View reset to default state");
   }
 
   /**
    * Reset all viewer settings to default state
    * Includes camera, zoom, rotation, display options, and scale
+   * Triggered by Shift+R or Reset All button
    */
   resetAll() {
-    // Reset camera position
+    // Reset camera position and clear selections (uses enhanced resetView)
     this.resetView();
 
     // Reset auto-rotation
@@ -393,29 +446,27 @@ export class Viewer3D {
       this.lights.directional.intensity = this.settings.directionalIntensity;
     }
 
-    // Reset model scale if model exists
-    if (this.currentModel) {
-      this.currentModel.scale.setScalar(this.settings.modelScale);
-    }
-
-    // Clear any selections or hover states
-    this.deselectObject();
-    if (this.hoveredObject) {
-      this.unhighlightObject(this.hoveredObject);
-      this.hoveredObject = null;
-    }
-
     // Exit fullscreen if active
     if (this.isFullscreen) {
       this.toggleFullscreen();
     }
 
-    // Dispatch event for UI update
+    // Emit comprehensive reset event
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:reset-all", {
+        settings: this.settings,
+        timestamp: Date.now(),
+      });
+    }
+
+    // Dispatch event for UI update (legacy support)
     this.container.dispatchEvent(
       new CustomEvent("resetAll", {
         detail: { settings: this.settings },
       })
     );
+
+    console.log("[Viewer] All settings reset to default");
   }
 
   toggleWireframe() {
@@ -549,6 +600,21 @@ export class Viewer3D {
       .copy(this.controls.target)
       .addScaledVector(direction, newDistance);
     this.controls.update();
+
+    // Emit zoom event for highlight persistence
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:zoom-changed", {
+        direction: "in",
+        distance: newDistance,
+        selectedObject: this.selectedObject,
+        timestamp: Date.now(),
+      });
+    }
+
+    // Re-highlight selected object to maintain visibility
+    if (this.selectedObject) {
+      this.highlightObject(this.selectedObject, 0xffaa00, 0.6);
+    }
   }
 
   /**
@@ -569,6 +635,21 @@ export class Viewer3D {
       .copy(this.controls.target)
       .addScaledVector(direction, newDistance);
     this.controls.update();
+
+    // Emit zoom event for highlight persistence
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:zoom-changed", {
+        direction: "out",
+        distance: newDistance,
+        selectedObject: this.selectedObject,
+        timestamp: Date.now(),
+      });
+    }
+
+    // Re-highlight selected object to maintain visibility
+    if (this.selectedObject) {
+      this.highlightObject(this.selectedObject, 0xffaa00, 0.6);
+    }
   }
 
   /**
@@ -748,6 +829,14 @@ export class Viewer3D {
       // Smooth update of controls
       this.controls.update();
 
+      // Emit focus event for hierarchy integration
+      if (this.eventBus) {
+        this.eventBus.emit("viewer:focus-on-model", {
+          model: this.currentModel,
+          timestamp: Date.now(),
+        });
+      }
+
       console.log("[Viewer] Focused on model");
     } catch (error) {
       console.error("[Viewer] Error focusing on model:", error);
@@ -918,7 +1007,7 @@ export class Viewer3D {
   }
 
   /**
-   * Select a 3D object
+   * Select a 3D object with enhanced visual feedback
    */
   selectObject(object, point) {
     // Deselect previous
@@ -927,9 +1016,19 @@ export class Viewer3D {
     }
 
     this.selectedObject = object;
-    this.highlightObject(object, 0xffaa00, 0.6);
+    this.highlightObject(object, 0xffaa00, 0.8); // Increased opacity for stronger highlight
 
-    // Dispatch selection event
+    // Emit selection event via EventBus for hierarchy integration
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:object-selected", {
+        object: object,
+        point: point,
+        objectName: object.name || "Unnamed",
+        timestamp: Date.now(),
+      });
+    }
+
+    // Dispatch selection event (legacy support)
     this.container.dispatchEvent(
       new CustomEvent("modelSelect", {
         detail: {
@@ -961,7 +1060,7 @@ export class Viewer3D {
   }
 
   /**
-   * Highlight an object
+   * Highlight an object with enhanced visual effects
    */
   highlightObject(object, color, opacity) {
     if (!object.isMesh) return;
@@ -972,30 +1071,72 @@ export class Viewer3D {
         material: object.material,
         color: object.material.color?.clone(),
         emissive: object.material.emissive?.clone(),
+        emissiveIntensity: object.material.emissiveIntensity || 1.0,
+        scale: object.scale.clone(),
       });
     }
 
-    // Apply highlight
+    // Apply enhanced highlight with emissive glow
     if (object.material.emissive) {
       object.material.emissive.setHex(color);
-      object.material.emissiveIntensity = opacity;
+      object.material.emissiveIntensity = opacity * 2.0; // Stronger glow
+    }
+
+    // Add subtle scale pulse for focused objects
+    if (opacity > 0.5) {
+      const pulseScale = 1.02;
+      object.scale.multiplyScalar(pulseScale);
+
+      // Animate back to original scale
+      setTimeout(() => {
+        if (this.originalMaterials.has(object.uuid)) {
+          const original = this.originalMaterials.get(object.uuid);
+          object.scale.copy(original.scale);
+        }
+      }, 300);
+    }
+
+    // Emit highlight event
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:object-highlighted", {
+        object,
+        color,
+        opacity,
+        timestamp: Date.now(),
+      });
     }
   }
 
   /**
-   * Remove highlight from object
+   * Remove highlight from object and restore original state
    */
   unhighlightObject(object) {
     if (!object.isMesh) return;
 
     const original = this.originalMaterials.get(object.uuid);
-    if (original && object.material.emissive) {
-      if (original.emissive) {
-        object.material.emissive.copy(original.emissive);
-      } else {
-        object.material.emissive.setHex(0x000000);
+    if (original) {
+      // Restore emissive properties
+      if (object.material.emissive) {
+        if (original.emissive) {
+          object.material.emissive.copy(original.emissive);
+        } else {
+          object.material.emissive.setHex(0x000000);
+        }
+        object.material.emissiveIntensity = original.emissiveIntensity || 1.0;
       }
-      object.material.emissiveIntensity = 1.0;
+
+      // Restore scale if modified
+      if (original.scale) {
+        object.scale.copy(original.scale);
+      }
+    }
+
+    // Emit unhighlight event
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:object-unhighlighted", {
+        object,
+        timestamp: Date.now(),
+      });
     }
   }
 
@@ -1074,6 +1215,22 @@ export class Viewer3D {
     setTimeout(() => {
       this.onWindowResize();
     }, 100);
+
+    // Persist highlights during fullscreen transitions
+    if (this.selectedObject) {
+      setTimeout(() => {
+        this.highlightObject(this.selectedObject, 0xffaa00, 0.6);
+      }, 150);
+    }
+
+    // Emit fullscreen event for hierarchy integration
+    if (this.eventBus) {
+      this.eventBus.emit("viewer:fullscreen-changed", {
+        isFullscreen: this.isFullscreen,
+        selectedObject: this.selectedObject,
+        timestamp: Date.now(),
+      });
+    }
 
     // Dispatch custom event for UI updates
     const event = new CustomEvent("fullscreenchange", {

@@ -421,6 +421,7 @@ class App {
       this.eventManager.add(resetViewBtn, "click", () => {
         try {
           this.viewer.resetView();
+          this.updateZoomIndicator(); // Update zoom indicator after reset
           showToast("View reset", "info");
         } catch (error) {
           console.error("[App] Error resetting view:", error);
@@ -435,6 +436,7 @@ class App {
         try {
           this.viewer.resetAll();
           this.updateAllButtonStates();
+          this.updateScaleIndicator();
           showToast("All settings reset to default", "success");
         } catch (error) {
           console.error("[App] Error resetting all:", error);
@@ -682,6 +684,7 @@ class App {
           e.preventDefault();
           this.viewer.resetAll();
           this.updateAllButtonStates();
+          this.updateScaleIndicator();
           showToast("All settings reset to default", "success");
           return;
         }
@@ -735,10 +738,22 @@ class App {
   _setupModelEventHandlers() {
     if (!this.viewer || !this.viewer.container) return;
 
-    // Listen for reset all event from viewer
+    // Listen for view reset event (R key)
+    this.eventManager.add(this.viewer.container, "viewReset", () => {
+      try {
+        this.updateZoomIndicator();
+        console.log("[App] View reset complete");
+      } catch (error) {
+        console.error("[App] Error handling view reset:", error);
+      }
+    });
+
+    // Listen for reset all event from viewer (Shift+R)
     this.eventManager.add(this.viewer.container, "resetAll", () => {
       try {
         this.updateAllButtonStates();
+        this.updateZoomIndicator();
+        this.updateScaleIndicator();
       } catch (error) {
         console.error("[App] Error updating button states:", error);
       }
@@ -1275,6 +1290,20 @@ class App {
     const indicator = document.getElementById("zoomLevel");
     if (indicator) {
       indicator.textContent = zoomLevel;
+    }
+  }
+
+  /**
+   * Update scale indicator and slider to reflect current model scale
+   */
+  updateScaleIndicator() {
+    const scaleValue = document.getElementById("scaleValue");
+    const scaleSlider = document.getElementById("scaleSlider");
+    if (scaleValue && this.viewer.settings) {
+      scaleValue.textContent = this.viewer.settings.modelScale.toFixed(1);
+    }
+    if (scaleSlider && this.viewer.settings) {
+      scaleSlider.value = this.viewer.settings.modelScale;
     }
   }
 
