@@ -19,7 +19,6 @@
         <!-- Upload Section -->
         <section class="upload-section">
           <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📦</div>
             <h3>Upload 3D Model</h3>
             <p>Drag and drop or click to upload</p>
             <p class="format-info">
@@ -48,17 +47,17 @@
                   id="zoomInBtn"
                   title="Zoom In (+ or =)"
                 >
-                  🔍+
+                  +
                 </button>
                 <button class="btn-icon" id="zoomOutBtn" title="Zoom Out (-)">
-                  🔍-
+                  -
                 </button>
                 <button
                   class="btn-icon"
                   id="fitViewBtn"
                   title="Fit to View (0)"
                 >
-                  ⛶
+                  Fit
                 </button>
               </div>
 
@@ -69,21 +68,21 @@
                   id="resetViewBtn"
                   title="Reset View (R)"
                 >
-                  🔄
+                  Reset
                 </button>
                 <button
                   class="btn-icon"
                   id="resetAllBtn"
                   title="Reset All (Shift+R)"
                 >
-                  ⟲
+                  Reset All
                 </button>
                 <button
                   class="btn-icon"
                   id="autoRotateBtn"
                   title="Auto Rotate (Space)"
                 >
-                  🔁
+                  Rotate
                 </button>
               </div>
 
@@ -94,20 +93,20 @@
                   id="wireframeBtn"
                   title="Toggle Wireframe (W)"
                 >
-                  🔲
+                  Wire
                 </button>
                 <button class="btn-icon" id="gridBtn" title="Toggle Grid (G)">
-                  📐
+                  Grid
                 </button>
                 <button class="btn-icon" id="axesBtn" title="Toggle Axes (A)">
-                  🎯
+                  Axes
                 </button>
                 <button
                   class="btn-icon"
                   id="shadowsBtn"
                   title="Toggle Shadows (S)"
                 >
-                  💡
+                  Shadow
                 </button>
               </div>
 
@@ -118,24 +117,24 @@
                   id="screenshotBtn"
                   title="Take Screenshot"
                 >
-                  📷
+                  Shot
                 </button>
                 <button
                   class="btn-icon"
                   id="fullscreenBtn"
                   title="Fullscreen (F)"
                 >
-                  ⛶
+                  Full
                 </button>
                 <button class="btn-icon" id="settingsBtn" title="Settings">
-                  ⚙️
+                  Settings
                 </button>
                 <button
                   class="btn-icon"
                   id="keyboardHelpBtn"
                   title="Keyboard Shortcuts (? or K)"
                 >
-                  ⌨️
+                  Help
                 </button>
               </div>
             </div>
@@ -223,7 +222,7 @@
             </div>
             <div class="control-group">
               <button class="btn-secondary" id="focusModelBtn">
-                🎯 Focus on Model
+                Focus on Model
               </button>
             </div>
           </div>
@@ -258,28 +257,27 @@
                 id="exportAllBtn"
                 title="Export All Analysis"
               >
-                📊 Export Data
+                Export Data
               </button>
               <button
                 class="btn-secondary"
                 id="generateReportBtn"
                 title="Generate HTML Report"
               >
-                📄 Generate Report
+                Generate Report
               </button>
               <button
                 class="btn-secondary"
                 id="clearLibraryBtn"
                 title="Clear Library"
               >
-                🗑️ Clear All
+                Clear All
               </button>
             </div>
           </div>
           <div class="library-grid" id="libraryGrid">
             <!-- Models will be added here dynamically -->
             <div class="empty-state" id="emptyState">
-              <div class="empty-icon">📦</div>
               <p>No models loaded yet</p>
               <p class="small">Upload a 3D model to get started</p>
             </div>
@@ -299,7 +297,7 @@
               id="exportSimilarityBtn"
               title="Export Similarity Data"
             >
-              💾 Export Results
+              Export Results
             </button>
           </div>
           <div class="results-grid" id="resultsGrid">
@@ -324,7 +322,7 @@
     <div id="keyboardModal" class="modal" style="display: none">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>⌨️ Keyboard Shortcuts</h2>
+          <h2>Keyboard Shortcuts</h2>
           <button class="modal-close" id="closeModalBtn">&times;</button>
         </div>
         <div class="modal-body">
