@@ -733,7 +733,7 @@ kbd {
 .viewer-section:-webkit-full-screen .info-item span:last-child,
 .viewer-section:-moz-full-screen .info-item span:last-child,
 .viewer-section:-ms-fullscreen .info-item span:last-child {
-  color: #fff;
+  color: #e0e0e0;
 }
 
 /* Fullscreen button active state */
@@ -847,7 +847,7 @@ kbd {
   display: none !important;
 }
 
-/* Section visibility animations - removed for minimal design */
+/* Decorative animations removed for minimal design */
 
 /* Lazy-loading indicator */
 .loading-section {
