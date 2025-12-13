@@ -607,13 +607,14 @@ export class Viewer3D {
         direction: "in",
         distance: newDistance,
         selectedObject: this.selectedObject,
+        isolated: this.isolatedObject !== null,
         timestamp: Date.now(),
       });
     }
 
-    // Re-highlight selected object to maintain visibility
+    // Maintain highlight on selected object (isolation is already active)
     if (this.selectedObject) {
-      this.highlightObject(this.selectedObject, 0xffaa00, 0.6);
+      this.highlightObject(this.selectedObject, 0xffaa00, 0.8);
     }
   }
 
@@ -642,13 +643,14 @@ export class Viewer3D {
         direction: "out",
         distance: newDistance,
         selectedObject: this.selectedObject,
+        isolated: this.isolatedObject !== null,
         timestamp: Date.now(),
       });
     }
 
-    // Re-highlight selected object to maintain visibility
+    // Maintain highlight on selected object (isolation is already active)
     if (this.selectedObject) {
-      this.highlightObject(this.selectedObject, 0xffaa00, 0.6);
+      this.highlightObject(this.selectedObject, 0xffaa00, 0.8);
     }
   }
 
@@ -909,25 +911,35 @@ export class Viewer3D {
       const object = intersects[0].object;
       const point = intersects[0].point;
 
-      // Toggle selection
+      // Toggle selection with improved state management
       if (this.selectedObject === object) {
+        console.log(
+          "[Viewer] Toggling off selection:",
+          object.name || object.type
+        );
         this.deselectObject();
       } else {
+        console.log("[Viewer] Selecting object:", object.name || object.type);
         this.selectObject(object, point);
       }
 
-      // Dispatch custom event
+      // Dispatch custom event with complete data
       this.container.dispatchEvent(
         new CustomEvent("modelClick", {
           detail: {
             object: object,
             point: point,
             intersection: intersects[0],
+            isSelected: this.selectedObject === object,
           },
         })
       );
     } else {
-      this.deselectObject();
+      // Click on empty space - deselect
+      if (this.selectedObject) {
+        console.log("[Viewer] Click on empty space - deselecting");
+        this.deselectObject();
+      }
     }
   }
 
@@ -944,15 +956,41 @@ export class Viewer3D {
       const object = intersects[0].object;
 
       if (this.hoveredObject !== object) {
-        // Remove previous hover
+        // Remove previous hover with proper state restoration
         if (this.hoveredObject && this.hoveredObject !== this.selectedObject) {
           this.unhighlightObject(this.hoveredObject);
+          // Restore dimming if isolation is active and object is not the isolated one
+          if (
+            this.isolatedObject &&
+            this.hoveredObject !== this.isolatedObject
+          ) {
+            const original = this.originalMaterials.get(
+              this.hoveredObject.uuid
+            );
+            if (original && original.opacity !== undefined) {
+              this.hoveredObject.material.opacity = 0.15;
+              this.hoveredObject.material.transparent = true;
+              // Restore emissive dimming
+              if (this.hoveredObject.material.emissive && original.emissive) {
+                this.hoveredObject.material.emissiveIntensity = 0.1;
+              }
+              this.hoveredObject.material.needsUpdate = true;
+            }
+          }
         }
 
-        // Add new hover
+        // Add new hover (only if not selected and more subtle if isolation is active)
         this.hoveredObject = object;
         if (object !== this.selectedObject) {
-          this.highlightObject(object, 0x88aaff, 0.3);
+          // If isolation is active and hovering over non-isolated object, use subtle highlight
+          if (this.isolatedObject && object !== this.isolatedObject) {
+            this.highlightObject(object, 0x88aaff, 0.2);
+            object.material.opacity = 0.35; // Slightly brighter than other dimmed objects
+            object.material.needsUpdate = true;
+          } else {
+            // Normal hover highlight for non-isolated scenarios
+            this.highlightObject(object, 0x88aaff, 0.3);
+          }
         }
 
         // Change cursor
@@ -969,9 +1007,22 @@ export class Viewer3D {
         );
       }
     } else {
-      // No intersection - remove hover
+      // No intersection - remove hover with complete state restoration
       if (this.hoveredObject && this.hoveredObject !== this.selectedObject) {
         this.unhighlightObject(this.hoveredObject);
+        // Restore dimming if isolation is active
+        if (this.isolatedObject && this.hoveredObject !== this.isolatedObject) {
+          const original = this.originalMaterials.get(this.hoveredObject.uuid);
+          if (original && original.opacity !== undefined) {
+            this.hoveredObject.material.opacity = 0.15;
+            this.hoveredObject.material.transparent = true;
+            // Restore emissive dimming for consistency
+            if (this.hoveredObject.material.emissive && original.emissive) {
+              this.hoveredObject.material.emissiveIntensity = 0.1;
+            }
+            this.hoveredObject.material.needsUpdate = true;
+          }
+        }
       }
       this.hoveredObject = null;
       this.renderer.domElement.style.cursor = "default";
@@ -1007,23 +1058,36 @@ export class Viewer3D {
   }
 
   /**
-   * Select a 3D object with enhanced visual feedback
+   * Select a 3D object with enhanced visual feedback and isolation
    */
   selectObject(object, point) {
     // Deselect previous
-    if (this.selectedObject) {
+    if (this.selectedObject && this.selectedObject !== object) {
       this.deselectObject();
+    }
+
+    // Check if already selected (avoid redundant operations)
+    if (this.selectedObject === object) {
+      console.log(
+        "[Viewer] Object already selected, skipping redundant selection"
+      );
+      return;
     }
 
     this.selectedObject = object;
     this.highlightObject(object, 0xffaa00, 0.8); // Increased opacity for stronger highlight
 
-    // Emit selection event via EventBus for hierarchy integration
+    // Visually isolate the selected object by dimming others
+    this.isolateObject(object);
+
+    // Emit selection event via EventBus for hierarchy integration with complete data
     if (this.eventBus) {
       this.eventBus.emit("viewer:object-selected", {
         object: object,
         point: point,
         objectName: object.name || "Unnamed",
+        objectType: object.type,
+        isolated: true,
         timestamp: Date.now(),
       });
     }
@@ -1036,13 +1100,19 @@ export class Viewer3D {
           point: point,
           objectName: object.name || "Unnamed",
           modelName: this.currentModel?.name || "Current Model",
+          isolated: true,
         },
       })
+    );
+
+    console.log(
+      "[Viewer] Object selected and isolated:",
+      object.name || object.type
     );
   }
 
   /**
-   * Deselect current object
+   * Deselect current object and restore all objects
    */
   deselectObject() {
     if (this.selectedObject) {
@@ -1050,11 +1120,28 @@ export class Viewer3D {
       const previousObject = this.selectedObject;
       this.selectedObject = null;
 
-      // Dispatch deselection event
+      // Restore all objects from isolation
+      this.restoreAllObjects();
+
+      // Emit deselection event via EventBus
+      if (this.eventBus) {
+        this.eventBus.emit("viewer:object-deselected", {
+          object: previousObject,
+          objectName: previousObject.name || "Unnamed",
+          timestamp: Date.now(),
+        });
+      }
+
+      // Dispatch deselection event (legacy support)
       this.container.dispatchEvent(
         new CustomEvent("modelDeselect", {
           detail: { object: previousObject },
         })
+      );
+
+      console.log(
+        "[Viewer] Object deselected and isolation cleared:",
+        previousObject.name || previousObject.type
       );
     }
   }
@@ -1072,6 +1159,8 @@ export class Viewer3D {
         color: object.material.color?.clone(),
         emissive: object.material.emissive?.clone(),
         emissiveIntensity: object.material.emissiveIntensity || 1.0,
+        opacity: object.material.opacity,
+        transparent: object.material.transparent,
         scale: object.scale.clone(),
       });
     }
@@ -1079,19 +1168,28 @@ export class Viewer3D {
     // Apply enhanced highlight with emissive glow
     if (object.material.emissive) {
       object.material.emissive.setHex(color);
-      object.material.emissiveIntensity = opacity * 2.0; // Stronger glow
+      object.material.emissiveIntensity = opacity * 2.5; // Enhanced glow for better visibility
+    }
+
+    // Ensure selected object is fully visible (not dimmed)
+    if (opacity > 0.5) {
+      object.material.opacity = 1.0;
+      object.material.transparent = false;
+      object.material.needsUpdate = true;
     }
 
     // Add subtle scale pulse for focused objects
     if (opacity > 0.5) {
-      const pulseScale = 1.02;
+      const pulseScale = 1.03; // Slightly more pronounced
       object.scale.multiplyScalar(pulseScale);
 
       // Animate back to original scale
       setTimeout(() => {
         if (this.originalMaterials.has(object.uuid)) {
           const original = this.originalMaterials.get(object.uuid);
-          object.scale.copy(original.scale);
+          if (original && original.scale) {
+            object.scale.copy(original.scale);
+          }
         }
       }, 300);
     }
@@ -1137,6 +1235,126 @@ export class Viewer3D {
         object,
         timestamp: Date.now(),
       });
+    }
+  }
+
+  /**
+   * Visually isolate an object by dimming all other objects
+   */
+  isolateObject(targetObject) {
+    if (!this.currentModel || !targetObject) {
+      console.warn("[Viewer] Cannot isolate: missing model or target object");
+      return;
+    }
+
+    if (!targetObject.isMesh) {
+      console.warn("[Viewer] Cannot isolate: target is not a mesh");
+      return;
+    }
+
+    try {
+      // Store isolation state
+      this.isolatedObject = targetObject;
+
+      this.currentModel.traverse((child) => {
+        if (child.isMesh && child !== targetObject) {
+          // Store original material properties if not already stored
+          if (!this.originalMaterials.has(child.uuid)) {
+            this.originalMaterials.set(child.uuid, {
+              material: child.material,
+              opacity: child.material.opacity,
+              transparent: child.material.transparent,
+              emissive: child.material.emissive?.clone(),
+              emissiveIntensity: child.material.emissiveIntensity || 1.0,
+            });
+          }
+
+          // Apply strong dimming effect with desaturation
+          child.material.transparent = true;
+          child.material.opacity = 0.15; // Stronger dimming (85% reduction)
+
+          // Reduce emissive intensity to further dim non-selected objects
+          if (child.material.emissive) {
+            child.material.emissiveIntensity = 0.1;
+          }
+
+          child.material.needsUpdate = true;
+        } else if (child === targetObject) {
+          // Ensure selected object is fully opaque and bright
+          child.material.opacity = 1.0;
+          child.material.transparent = false;
+          child.material.needsUpdate = true;
+        }
+      });
+
+      // Emit isolation event
+      if (this.eventBus) {
+        this.eventBus.emit("viewer:object-isolated", {
+          object: targetObject,
+          timestamp: Date.now(),
+        });
+      }
+
+      // Show isolation indicator in UI
+      this.showIsolationIndicator();
+
+      console.log(
+        "[Viewer] Object isolated:",
+        targetObject.name || targetObject.type
+      );
+    } catch (error) {
+      console.error("[Viewer] Error during isolation:", error);
+      this.isolatedObject = null;
+    }
+  }
+
+  /**
+   * Restore all objects from isolation state
+   */
+  restoreAllObjects() {
+    if (!this.currentModel) {
+      console.warn("[Viewer] Cannot restore: no model loaded");
+      return;
+    }
+
+    try {
+      // Clear isolation state
+      this.isolatedObject = null;
+
+      this.currentModel.traverse((child) => {
+        if (child.isMesh) {
+          const original = this.originalMaterials.get(child.uuid);
+          if (original && original.opacity !== undefined) {
+            // Restore original opacity and transparency
+            child.material.opacity = original.opacity;
+            child.material.transparent = original.transparent;
+
+            // Restore original emissive properties
+            if (original.emissive && child.material.emissive) {
+              child.material.emissive.copy(original.emissive);
+              child.material.emissiveIntensity = original.emissiveIntensity;
+            }
+
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+
+      // Emit restoration event
+      if (this.eventBus) {
+        this.eventBus.emit("viewer:objects-restored", {
+          timestamp: Date.now(),
+        });
+      }
+
+      // Hide isolation indicator in UI
+      this.hideIsolationIndicator();
+
+      console.log("[Viewer] All objects restored from isolation");
+    } catch (error) {
+      console.error("[Viewer] Error during restoration:", error);
+      // Ensure indicator is hidden even if restoration fails
+      this.hideIsolationIndicator();
     }
   }
 
@@ -1216,18 +1434,21 @@ export class Viewer3D {
       this.onWindowResize();
     }, 100);
 
-    // Persist highlights during fullscreen transitions
+    // Persist highlights and isolation during fullscreen transitions
     if (this.selectedObject) {
       setTimeout(() => {
-        this.highlightObject(this.selectedObject, 0xffaa00, 0.6);
+        this.highlightObject(this.selectedObject, 0xffaa00, 0.8);
+        // Note: Isolation is already active via isolatedObject state
+        // Material properties are preserved, no need to re-isolate
       }, 150);
     }
 
-    // Emit fullscreen event for hierarchy integration
+    // Emit fullscreen event for hierarchy integration with isolation state
     if (this.eventBus) {
       this.eventBus.emit("viewer:fullscreen-changed", {
         isFullscreen: this.isFullscreen,
         selectedObject: this.selectedObject,
+        isolated: this.isolatedObject !== null,
         timestamp: Date.now(),
       });
     }
@@ -1444,6 +1665,26 @@ export class Viewer3D {
       }
     } catch (error) {
       console.error("[Viewer] Error during cleanup:", error);
+    }
+  }
+
+  /**
+   * Show isolation mode indicator in UI
+   */
+  showIsolationIndicator() {
+    const indicator = document.getElementById("isolationIndicator");
+    if (indicator) {
+      indicator.style.display = "flex";
+    }
+  }
+
+  /**
+   * Hide isolation mode indicator in UI
+   */
+  hideIsolationIndicator() {
+    const indicator = document.getElementById("isolationIndicator");
+    if (indicator) {
+      indicator.style.display = "none";
     }
   }
 }

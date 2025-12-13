@@ -324,6 +324,53 @@ class ModelHierarchyPanel {
       console.log("[ModelHierarchy] Responded to view reset");
     });
 
+    // Listen for object isolation events
+    this.eventBus.on("viewer:object-isolated", (data) => {
+      if (data.object) {
+        const nodeId = this.objectToNode.get(data.object);
+        if (nodeId) {
+          const nodeElement = this.treeContainer.querySelector(
+            `[data-node-id="${nodeId}"] > .node-content`
+          );
+          if (nodeElement) {
+            // Add isolated class for distinctive visual feedback
+            nodeElement.classList.add("isolated");
+            console.log(
+              "[ModelHierarchy] Object isolated in hierarchy:",
+              nodeId
+            );
+          }
+        }
+      }
+    });
+
+    // Listen for object restoration events
+    this.eventBus.on("viewer:objects-restored", () => {
+      // Remove isolated class from all nodes
+      this.treeContainer
+        .querySelectorAll(".node-content.isolated")
+        .forEach((node) => {
+          node.classList.remove("isolated");
+        });
+      console.log("[ModelHierarchy] All objects restored in hierarchy");
+    });
+
+    // Listen for object deselection events
+    this.eventBus.on("viewer:object-deselected", (data) => {
+      // Clear selection in hierarchy
+      const prevSelected = this.treeContainer.querySelector(
+        ".node-content.selected"
+      );
+      if (prevSelected) {
+        prevSelected.classList.remove("selected");
+        prevSelected.classList.remove("focused");
+        prevSelected.classList.remove("focus-active");
+        prevSelected.classList.remove("isolated");
+      }
+      this.selectedNode = null;
+      console.log("[ModelHierarchy] Synced deselection from viewer");
+    });
+
     // Start state monitoring if model is loaded
     this.startStateMonitoring();
   }
@@ -389,6 +436,7 @@ class ModelHierarchyPanel {
       prevSelected.classList.remove("focused");
       prevSelected.classList.remove("focus-active");
       prevSelected.classList.remove("highlight-pulse");
+      prevSelected.classList.remove("isolated");
     }
 
     // Clear all focused states
@@ -396,6 +444,13 @@ class ModelHierarchyPanel {
       .querySelectorAll(".node-content.focused")
       .forEach((node) => {
         node.classList.remove("focused");
+      });
+
+    // Clear all isolated states
+    this.treeContainer
+      .querySelectorAll(".node-content.isolated")
+      .forEach((node) => {
+        node.classList.remove("isolated");
       });
 
     // Hide focus indicator
@@ -961,6 +1016,14 @@ class ModelHierarchyPanel {
     }
 
     try {
+      // Check if already focused to avoid redundant operations
+      if (this.selectedNode === nodeId && !fromViewer) {
+        console.log(
+          "[ModelHierarchy] Node already focused, skipping redundant operation"
+        );
+        return;
+      }
+
       // Expand parent nodes for visibility
       this.expandParentNodes(nodeId);
 
@@ -979,7 +1042,7 @@ class ModelHierarchyPanel {
       }
 
       // Focus on the specific object in viewer with smooth transition
-      if (this.viewer.focusOnObject) {
+      if (this.viewer.focusOnObject && object.isMesh) {
         this.viewer.focusOnObject(object);
       }
 
@@ -1058,6 +1121,21 @@ class ModelHierarchyPanel {
       return;
     }
 
+    // Check if already selected to avoid redundant operations
+    if (this.selectedNode === nodeId) {
+      console.log(
+        "[ModelHierarchy] Node already selected, updating visual state only"
+      );
+      // Update visual state to ensure isolation class is present
+      const nodeElement = this.treeContainer.querySelector(
+        `[data-node-id="${nodeId}"] > .node-content`
+      );
+      if (nodeElement && !nodeElement.classList.contains("isolated")) {
+        nodeElement.classList.add("isolated");
+      }
+      return;
+    }
+
     // Automatically open panel for visibility
     if (!this.isOpen) {
       this.openPanel();
@@ -1082,12 +1160,12 @@ class ModelHierarchyPanel {
     // Highlight in hierarchy with enhanced feedback
     this.highlightInHierarchy(object);
 
-    // Add focus-active visual feedback
+    // Add focus-active and isolated visual feedback
     const nodeElement = this.treeContainer.querySelector(
       `[data-node-id="${nodeId}"] > .node-content`
     );
     if (nodeElement) {
-      nodeElement.classList.add("focus-active");
+      nodeElement.classList.add("focus-active", "isolated");
 
       // Show focus indicator
       this.showFocusIndicator();
@@ -1106,7 +1184,7 @@ class ModelHierarchyPanel {
       timestamp: Date.now(),
     });
 
-    console.log(`[ModelHierarchy] Focused from viewer: ${nodeId}`);
+    console.log(`[ModelHierarchy] Focused and isolated from viewer: ${nodeId}`);
   }
 
   /**
