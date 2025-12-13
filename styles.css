@@ -4,11 +4,30 @@
   box-sizing: border-box;
 }
 
+:root {
+  --color-primary: #333333;
+  --color-secondary: #666666;
+  --color-accent: #0284c7;
+  --color-success: #2d8659;
+  --color-warning: #d97706;
+  --color-danger: #c93a2e;
+  --color-bg-main: #f5f5f5;
+  --color-bg-surface: #fafafa;
+  --color-bg-white: #ffffff;
+  --color-border: #e0e0e0;
+  --color-border-light: #ddd;
+  --color-text: #333333;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
+  --color-highlight-bg: #e0f2fe;
+  --color-highlight-border: #0284c7;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
     Ubuntu, Cantarell, sans-serif;
-  background: #f5f5f5;
-  color: #333;
+  background: var(--color-bg-main);
+  color: var(--color-text);
   min-height: 100vh;
 }
 
@@ -20,11 +39,11 @@ body {
 
 header {
   text-align: center;
-  color: #333;
+  color: var(--color-text);
   padding: 24px 20px;
   margin-bottom: 24px;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--color-bg-white);
+  border-bottom: 1px solid var(--color-border);
 }
 
 header h1 {
@@ -35,11 +54,11 @@ header h1 {
 
 .subtitle {
   font-size: 0.95em;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .main-content {
-  background: white;
+  background: var(--color-bg-white);
   border-radius: 4px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -55,7 +74,7 @@ header h1 {
   border-radius: 4px;
   padding: 32px;
   text-align: center;
-  background: #fafafa;
+  background: var(--color-bg-surface);
   transition: all 0.2s ease;
   cursor: pointer;
 }
@@ -69,24 +88,24 @@ header h1 {
 .upload-icon {
   font-size: 2em;
   margin-bottom: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .upload-area h3 {
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 8px;
   font-size: 1.1em;
   font-weight: 600;
 }
 
 .format-info {
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 0.85em;
   margin: 8px 0;
 }
 
 .btn-primary {
-  background: #333;
+  background: var(--color-primary);
   color: white;
   border: none;
   padding: 10px 24px;
@@ -115,7 +134,7 @@ header h1 {
 }
 
 .viewer-header h2 {
-  color: #333;
+  color: var(--color-text);
   font-size: 1.25em;
   font-weight: 600;
 }
@@ -127,21 +146,21 @@ header h1 {
 }
 
 .btn-icon {
-  background: #fafafa;
-  border: 1px solid #ddd;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
   padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85em;
   transition: all 0.2s ease;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .btn-icon:hover {
-  background: #333;
+  background: var(--color-primary);
   color: white;
-  border-color: #333;
+  border-color: var(--color-text);
 }
 
 .btn-icon:active {
@@ -159,9 +178,9 @@ header h1 {
   display: flex;
   gap: 4px;
   padding: 3px;
-  background: #fafafa;
+  background: var(--color-bg-surface);
   border-radius: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-light);
 }
 
 /* Camera Preset Views */
@@ -171,22 +190,22 @@ header h1 {
   gap: 6px;
   margin-bottom: 12px;
   padding: 8px;
-  background: #fafafa;
+  background: var(--color-bg-surface);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
 
 .presets-label {
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   font-size: 0.85em;
 }
 
 .btn-preset {
-  background: white;
-  border: 1px solid #ddd;
-  color: #666;
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-text-secondary);
   padding: 4px 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -196,9 +215,9 @@ header h1 {
 }
 
 .btn-preset:hover {
-  background: #333;
+  background: var(--color-primary);
   color: white;
-  border-color: #333;
+  border-color: var(--color-text);
 }
 
 .btn-preset:active {
@@ -226,9 +245,9 @@ header h1 {
 
 /* Advanced Controls Panel */
 .advanced-controls {
-  background: #fafafa;
+  background: var(--color-bg-surface);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   padding: 16px;
   margin-top: 12px;
   animation: slideDown 0.2s ease;
@@ -246,7 +265,7 @@ header h1 {
 }
 
 .advanced-controls h3 {
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 12px;
   font-size: 1em;
   font-weight: 600;
@@ -258,7 +277,7 @@ header h1 {
 
 .control-group label {
   display: block;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 6px;
   font-size: 0.85em;
   font-weight: 500;
@@ -272,7 +291,7 @@ header h1 {
 .control-group input[type="color"] {
   width: 100%;
   height: 36px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-light);
   border-radius: 4px;
   cursor: pointer;
 }
@@ -284,7 +303,7 @@ header h1 {
   border-radius: 4px;
   overflow: hidden;
   position: relative;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
 }
 
 .model-info {
@@ -293,9 +312,9 @@ header h1 {
   flex-wrap: wrap;
   margin-top: 12px;
   padding: 12px;
-  background: #fafafa;
+  background: var(--color-bg-surface);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   gap: 8px;
 }
 
@@ -307,7 +326,7 @@ header h1 {
 }
 
 .info-item .label {
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 0.8em;
   margin-bottom: 4px;
   font-weight: 500;
@@ -315,7 +334,7 @@ header h1 {
 
 .info-item span:last-child {
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   font-size: 1em;
 }
 
@@ -324,7 +343,7 @@ header h1 {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: #333;
+  background: var(--color-primary);
   color: white;
   padding: 12px 20px;
   border-radius: 4px;
@@ -371,7 +390,7 @@ header h1 {
 }
 
 .section-header h2 {
-  color: #333;
+  color: var(--color-text);
   margin: 0;
   font-size: 1.25em;
   font-weight: 600;
@@ -384,9 +403,9 @@ header h1 {
 }
 
 .btn-secondary {
-  background: #fafafa;
-  color: #666;
-  border: 1px solid #ddd;
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-light);
   padding: 6px 14px;
   border-radius: 4px;
   font-size: 0.85em;
@@ -396,9 +415,9 @@ header h1 {
 }
 
 .btn-secondary:hover {
-  background: #333;
+  background: var(--color-primary);
   color: white;
-  border-color: #333;
+  border-color: var(--color-text);
 }
 
 .empty-state {
@@ -432,12 +451,12 @@ header h1 {
 }
 
 .model-card {
-  background: #fafafa;
+  background: var(--color-bg-surface);
   border-radius: 4px;
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   position: relative;
 }
 
@@ -448,14 +467,14 @@ header h1 {
 }
 
 .model-card.active {
-  border-color: #333;
-  background: #f5f5f5;
+  border-color: var(--color-primary);
+  background: var(--color-bg-main);
   box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
 }
 
 .model-card.highlighted {
-  border-color: #0284c7;
-  background: #e0f2fe;
+  border-color: var(--color-highlight-border);
+  background: var(--color-highlight-bg);
   box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
 }
 
@@ -466,11 +485,11 @@ header h1 {
   border-radius: 4px;
   margin-bottom: 8px;
   overflow: hidden;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
 }
 
 .model-card h4 {
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 4px;
   font-size: 0.9em;
   font-weight: 600;
@@ -512,11 +531,11 @@ header h1 {
 /* Footer */
 footer {
   text-align: center;
-  color: #666;
+  color: var(--color-text-secondary);
   padding: 24px 20px;
   margin-top: 24px;
   border-top: 1px solid #e0e0e0;
-  background: white;
+  background: var(--color-bg-white);
 }
 
 footer .small {
@@ -586,7 +605,7 @@ footer .small {
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-bg-white);
   border-radius: 4px;
   max-width: 800px;
   width: 100%;
@@ -616,7 +635,7 @@ footer .small {
 }
 
 .modal-header h2 {
-  color: #333;
+  color: var(--color-text);
   margin: 0;
   font-size: 1.25em;
   font-weight: 600;
@@ -638,7 +657,7 @@ footer .small {
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text);
 }
 
 .modal-body {
@@ -652,7 +671,7 @@ footer .small {
 }
 
 .shortcut-section h3 {
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 12px;
   font-size: 1em;
   font-weight: 600;
@@ -684,13 +703,13 @@ footer .small {
 }
 
 .shortcuts-table td:last-child {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 kbd {
   display: inline-block;
   padding: 3px 6px;
-  background: #333;
+  background: var(--color-primary);
   color: white;
   border-radius: 3px;
   font-family: "Courier New", monospace;

@@ -24,6 +24,8 @@ export const Config = {
     modelScaleMin: 0.1,
     modelScaleMax: 3.0,
     modelScaleDefault: 1.0,
+    highlightColor: 0x0284c7,
+    highlightIntensity: 0.3,
   },
 
   // Lighting Configuration

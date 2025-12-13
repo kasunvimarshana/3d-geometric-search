@@ -334,10 +334,11 @@ export class EventHandler {
         // Highlight the corresponding model card
         if (modelName) {
           this.app.highlightModelCard(modelName, true);
+          const highlightDuration = 1500; // ms
           setTimeout(() => {
             this.app.clearHighlight();
             this.app.updateLibrarySelection(this.app.currentModelName);
-          }, 1500);
+          }, highlightDuration);
         }
       });
     }

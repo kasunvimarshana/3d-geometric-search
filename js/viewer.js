@@ -211,11 +211,11 @@ export class Viewer3D {
       object.userData.originalMaterial = object.material;
       object.userData.isHighlighted = true;
 
-      // Create highlight material
+      // Create highlight material using config colors
       const highlightMaterial = object.material.clone();
       if (highlightMaterial.emissive) {
-        highlightMaterial.emissive.setHex(0x0284c7);
-        highlightMaterial.emissiveIntensity = 0.3;
+        highlightMaterial.emissive.setHex(Config.viewer.highlightColor || 0x0284c7);
+        highlightMaterial.emissiveIntensity = Config.viewer.highlightIntensity || 0.3;
       }
       object.material = highlightMaterial;
     }
