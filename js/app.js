@@ -119,7 +119,7 @@ class App {
       showToast(`${file.name} loaded successfully!`, "success");
       this.showLoading(false);
 
-      console.log(`Model ${modelName} loaded`);
+      console.log("[App] Model loaded:", modelName);
     } catch (error) {
       console.error("Error loading model:", error);
       showToast(`Error: ${error.message}`, "error");
@@ -174,7 +174,7 @@ class App {
     // Update active state in library
     this.updateLibrarySelection(modelName);
 
-    console.log(`Displayed model: ${modelName}`);
+    console.log("[App] Displayed model:", modelName);
   }
 
   /**
@@ -585,15 +585,15 @@ class App {
    * Show welcome message
    */
   showWelcomeMessage() {
-    console.log("3D Geometric Search Application initialized");
-    console.log("Supported formats: glTF/GLB, OBJ/MTL, STL");
+    console.log("[App] 3D Geometric Search Application initialized");
+    console.log("[App] Supported formats: glTF/GLB, OBJ/MTL, STL");
   }
 
   /**
    * Clean up all event listeners and resources
    */
   cleanup() {
-    console.log("Cleaning up application resources...");
+    console.log("[App] Cleaning up application resources...");
 
     try {
       if (this.eventManager) {
@@ -605,7 +605,7 @@ class App {
       }
 
       this.modelLibrary = {};
-      console.log("Application cleanup complete");
+      console.log("[App] Application cleanup complete");
     } catch (error) {
       console.error("Error during cleanup:", error);
     }
