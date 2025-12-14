@@ -27,6 +27,8 @@ import {
 export class ModelService {
   private currentModel: Model | null = null;
   private selectedSectionId: string | null = null;
+  private isLoading = false;
+  private loadingAbortController: AbortController | null = null;
 
   constructor(
     private readonly loader: IModelLoader,
@@ -35,8 +37,20 @@ export class ModelService {
   ) {}
 
   async loadModel(file: File): Promise<void> {
+    // Prevent concurrent loads (race condition guard)
+    if (this.isLoading) {
+      console.warn('[ModelService] Model load already in progress, aborting previous load');
+      this.loadingAbortController?.abort();
+    }
+
+    // Set loading state
+    this.isLoading = true;
+    this.loadingAbortController = new AbortController();
+    const currentLoad = this.loadingAbortController;
+
     // Validate input
     if (!file) {
+      this.isLoading = false;
       const error = new Error('No file provided');
       this.eventBus.publish(new ModelLoadErrorEvent({ error }));
       throw error;
@@ -110,10 +124,22 @@ export class ModelService {
         result.warnings.forEach((warning) => console.warn('[ModelLoader]', warning));
       }
     } catch (error) {
+      // Check if this load was aborted
+      if (currentLoad.signal.aborted) {
+        console.log('[ModelService] Load aborted by newer load request');
+        return;
+      }
+
       const errorObj = error instanceof Error ? error : new Error(String(error));
       console.error('[ModelService] Load error:', errorObj);
       this.eventBus.publish(new ModelLoadErrorEvent({ error: errorObj }));
       throw error;
+    } finally {
+      // Clear loading state only if this is still the current load
+      if (this.loadingAbortController === currentLoad) {
+        this.isLoading = false;
+        this.loadingAbortController = null;
+      }
     }
   }
 

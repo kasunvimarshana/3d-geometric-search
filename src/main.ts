@@ -71,6 +71,7 @@ async function bootstrap(): Promise<void> {
 
     // Handle cleanup on page unload
     window.addEventListener('beforeunload', () => {
+      controller.destroy(); // Clean up event subscriptions
       renderer.dispose();
       eventBus.clear();
     });

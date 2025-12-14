@@ -16,11 +16,12 @@ import {
 } from '@presentation/components';
 
 export class ApplicationController {
-  private sectionTree: SectionTreeComponent;
-  private propertiesPanel: PropertiesPanelComponent;
-  private loadingOverlay: LoadingOverlayComponent;
-  private statusBar: StatusBarComponent;
-  private fileInput: HTMLInputElement;
+  private readonly sectionTree: SectionTreeComponent;
+  private readonly propertiesPanel: PropertiesPanelComponent;
+  private readonly loadingOverlay: LoadingOverlayComponent;
+  private readonly statusBar: StatusBarComponent;
+  private readonly fileInput: HTMLInputElement;
+  private readonly unsubscribers: Array<() => void> = [];
 
   constructor(
     private readonly modelService: ModelService,
@@ -114,7 +115,7 @@ export class ApplicationController {
   private setupDomainEventHandlers(): void {
     try {
       // Model loading event
-      this.eventBus.subscribe(EventType.MODEL_LOADING, (event) => {
+      const unsubLoading = this.eventBus.subscribe(EventType.MODEL_LOADING, (event) => {
         try {
           const payload = event.payload as { filename: string };
           this.loadingOverlay.show(`Loading ${payload.filename}...`);
@@ -123,9 +124,10 @@ export class ApplicationController {
           console.error('[Controller] Error handling MODEL_LOADING:', error);
         }
       });
+      this.unsubscribers.push(unsubLoading);
 
       // Model loaded event
-      this.eventBus.subscribe(EventType.MODEL_LOADED, (event) => {
+      const unsubLoaded = this.eventBus.subscribe(EventType.MODEL_LOADED, (event) => {
         try {
           const payload = event.payload as {
             filename: string;
@@ -155,9 +157,10 @@ export class ApplicationController {
           this.statusBar.setStatus('Error displaying model', 'error');
         }
       });
+      this.unsubscribers.push(unsubLoaded);
 
       // Model load error event
-      this.eventBus.subscribe(EventType.MODEL_LOAD_ERROR, (event) => {
+      const unsubError = this.eventBus.subscribe(EventType.MODEL_LOAD_ERROR, (event) => {
         try {
           const payload = event.payload as { error: Error };
           this.loadingOverlay.hide();
@@ -168,9 +171,10 @@ export class ApplicationController {
           this.loadingOverlay.hide();
         }
       });
+      this.unsubscribers.push(unsubError);
 
       // Section selected event
-      this.eventBus.subscribe(EventType.SECTION_SELECTED, () => {
+      const unsubSelected = this.eventBus.subscribe(EventType.SECTION_SELECTED, () => {
         try {
           const section = this.modelService.getSelectedSection();
           if (section) {
@@ -181,9 +185,10 @@ export class ApplicationController {
           console.error('[Controller] Error handling SECTION_SELECTED:', error);
         }
       });
+      this.unsubscribers.push(unsubSelected);
 
       // Section focused event
-      this.eventBus.subscribe(EventType.SECTION_FOCUSED, (event) => {
+      const unsubFocused = this.eventBus.subscribe(EventType.SECTION_FOCUSED, (event) => {
         try {
           const payload = event.payload as { sectionId: string };
           this.statusBar.setStatus(`Focused on section: ${payload.sectionId}`, 'info');
@@ -191,26 +196,29 @@ export class ApplicationController {
           console.error('[Controller] Error handling SECTION_FOCUSED:', error);
         }
       });
+      this.unsubscribers.push(unsubFocused);
 
       // Disassembly/reassembly events
-      this.eventBus.subscribe(EventType.MODEL_DISASSEMBLED, () => {
+      const unsubDisassembled = this.eventBus.subscribe(EventType.MODEL_DISASSEMBLED, () => {
         try {
           this.statusBar.setStatus('Model disassembled', 'success');
         } catch (error) {
           console.error('[Controller] Error handling MODEL_DISASSEMBLED:', error);
         }
       });
+      this.unsubscribers.push(unsubDisassembled);
 
-      this.eventBus.subscribe(EventType.MODEL_REASSEMBLED, () => {
+      const unsubReassembled = this.eventBus.subscribe(EventType.MODEL_REASSEMBLED, () => {
         try {
           this.statusBar.setStatus('Model reassembled', 'success');
         } catch (error) {
           console.error('[Controller] Error handling MODEL_REASSEMBLED:', error);
         }
       });
+      this.unsubscribers.push(unsubReassembled);
 
       // Model cleared event
-      this.eventBus.subscribe(EventType.MODEL_CLEARED, () => {
+      const unsubCleared = this.eventBus.subscribe(EventType.MODEL_CLEARED, () => {
         try {
           this.sectionTree.clear();
           this.propertiesPanel.clear();
@@ -225,9 +233,10 @@ export class ApplicationController {
           console.error('[Controller] Error handling MODEL_CLEARED:', error);
         }
       });
+      this.unsubscribers.push(unsubCleared);
 
       // Section deselected event
-      this.eventBus.subscribe(EventType.SECTION_DESELECTED, (event) => {
+      const unsubDeselected = this.eventBus.subscribe(EventType.SECTION_DESELECTED, (event) => {
         try {
           const payload = event.payload as { sectionId: string };
           this.propertiesPanel.clear();
@@ -236,9 +245,10 @@ export class ApplicationController {
           console.error('[Controller] Error handling SECTION_DESELECTED:', error);
         }
       });
+      this.unsubscribers.push(unsubDeselected);
 
       // Selection cleared event
-      this.eventBus.subscribe(EventType.SELECTION_CLEARED, () => {
+      const unsubSelectionCleared = this.eventBus.subscribe(EventType.SELECTION_CLEARED, () => {
         try {
           this.propertiesPanel.clear();
           this.statusBar.setStatus('Selection cleared', 'info');
@@ -246,6 +256,7 @@ export class ApplicationController {
           console.error('[Controller] Error handling SELECTION_CLEARED:', error);
         }
       });
+      this.unsubscribers.push(unsubSelectionCleared);
 
       // Operation error event
       this.eventBus.subscribe(EventType.OPERATION_ERROR, (event) => {
@@ -399,6 +410,27 @@ export class ApplicationController {
     } catch (error) {
       console.error('[Controller] Fullscreen error:', error);
       // Error status is set by event handler
+    }
+  }
+
+  /**
+   * Cleanup method to unsubscribe all event handlers
+   * Call this when the controller is being destroyed to prevent memory leaks
+   */
+  destroy(): void {
+    try {
+      console.log('[Controller] Cleaning up event subscriptions...');
+      this.unsubscribers.forEach((unsubscribe) => {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error('[Controller] Error during unsubscribe:', error);
+        }
+      });
+      this.unsubscribers.length = 0;
+      console.log('[Controller] Cleanup complete');
+    } catch (error) {
+      console.error('[Controller] Error during cleanup:', error);
     }
   }
 }

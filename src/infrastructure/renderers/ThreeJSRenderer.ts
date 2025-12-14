@@ -33,6 +33,8 @@ export class ThreeJSRenderer implements IRenderer {
   private clickHandler: ((event: MouseEvent) => void) | null = null;
   private onSectionClickCallback: ((sectionId: string, event: MouseEvent) => void) | null = null;
   private onViewportClickCallback: ((event: MouseEvent) => void) | null = null;
+  private lastClickTime = 0;
+  private readonly clickDebounceMs = 50; // Prevent double-clicks within 50ms
 
   initialize(container: HTMLElement): Promise<void> {
     return new Promise((resolve) => {
@@ -306,6 +308,14 @@ export class ThreeJSRenderer implements IRenderer {
       // Create click handler
       this.clickHandler = (event: MouseEvent) => {
         try {
+          // Debounce rapid clicks (synchronization guard)
+          const now = Date.now();
+          if (now - this.lastClickTime < this.clickDebounceMs) {
+            console.debug('[Renderer] Click debounced');
+            return;
+          }
+          this.lastClickTime = now;
+
           // Prevent default behavior
           event.preventDefault();
 

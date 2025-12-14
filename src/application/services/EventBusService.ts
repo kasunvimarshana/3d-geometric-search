@@ -12,6 +12,7 @@ export class EventBusService implements IEventBus {
   private readonly handlers: Map<EventType, Set<EventHandler>> = new Map();
   private readonly eventHistory: DomainEvent[] = [];
   private readonly maxHistorySize = 100;
+  private readonly maxQueueSize = 50; // Prevent queue overflow from event cascades
   private isProcessing = false;
   private eventQueue: DomainEvent[] = [];
 
@@ -24,18 +25,35 @@ export class EventBusService implements IEventBus {
 
     // Queue event if currently processing to avoid recursion
     if (this.isProcessing) {
+      // Prevent queue overflow (graceful degradation)
+      if (this.eventQueue.length >= this.maxQueueSize) {
+        console.error(
+          `[EventBus] Queue overflow! Dropping event ${event.type}. This indicates an event cascade or circular dependency.`
+        );
+        return;
+      }
       this.eventQueue.push(event);
       return;
     }
 
     this.processEvent(event);
 
-    // Process queued events
-    while (this.eventQueue.length > 0) {
+    // Process queued events with overflow protection
+    let processedCount = 0;
+    while (this.eventQueue.length > 0 && processedCount < this.maxQueueSize) {
       const queuedEvent = this.eventQueue.shift();
       if (queuedEvent) {
         this.processEvent(queuedEvent);
+        processedCount++;
       }
+    }
+
+    // Warn if queue wasn't fully drained
+    if (this.eventQueue.length > 0) {
+      console.warn(
+        `[EventBus] Event queue not fully drained (${this.eventQueue.length} events remaining). This may indicate an infinite event loop.`
+      );
+      this.eventQueue.length = 0; // Clear to prevent memory leak
     }
   }
 
