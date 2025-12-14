@@ -1,11 +1,16 @@
 /**
  * Main Application Entry Point
- * 
+ *
  * Bootstraps the application with dependency injection.
  * Initializes all services, loaders, renderer, and UI components.
  */
 
-import { EventBusService, ModelService, ViewService, ModelOperationsService } from '@application/services';
+import {
+  EventBusService,
+  ModelService,
+  ViewService,
+  ModelOperationsService,
+} from '@application/services';
 import {
   CompositeModelLoader,
   GLTFModelLoader,
@@ -21,7 +26,10 @@ import { ApplicationController } from '@presentation/controllers';
  */
 async function bootstrap(): Promise<void> {
   try {
-    console.log('Initializing 3D Geometric Search...');
+    // Initialize application
+    if (import.meta.env.DEV) {
+      console.warn('Initializing 3D Geometric Search...');
+    }
 
     // Create event bus (singleton)
     const eventBus = new EventBusService();
@@ -36,7 +44,7 @@ async function bootstrap(): Promise<void> {
     // Create renderer
     const renderer = new ThreeJSRenderer();
     const viewportElement = document.getElementById('viewport');
-    
+
     if (!viewportElement) {
       throw new Error('Viewport element not found');
     }
@@ -67,7 +75,10 @@ async function bootstrap(): Promise<void> {
       eventBus.clear();
     });
 
-    console.log('Application initialized successfully');
+    // Log success only in development
+    if (import.meta.env.DEV) {
+      console.warn('Application initialized successfully');
+    }
 
     // Make controller available globally for debugging (optional)
     if (import.meta.env.DEV) {
@@ -75,7 +86,7 @@ async function bootstrap(): Promise<void> {
     }
   } catch (error) {
     console.error('Failed to initialize application:', error);
-    
+
     // Show error to user
     const viewport = document.getElementById('viewport');
     if (viewport) {

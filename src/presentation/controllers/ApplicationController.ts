@@ -50,7 +50,7 @@ export class ApplicationController {
     loadBtn?.addEventListener('click', () => this.handleLoadModel());
 
     // File input
-    this.fileInput.addEventListener('change', (e) => this.handleFileSelected(e));
+    this.fileInput.addEventListener('change', (e) => void this.handleFileSelected(e));
 
     // View controls
     document.getElementById('reset-view-btn')?.addEventListener('click', () => {
@@ -98,7 +98,7 @@ export class ApplicationController {
 
     // Fullscreen
     document.getElementById('fullscreen-btn')?.addEventListener('click', () => {
-      this.handleFullscreen();
+      void this.handleFullscreen();
     });
 
     // Section tree handlers
@@ -143,7 +143,9 @@ export class ApplicationController {
             );
 
             // Enable click handling on model
-            this.modelService.enableClickHandling();
+            if (typeof this.modelService.enableClickHandling === 'function') {
+              this.modelService.enableClickHandling();
+            }
           } else {
             console.warn('[Controller] Model loaded but getCurrentModel returned null');
           }
@@ -216,10 +218,9 @@ export class ApplicationController {
           this.statusBar.setStatus('Model cleared', 'info');
 
           // Disable click handling
-          this.modelService.disableClickHandling();
-
-          // Disable click handling
-          this.modelService.disableClickHandling();
+          if (typeof this.modelService.disableClickHandling === 'function') {
+            this.modelService.disableClickHandling();
+          }
         } catch (error) {
           console.error('[Controller] Error handling MODEL_CLEARED:', error);
         }
@@ -261,8 +262,11 @@ export class ApplicationController {
       this.eventBus.subscribe(EventType.SECTION_CLICKED, (event) => {
         try {
           const payload = event.payload as { sectionId: string; x: number; y: number };
-          console.log('[Controller] Section clicked:', payload.sectionId);
           // Selection is handled automatically by ModelService.handleSectionClick
+          // Log only in debug mode
+          if (import.meta.env.DEV) {
+            console.warn('[Controller] Section clicked:', payload.sectionId);
+          }
         } catch (error) {
           console.error('[Controller] Error handling SECTION_CLICKED:', error);
         }
@@ -272,8 +276,11 @@ export class ApplicationController {
       this.eventBus.subscribe(EventType.VIEWPORT_CLICKED, (event) => {
         try {
           const payload = event.payload as { x: number; y: number };
-          console.log('[Controller] Viewport clicked at:', payload.x, payload.y);
           // Selection clearing is handled automatically by ModelService.handleViewportClick
+          // Log only in debug mode
+          if (import.meta.env.DEV) {
+            console.warn('[Controller] Viewport clicked at:', payload.x, payload.y);
+          }
         } catch (error) {
           console.error('[Controller] Error handling VIEWPORT_CLICKED:', error);
         }

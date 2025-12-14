@@ -5,47 +5,70 @@
  * published and handled. Use in browser console for testing.
  */
 
+import { DomainEvent, EventType } from '@domain/events/DomainEvents';
+import { IEventBus } from '@domain/interfaces/IEventBus';
+
+interface EventLogEntry {
+  type: string;
+  timestamp: Date;
+  payload?: unknown;
+}
+
+interface EventBusDiagnostics {
+  handlerCount: number;
+  eventTypes: string[];
+  historySize: number;
+  isProcessing: boolean;
+  queueSize: number;
+}
+
+interface ExtendedEventBus extends IEventBus {
+  getDiagnostics?: () => EventBusDiagnostics;
+}
+
+interface ModelServiceLike {
+  loadModel?: (file: File) => Promise<void>;
+  selectSection?: (sectionId: string) => void;
+}
+
+interface OperationsServiceLike {
+  disassemble?: (model: unknown) => void;
+}
+
 export class ModelEventTester {
-  private eventLog: Array<{ type: string; timestamp: Date; payload?: unknown }> = [];
+  private eventLog: EventLogEntry[] = [];
   private unsubscribers: Array<() => void> = [];
 
-  constructor(private eventBus: any) {
-    console.log('[EventTester] Initialized. Use .startLogging() to begin.');
+  constructor(private eventBus: IEventBus) {
+    if (import.meta.env.DEV) {
+      console.warn('[EventTester] Initialized. Use .startLogging() to begin.');
+    }
   }
 
   /**
    * Start logging all model-related events
    */
-  startLogging(): void {
-    const eventTypes = [
-      'model:loading',
-      'model:loaded',
-      'model:error',
-      'model:updated',
-      'model:cleared',
-      'section:selected',
-      'section:deselected',
-      'section:focused',
-      'selection:cleared',
-      'model:disassembled',
-      'model:reassembled',
-      'operation:error',
-    ];
+  startLogging(eventTypesToLog: EventType[] = Object.values(EventType)): void {
+    this.clearLog();
 
-    eventTypes.forEach((type) => {
-      const unsubscribe = this.eventBus.subscribe(type, (event: any) => {
-        const logEntry = {
+    eventTypesToLog.forEach((type) => {
+      const unsubscribe = this.eventBus.subscribe(type, (event: DomainEvent) => {
+        const logEntry: EventLogEntry = {
           type: event.type,
           timestamp: event.timestamp,
           payload: event.payload,
         };
         this.eventLog.push(logEntry);
-        console.log(`[EventTester] 📡 ${type}`, event.payload ? event.payload : '');
+        if (import.meta.env.DEV) {
+          console.warn(`[EventTester] 📡 ${type}`, event.payload ? event.payload : '');
+        }
       });
       this.unsubscribers.push(unsubscribe);
     });
 
-    console.log('[EventTester] ✅ Logging started for', eventTypes.length, 'event types');
+    if (import.meta.env.DEV) {
+      console.warn('[EventTester] ✅ Logging started for', eventTypesToLog.length, 'event types');
+    }
   }
 
   /**
@@ -54,20 +77,22 @@ export class ModelEventTester {
   stopLogging(): void {
     this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.unsubscribers = [];
-    console.log('[EventTester] ⏹️ Logging stopped');
+    if (import.meta.env.DEV) {
+      console.warn('[EventTester] ⏹️ Logging stopped');
+    }
   }
 
   /**
    * Get all logged events
    */
-  getLog(): typeof this.eventLog {
+  getLog(): EventLogEntry[] {
     return [...this.eventLog];
   }
 
   /**
    * Get events of a specific type
    */
-  getEventsByType(type: string): typeof this.eventLog {
+  getEventsByType(type: string): EventLogEntry[] {
     return this.eventLog.filter((e) => e.type === type);
   }
 
@@ -75,18 +100,22 @@ export class ModelEventTester {
    * Print summary of events
    */
   printSummary(): void {
-    console.log('\n=== Event Log Summary ===');
-    console.log(`Total Events: ${this.eventLog.length}`);
+    if (import.meta.env.DEV) {
+      console.warn('\n=== Event Log Summary ===');
+      console.warn(`Total Events: ${this.eventLog.length}`);
 
-    const grouped = this.eventLog.reduce(
-      (acc, event) => {
-        acc[event.type] = (acc[event.type] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+      const grouped = this.eventLog.reduce(
+        (acc, event) => {
+          acc[event.type] = (acc[event.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
-    console.table(grouped);
+      // In dev mode, console.table is useful for debugging
+      // eslint-disable-next-line no-console
+      console.table(grouped);
+    }
   }
 
   /**
@@ -94,72 +123,85 @@ export class ModelEventTester {
    */
   clearLog(): void {
     this.eventLog = [];
-    console.log('[EventTester] 🗑️ Log cleared');
+    if (import.meta.env.DEV) {
+      console.warn('[EventTester] 🗑️ Log cleared');
+    }
   }
 
   /**
    * Test model loading flow
    */
-  async testModelLoad(file: File, modelService: any): Promise<void> {
-    console.log('\n=== Testing Model Load Flow ===');
-    this.clearLog();
+  async testModelLoad(file: File, modelService: ModelServiceLike): Promise<void> {
+    if (import.meta.env.DEV) {
+      console.warn('\n=== Testing Model Load Flow ===');
+      this.clearLog();
 
-    try {
-      await modelService.loadModel(file);
-      console.log('✅ Model load completed');
-      this.printSummary();
-    } catch (error) {
-      console.error('❌ Model load failed:', error);
-      this.printSummary();
+      try {
+        if (modelService?.loadModel) {
+          await modelService.loadModel(file);
+          console.warn('✅ Model load completed');
+          this.printSummary();
+        }
+      } catch (error) {
+        console.error('❌ Model load failed:', error);
+        this.printSummary();
+      }
     }
   }
 
   /**
    * Test section selection flow
    */
-  testSectionSelect(sectionId: string, modelService: any): void {
-    console.log('\n=== Testing Section Selection ===');
-    const beforeCount = this.eventLog.length;
+  testSectionSelect(sectionId: string, modelService: ModelServiceLike): void {
+    if (import.meta.env.DEV) {
+      console.warn('\n=== Testing Section Selection ===');
+      const beforeCount = this.eventLog.length;
 
-    modelService.selectSection(sectionId);
+      modelService?.selectSection?.(sectionId);
 
-    const newEvents = this.eventLog.slice(beforeCount);
-    console.log('Events published:', newEvents.length);
-    newEvents.forEach((e) => console.log('  -', e.type));
+      const newEvents = this.eventLog.slice(beforeCount);
+      console.warn('Events published:', newEvents.length);
+      newEvents.forEach((e) => console.warn('  -', e.type));
+    }
   }
 
   /**
    * Test disassembly flow
    */
-  testDisassembly(model: any, operationsService: any): void {
-    console.log('\n=== Testing Disassembly Flow ===');
-    const beforeCount = this.eventLog.length;
+  testDisassembly(model: unknown, operationsService: OperationsServiceLike): void {
+    if (import.meta.env.DEV) {
+      console.warn('\n=== Testing Disassembly Flow ===');
+      const beforeCount = this.eventLog.length;
 
-    operationsService.disassemble(model);
+      operationsService?.disassemble?.(model);
 
-    const newEvents = this.eventLog.slice(beforeCount);
-    console.log('Events published:', newEvents.length);
-    newEvents.forEach((e) => console.log('  -', e.type));
+      const newEvents = this.eventLog.slice(beforeCount);
+      console.warn('Events published:', newEvents.length);
+      newEvents.forEach((e) => console.warn('  -', e.type));
+    }
   }
 
   /**
    * Verify event system health
    */
   verifyEventSystem(): void {
-    console.log('\n=== Event System Health Check ===');
+    if (import.meta.env.DEV) {
+      console.warn('\n=== Event System Health Check ===');
 
-    const diagnostics = this.eventBus.getDiagnostics?.();
-    if (diagnostics) {
-      console.log('📊 Event Bus Diagnostics:');
-      console.log('  Handler Count:', diagnostics.handlerCount);
-      console.log('  Event Types:', diagnostics.eventTypes.length);
-      console.log('  History Size:', diagnostics.historySize);
-      console.log('  Is Processing:', diagnostics.isProcessing);
-      console.log('  Queue Size:', diagnostics.queueSize);
-      console.log('\n  Registered Event Types:');
-      diagnostics.eventTypes.forEach((type: string) => console.log('    -', type));
-    } else {
-      console.warn('⚠️ getDiagnostics() not available');
+      const extendedBus = this.eventBus as ExtendedEventBus;
+      const diagnostics = extendedBus.getDiagnostics?.();
+      if (diagnostics) {
+        console.warn('📊 Event Bus Diagnostics:');
+        console.warn('  Handler Count:', diagnostics.handlerCount);
+        console.warn('  Event Types:', diagnostics.eventTypes.length);
+        console.warn('  History Size:', diagnostics.historySize);
+        console.warn('  Is Processing:', diagnostics.isProcessing);
+        console.warn('  Queue Size:', diagnostics.queueSize);
+        console.warn('\n  Registered Event Types:');
+        diagnostics.eventTypes.forEach((type: string) => console.warn('    -', type));
+      } else {
+        console.warn('⚠️ getDiagnostics() not available');
+      }
     }
   }
 }
@@ -191,8 +233,9 @@ export class ModelEventTester {
 
 // Make available globally in dev mode
 if (import.meta.env.DEV) {
-  (window as any).ModelEventTester = ModelEventTester;
-  console.log(
+  (window as unknown as { ModelEventTester: typeof ModelEventTester }).ModelEventTester =
+    ModelEventTester;
+  console.warn(
     '💡 ModelEventTester available globally. Use: new ModelEventTester(window.app.eventBus)'
   );
 }

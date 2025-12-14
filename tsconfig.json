@@ -20,6 +20,7 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
+    "forceConsistentCasingInFileNames": true,
 
     /* Path mapping */
     "baseUrl": "./",
@@ -31,6 +32,6 @@
       "@presentation/*": ["src/presentation/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "vite.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -96,7 +96,7 @@ export class SectionTreeComponent {
         const toggle = document.createElement('button');
         toggle.className = 'tree-toggle';
         toggle.textContent = '▶';
-        toggle.onclick = (e) => {
+        toggle.onclick = (e): void => {
           e.stopPropagation();
           this.toggleNode(li);
         };
@@ -111,7 +111,7 @@ export class SectionTreeComponent {
       const label = document.createElement('span');
       label.className = 'tree-label';
       label.textContent = section.name;
-      label.onclick = () => {
+      label.onclick = (): void => {
         this.handleSelect(section.id);
       };
       content.appendChild(label);
@@ -121,7 +121,7 @@ export class SectionTreeComponent {
       focusBtn.className = 'tree-focus-btn';
       focusBtn.textContent = '🎯';
       focusBtn.title = 'Focus on section';
-      focusBtn.onclick = (e) => {
+      focusBtn.onclick = (e): void => {
         e.stopPropagation();
         this.handleFocus(section.id);
       };

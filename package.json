@@ -30,6 +30,7 @@
     "three-stdlib": "^2.29.0"
   },
   "devDependencies": {
+    "@types/node": "^25.0.2",
     "@types/three": "^0.160.0",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",

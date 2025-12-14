@@ -1,6 +1,6 @@
 /**
  * STEP Loader
- * 
+ *
  * Placeholder for STEP (ISO 10303) CAD format loader.
  * Requires specialized parsing library (e.g., OpenCascade.js).
  */
@@ -19,7 +19,10 @@ export class STEPModelLoader implements IModelLoader {
   async load(options: LoadOptions): Promise<LoadResult> {
     // STEP parsing requires specialized CAD kernel like OpenCascade
     // This is a placeholder implementation
-    
+
+    // Simulate async operation
+    await Promise.resolve();
+
     const metadata: ModelMetadata = {
       filename: options.filename,
       format: ModelFormat.STEP,

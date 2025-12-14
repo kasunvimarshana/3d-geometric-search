@@ -312,10 +312,12 @@ export class ModelService {
 
   enableClickHandling(): void {
     try {
-      this.renderer.enableClickHandling(
-        (sectionId: string, event: MouseEvent) => this.handleSectionClick(sectionId, event),
-        (event: MouseEvent) => this.handleViewportClick(event)
-      );
+      if (typeof this.renderer.enableClickHandling === 'function') {
+        this.renderer.enableClickHandling(
+          (sectionId: string, event: MouseEvent) => this.handleSectionClick(sectionId, event),
+          (event: MouseEvent) => this.handleViewportClick(event)
+        );
+      }
     } catch (error) {
       console.error('[ModelService] Error enabling click handling:', error);
     }
@@ -323,7 +325,9 @@ export class ModelService {
 
   disableClickHandling(): void {
     try {
-      this.renderer.disableClickHandling();
+      if (typeof this.renderer.disableClickHandling === 'function') {
+        this.renderer.disableClickHandling();
+      }
     } catch (error) {
       console.error('[ModelService] Error disabling click handling:', error);
     }

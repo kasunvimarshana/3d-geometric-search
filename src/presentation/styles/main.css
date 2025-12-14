@@ -23,7 +23,7 @@
   --color-success: #27ae60;
   --color-error: #e74c3c;
   --color-warning: #f39c12;
-  
+
   /* Neutral Colors */
   --color-bg: #ffffff;
   --color-bg-secondary: #f8f9fa;
@@ -31,27 +31,28 @@
   --color-border: #dce1e6;
   --color-text: #2c3e50;
   --color-text-secondary: #7f8c8d;
-  
+
   /* Spacing */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
-  
+
   /* Typography */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-size-sm: 12px;
   --font-size-base: 14px;
   --font-size-lg: 16px;
   --font-size-xl: 20px;
-  
+
   /* Layout */
   --header-height: 60px;
   --footer-height: 30px;
   --sidebar-width: 280px;
   --control-panel-width: 250px;
-  
+
   /* Effects */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -335,7 +336,7 @@ body {
   padding: var(--spacing-xs) 0;
 }
 
-.control-label input[type="checkbox"] {
+.control-label input[type='checkbox'] {
   cursor: pointer;
 }
 
@@ -470,7 +471,7 @@ body {
   .app-main {
     flex-direction: column;
   }
-  
+
   .sidebar,
   .control-panel {
     width: 100%;
@@ -496,14 +497,37 @@ body {
   color: var(--color-text-secondary);
 }
 
-.mt-sm { margin-top: var(--spacing-sm); }
-.mt-md { margin-top: var(--spacing-md); }
-.mt-lg { margin-top: var(--spacing-lg); }
+.mt-sm {
+  margin-top: var(--spacing-sm);
+}
+.mt-md {
+  margin-top: var(--spacing-md);
+}
+.mt-lg {
+  margin-top: var(--spacing-lg);
+}
 
-.mb-sm { margin-bottom: var(--spacing-sm); }
-.mb-md { margin-bottom: var(--spacing-md); }
-.mb-lg { margin-bottom: var(--spacing-lg); }
+.mb-sm {
+  margin-bottom: var(--spacing-sm);
+}
+.mb-md {
+  margin-bottom: var(--spacing-md);
+}
+.mb-lg {
+  margin-bottom: var(--spacing-lg);
+}
 
-.p-sm { padding: var(--spacing-sm); }
-.p-md { padding: var(--spacing-md); }
-.p-lg { padding: var(--spacing-lg); }
+.p-sm {
+  padding: var(--spacing-sm);
+}
+.p-md {
+  padding: var(--spacing-md);
+}
+.p-lg {
+  padding: var(--spacing-lg);
+}
+
+/* Utility: Hidden file input */
+.hidden-file-input {
+  display: none;
+}
