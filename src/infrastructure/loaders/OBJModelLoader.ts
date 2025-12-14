@@ -24,7 +24,9 @@ export class OBJModelLoader implements IModelLoader {
       try {
         // Convert ArrayBuffer to text
         const decoder = new TextDecoder('utf-8');
-        const text = decoder.decode(options.data);
+        const text = typeof options.data === 'string' 
+          ? options.data 
+          : decoder.decode(options.data as ArrayBuffer);
 
         const group = this.loader.parse(text);
 
@@ -40,20 +42,32 @@ export class OBJModelLoader implements IModelLoader {
         const model = new Model(metadata);
         this.processGroup(group, model);
 
-        resolve({ model });
+        resolve({ model, threeJsObject: group });
       } catch (error) {
         reject(new Error(`Failed to load OBJ: ${error}`));
       }
     });
   }
 
-  private processGroup(group: THREE.Group, model: Model, parentId: string | null = null): void {
+  private processGroup(
+    group: THREE.Group,
+    model: Model,
+    parentId: string | null = null,
+    parentSection: ModelSectionImpl | null = null
+  ): void {
     group.children.forEach((child, index) => {
+      const sectionId = `${parentId || 'root'}_${index}_${child.uuid}`;
+      const childIds: string[] = [];
+
       const section = new ModelSectionImpl(
-        `${parentId || 'root'}_${index}`,
+        sectionId,
         child.name || `Object_${index}`,
-        parentId
+        parentId,
+        childIds
       );
+
+      // Store reference to Three.js object
+      (child as any).userData.sectionId = sectionId;
 
       // Calculate bounding box if mesh
       if (child instanceof THREE.Mesh) {
@@ -70,9 +84,14 @@ export class OBJModelLoader implements IModelLoader {
 
       model.addSection(section);
 
+      // Update parent's children array
+      if (parentSection) {
+        parentSection.children.push(sectionId);
+      }
+
       // Process children recursively
-      if (child instanceof THREE.Group && child.children.length > 0) {
-        this.processGroup(child, model, section.id);
+      if (child.children && child.children.length > 0) {
+        this.processGroup(child as THREE.Group, model, section.id, section);
       }
     });
   }

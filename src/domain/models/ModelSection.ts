@@ -15,7 +15,7 @@ export interface ModelSection {
   readonly name: string;
   readonly parentId: string | null;
   readonly children: string[];
-  readonly boundingBox: BoundingBox | null;
+  boundingBox: BoundingBox | null;
   readonly metadata: Record<string, unknown>;
   isVisible: boolean;
   isHighlighted: boolean;
@@ -32,7 +32,7 @@ export class ModelSectionImpl implements ModelSection {
     public readonly name: string,
     public readonly parentId: string | null = null,
     public readonly children: string[] = [],
-    public readonly boundingBox: BoundingBox | null = null,
+    public boundingBox: BoundingBox | null = null,
     public readonly metadata: Record<string, unknown> = {}
   ) {}
 

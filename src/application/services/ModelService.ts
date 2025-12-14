@@ -16,7 +16,6 @@ import {
   ModelLoadErrorEvent,
   SectionSelectedEvent,
   SectionFocusedEvent,
-  EventType,
 } from '@domain/events/DomainEvents';
 
 export class ModelService {
@@ -49,7 +48,7 @@ export class ModelService {
 
       // Store and render
       this.currentModel = result.model;
-      await this.renderer.loadModel(result.model);
+      await this.renderer.loadModel(result.model, result.threeJsObject);
 
       // Publish loaded event
       this.eventBus.publish(
@@ -138,7 +137,7 @@ export class ModelService {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
-      reader.onload = (event) => {
+      reader.onload = (event): void => {
         const result = event.target?.result;
         if (result instanceof ArrayBuffer) {
           resolve(result);
@@ -147,7 +146,7 @@ export class ModelService {
         }
       };
 
-      reader.onerror = () => {
+      reader.onerror = (): void => {
         reject(new Error('Failed to read file'));
       };
 

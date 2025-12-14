@@ -47,7 +47,7 @@ export class GLTFModelLoader implements IModelLoader {
             const model = new Model(metadata);
             this.processScene(gltf.scene, model);
 
-            resolve({ model });
+            resolve({ model, threeJsObject: gltf.scene });
           },
           undefined,
           (error) => {
@@ -61,13 +61,25 @@ export class GLTFModelLoader implements IModelLoader {
     });
   }
 
-  private processScene(scene: THREE.Group, model: Model, parentId: string | null = null): void {
+  private processScene(
+    scene: THREE.Group,
+    model: Model,
+    parentId: string | null = null,
+    parentSection: ModelSectionImpl | null = null
+  ): void {
     scene.children.forEach((child, index) => {
+      const sectionId = `${parentId || 'root'}_${index}_${child.uuid}`;
+      const childIds: string[] = [];
+
       const section = new ModelSectionImpl(
-        `${parentId || 'root'}_${index}`,
+        sectionId,
         child.name || `Object_${index}`,
-        parentId
+        parentId,
+        childIds
       );
+
+      // Store reference to Three.js object
+      (child as any).userData.sectionId = sectionId;
 
       // Calculate bounding box if mesh
       if (child instanceof THREE.Mesh) {
@@ -84,9 +96,14 @@ export class GLTFModelLoader implements IModelLoader {
 
       model.addSection(section);
 
+      // Update parent's children array
+      if (parentSection) {
+        parentSection.children.push(sectionId);
+      }
+
       // Process children recursively
-      if (child instanceof THREE.Group && child.children.length > 0) {
-        this.processScene(child, model, section.id);
+      if (child.children && child.children.length > 0) {
+        this.processScene(child as THREE.Group, model, section.id, section);
       }
     });
   }

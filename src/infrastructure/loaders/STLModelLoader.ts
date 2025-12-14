@@ -39,8 +39,9 @@ export class STLModelLoader implements IModelLoader {
         geometry.computeBoundingBox();
         const box = geometry.boundingBox;
 
+        const sectionId = 'stl_mesh';
         const section = new ModelSectionImpl(
-          'stl_mesh',
+          sectionId,
           options.filename.replace('.stl', ''),
           null,
           [],
@@ -52,7 +53,16 @@ export class STLModelLoader implements IModelLoader {
 
         model.addSection(section);
 
-        resolve({ model });
+        // Create Three.js mesh for rendering
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x3498db,
+          metalness: 0.3,
+          roughness: 0.7,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.userData.sectionId = sectionId;
+
+        resolve({ model, threeJsObject: mesh });
       } catch (error) {
         reject(new Error(`Failed to load STL: ${error}`));
       }

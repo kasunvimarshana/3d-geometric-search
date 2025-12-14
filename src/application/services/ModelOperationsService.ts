@@ -17,14 +17,16 @@ export class ModelOperationsService {
 
   constructor(private readonly eventBus: IEventBus) {}
 
-  disassemble(model: Model): void {
+  disassemble(_model: Model): void {
     if (this.isDisassembled) return;
 
-    // Get all sections and calculate their disassembly offsets
-    const sections = model.getAllSections();
+    // Placeholder for disassembly logic
+    // In a real implementation, this would:
+    // 1. Get all sections: model.getAllSections()
+    // 2. Calculate explosion center
+    // 3. Move sections away from center
+    // 4. Animate the movement
     
-    // For now, mark as disassembled
-    // In a full implementation, this would calculate and apply transformations
     this.isDisassembled = true;
 
     this.eventBus.publish(new ModelDisassembledEvent());

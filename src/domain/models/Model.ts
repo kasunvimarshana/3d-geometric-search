@@ -5,7 +5,7 @@
  * Manages sections, hierarchy, and model-level properties.
  */
 
-import { ModelSection, ModelSectionImpl, BoundingBox } from './ModelSection';
+import { ModelSection, BoundingBox } from './ModelSection';
 
 export enum ModelFormat {
   GLTF = 'gltf',

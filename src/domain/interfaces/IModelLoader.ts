@@ -15,6 +15,7 @@ export interface LoadOptions {
 
 export interface LoadResult {
   readonly model: Model;
+  readonly threeJsObject?: unknown;
   readonly warnings?: string[];
 }
 

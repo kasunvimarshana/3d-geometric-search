@@ -27,38 +27,42 @@ export class ThreeJSRenderer implements IRenderer {
 
   private animationFrameId: number | null = null;
 
-  async initialize(container: HTMLElement): Promise<void> {
-    this.container = container;
+  initialize(container: HTMLElement): Promise<void> {
+    return new Promise((resolve) => {
+      this.container = container;
 
-    // Create scene
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xf5f5f5);
+      // Create scene
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(0xf5f5f5);
 
-    // Create camera
-    const aspect = container.clientWidth / container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 10000);
-    this.camera.position.set(5, 5, 5);
+      // Create camera
+      const aspect = container.clientWidth / container.clientHeight;
+      this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 10000);
+      this.camera.position.set(5, 5, 5);
 
-    // Create renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.shadowMap.enabled = true;
-    container.appendChild(this.renderer.domElement);
+      // Create renderer
+      this.renderer = new THREE.WebGLRenderer({ antialias: true });
+      this.renderer.setSize(container.clientWidth, container.clientHeight);
+      this.renderer.setPixelRatio(window.devicePixelRatio);
+      this.renderer.shadowMap.enabled = true;
+      container.appendChild(this.renderer.domElement);
 
-    // Create controls
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+      // Create controls
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.05;
 
-    // Add lights
-    this.setupLighting();
+      // Add lights
+      this.setupLighting();
 
-    // Add helpers
-    this.setupHelpers();
+      // Add helpers
+      this.setupHelpers();
 
-    // Start animation loop
-    this.animate();
+      // Start animation loop
+      this.animate();
+      
+      resolve();
+    });
   }
 
   dispose(): void {
@@ -90,27 +94,37 @@ export class ThreeJSRenderer implements IRenderer {
     this.renderer.setSize(width, height);
   }
 
-  async loadModel(model: Model): Promise<void> {
-    // Clear existing model
-    this.clearScene();
+  loadModel(model: Model, threeJsObject?: unknown): Promise<void> {
+    return new Promise((resolve) => {
+      // Clear existing model
+      this.clearScene();
 
-    // Create group for model
-    this.modelGroup = new THREE.Group();
-    this.scene.add(this.modelGroup);
+      // Create group for model
+      this.modelGroup = new THREE.Group();
+      
+      if (threeJsObject && typeof threeJsObject === 'object' && 'isObject3D' in threeJsObject) {
+        // Clone the loaded Three.js object
+        this.modelGroup.add(threeJsObject as THREE.Object3D);
+      } else {
+        // Fallback: create placeholder geometry if no Three.js object provided
+        console.warn('No Three.js object provided, creating placeholder for model:', model.metadata.filename);
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshStandardMaterial({ 
+          color: 0x3498db,
+          metalness: 0.3,
+          roughness: 0.7,
+        });
+        const cube = new THREE.Mesh(geometry, material);
+        this.modelGroup.add(cube);
+      }
+      
+      this.scene.add(this.modelGroup);
 
-    // For demonstration, create a simple cube
-    // In a full implementation, this would parse the actual model data
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ 
-      color: 0x3498db,
-      metalness: 0.3,
-      roughness: 0.7,
+      // Fit to view
+      this.fitToView();
+      
+      resolve();
     });
-    const cube = new THREE.Mesh(geometry, material);
-    this.modelGroup.add(cube);
-
-    // Fit to view
-    this.fitToView();
   }
 
   clearScene(): void {
@@ -125,26 +139,32 @@ export class ThreeJSRenderer implements IRenderer {
   highlightSection(section: ModelSection): void {
     this.clearHighlight();
 
-    // Find mesh by section ID
-    // In a full implementation, this would look up the mesh by section ID
-    if (this.modelGroup && this.modelGroup.children.length > 0) {
-      const mesh = this.modelGroup.children[0] as THREE.Mesh;
-      
-      if (mesh.material) {
-        this.highlightedMesh = mesh;
-        this.originalMaterial = mesh.material as THREE.Material;
+    if (!this.modelGroup) return;
 
-        // Create highlight material
-        const highlightMaterial = new THREE.MeshStandardMaterial({
-          color: 0xff6b6b,
-          emissive: 0xff6b6b,
-          emissiveIntensity: 0.3,
-          metalness: 0.3,
-          roughness: 0.7,
-        });
-
-        mesh.material = highlightMaterial;
+    // Find mesh by section ID using userData
+    let foundMesh: THREE.Mesh | undefined;
+    this.modelGroup.traverse((child) => {
+      if (child.userData.sectionId === section.id && child instanceof THREE.Mesh) {
+        foundMesh = child;
       }
+    });
+
+    if (foundMesh && foundMesh.material) {
+      this.highlightedMesh = foundMesh;
+      this.originalMaterial = Array.isArray(foundMesh.material)
+        ? (foundMesh.material[0] as THREE.Material)
+        : foundMesh.material;
+
+      // Create highlight material
+      const highlightMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff6b6b,
+        emissive: 0xff6b6b,
+        emissiveIntensity: 0.3,
+        metalness: 0.3,
+        roughness: 0.7,
+      });
+
+      foundMesh.material = highlightMaterial;
     }
   }
 

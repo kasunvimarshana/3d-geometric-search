@@ -27,7 +27,7 @@ export interface IRenderer {
   render(): void;
   resize(): void;
   
-  loadModel(model: Model): Promise<void>;
+  loadModel(model: Model, threeJsObject?: unknown): Promise<void>;
   clearScene(): void;
   
   highlightSection(section: ModelSection): void;
