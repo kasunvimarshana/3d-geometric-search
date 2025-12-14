@@ -1,0 +1,12 @@
+{
+  "models": [
+    {
+      "id": "sample-cube",
+      "name": "Sample Cube",
+      "description": "Simple cube model for testing",
+      "format": "gltf",
+      "path": "/public/models/cube.gltf",
+      "thumbnail": "/public/models/thumbnails/cube.png"
+    }
+  ]
+}

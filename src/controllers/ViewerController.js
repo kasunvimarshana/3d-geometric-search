@@ -115,6 +115,9 @@ export class ViewerController {
     // Setup click handling for model interactions
     this.setupClickHandling();
 
+    // Call initial resize to set proper canvas dimensions
+    this.handleResize();
+
     // Start animation loop
     this.animate();
   }
@@ -276,6 +279,13 @@ export class ViewerController {
     this.currentModel = object;
     this.scene.add(object);
 
+    console.log('Model added to scene:', {
+      name: object.name,
+      children: object.children.length,
+      position: object.position,
+      scale: object.scale,
+    });
+
     // Focus camera on model
     this.focusOnObject(object);
 
@@ -306,6 +316,13 @@ export class ViewerController {
     // Update controls target
     this.controls.target.copy(center);
     this.controls.update();
+
+    console.log('Camera focused on object:', {
+      boundingBox: { center, size },
+      cameraPosition: this.camera.position,
+      controlsTarget: this.controls.target,
+      distance,
+    });
 
     // Update state
     this.stateManager.setCameraPosition(this.camera.position);

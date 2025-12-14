@@ -1,0 +1,84 @@
+/**
+ * Application-Specific Styles
+ * Additional styles for control groups and custom components
+ */
+
+/* === Control Groups === */
+.control-group {
+  margin-bottom: var(--space-4);
+}
+
+.control-group label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+/* === Loading Overlay === */
+#loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  pointer-events: auto;
+}
+
+#loading-overlay.hidden {
+  display: none;
+}
+
+/* === Helper Classes === */
+.hidden {
+  display: none !important;
+}
+
+/* === Modal Backdrop Click Area === */
+.modal-backdrop {
+  cursor: pointer;
+}
+
+.modal {
+  cursor: default;
+}
+
+/* === Tab Navigation === */
+.tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs__panel {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* === Custom Scrollbar for Panels === */
+.tabs__panel::-webkit-scrollbar,
+.app-sidebar__content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tabs__panel::-webkit-scrollbar-track,
+.app-sidebar__content::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.tabs__panel::-webkit-scrollbar-thumb,
+.app-sidebar__content::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: var(--radius-lg);
+}
+
+.tabs__panel::-webkit-scrollbar-thumb:hover,
+.app-sidebar__content::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}

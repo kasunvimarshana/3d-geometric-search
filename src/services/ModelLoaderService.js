@@ -203,6 +203,62 @@ export class ModelLoaderService extends IModelLoader {
    * Centers and scales the object to fit viewport
    */
   processLoadedObject(object) {
+    console.log('Processing loaded object:', object.name);
+
+    let meshCount = 0;
+    let lineCount = 0;
+
+    // Ensure all meshes have proper materials and convert lines to meshes
+    object.traverse(child => {
+      if (child.isMesh) {
+        meshCount++;
+        // If mesh has no material or invalid material, create a default one
+        if (!child.material) {
+          console.log(`Creating default material for mesh: ${child.name}`);
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0x808080,
+            side: THREE.DoubleSide,
+          });
+        } else if (child.material.isLineMaterial || child.material.isLineBasicMaterial) {
+          // Replace line materials with mesh materials
+          console.log(`Converting line material to mesh material for: ${child.name}`);
+          const color = child.material.color || new THREE.Color(0x808080);
+          child.material = new THREE.MeshStandardMaterial({
+            color: color,
+            side: THREE.DoubleSide,
+          });
+        }
+      } else if (child.isLine || child.isLineSegments) {
+        lineCount++;
+        console.log(`Found line object: ${child.name}, converting to mesh`);
+        // Lines found - this might be the issue
+        // OBJ files sometimes create Line objects instead of Meshes
+        if (child.geometry) {
+          // Convert line to mesh by creating a mesh with the same geometry
+          const color = child.material?.color || new THREE.Color(0x808080);
+          const mesh = new THREE.Mesh(
+            child.geometry,
+            new THREE.MeshStandardMaterial({
+              color: color,
+              side: THREE.DoubleSide,
+            })
+          );
+          mesh.name = child.name;
+          mesh.position.copy(child.position);
+          mesh.rotation.copy(child.rotation);
+          mesh.scale.copy(child.scale);
+
+          // Replace the line with the mesh
+          if (child.parent) {
+            child.parent.add(mesh);
+            child.parent.remove(child);
+          }
+        }
+      }
+    });
+
+    console.log(`Found ${meshCount} meshes and ${lineCount} line objects in loaded object`);
+
     // Center the model
     const box = new THREE.Box3().setFromObject(object);
     const center = box.getCenter(new THREE.Vector3());
@@ -214,7 +270,19 @@ export class ModelLoaderService extends IModelLoader {
     if (maxDim > 10) {
       const scale = 10 / maxDim;
       object.scale.multiplyScalar(scale);
+      console.log(
+        `Scaled model by ${scale.toFixed(2)} (original max dimension: ${maxDim.toFixed(2)})`
+      );
     }
+
+    console.log('Processed object:', {
+      name: object.name,
+      meshes: meshCount,
+      lines: lineCount,
+      boundingBox: { center, size },
+      position: object.position,
+      scale: object.scale,
+    });
 
     return object;
   }

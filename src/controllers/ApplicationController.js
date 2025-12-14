@@ -55,87 +55,139 @@ export class ApplicationController {
     const models = this.modelRepository.getAllModels();
     this.uiController.populateModelSelector(models);
 
+    // Set up status bar updates
+    this.setupStatusBarUpdates();
+
     console.log('Application initialized successfully');
+  }
+
+  /**
+   * Set up status bar updates
+   */
+  setupStatusBarUpdates() {
+    // Update status on model load
+    this.eventBus.subscribe(EVENTS.MODEL_LOADED, data => {
+      this.updateStatusBar('model', `Loaded: ${data.model.name}`);
+      this.updateStatusBar('sections', `${data.sections.length} section(s)`);
+    });
+
+    // Update status on camera changes
+    this.eventBus.subscribe(EVENTS.VIEW_RESET, () => {
+      this.updateStatusBar('camera', 'View Reset');
+      setTimeout(() => this.updateStatusBar('camera', ''), 2000);
+    });
+
+    // Update status on section selection
+    this.eventBus.subscribe(EVENTS.SECTION_SELECTED, data => {
+      const section = data.section || data;
+      this.updateStatusBar('sections', `Selected: ${section.name || section.id}`);
+    });
+
+    this.eventBus.subscribe(EVENTS.ISOLATION_CLEARED, () => {
+      this.updateStatusBar('sections', 'All sections visible');
+      setTimeout(() => {
+        const sections = this.stateManager.getSections();
+        this.updateStatusBar('sections', `${sections.length} section(s)`);
+      }, 2000);
+    });
+  }
+
+  /**
+   * Update status bar
+   */
+  updateStatusBar(area, text) {
+    const statusElement = document.getElementById(`status-${area}`);
+    if (statusElement) {
+      statusElement.textContent = text;
+    }
   }
 
   /**
    * Bind all event handlers
    */
   bindEvents() {
+    // Helper function to safely add event listener
+    const addListener = (id, event, handler) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.addEventListener(event, handler);
+      }
+    };
+
     // UI Events
-    document.getElementById('load-model-btn').addEventListener('click', () => {
+    addListener('load-model-btn', 'click', () => {
       this.handleLoadModel();
     });
 
-    document.getElementById('load-url-btn').addEventListener('click', () => {
+    addListener('load-url-btn', 'click', () => {
       this.handleLoadModelFromURL();
     });
 
-    document.getElementById('load-file-btn').addEventListener('click', () => {
+    addListener('load-file-btn', 'click', () => {
       this.handleLoadModelFromFile();
     });
 
-    document.getElementById('model-file-input').addEventListener('change', e => {
+    addListener('model-file-input', 'change', e => {
       this.handleFileSelected(e);
     });
 
-    document.getElementById('reset-view-btn').addEventListener('click', () => {
+    addListener('reset-view-btn', 'click', () => {
       this.handleResetView();
     });
 
-    document.getElementById('refresh-btn').addEventListener('click', () => {
+    addListener('refresh-btn', 'click', () => {
       this.handleRefresh();
     });
 
-    document.getElementById('fullscreen-btn').addEventListener('click', () => {
+    addListener('fullscreen-btn', 'click', () => {
       this.handleToggleFullscreen();
     });
 
-    document.getElementById('frame-object-btn').addEventListener('click', () => {
+    addListener('frame-object-btn', 'click', () => {
       this.handleFrameObject();
     });
 
-    document.getElementById('camera-front-btn').addEventListener('click', () => {
+    addListener('camera-front-btn', 'click', () => {
       this.viewerController.setCameraPreset('front');
     });
 
-    document.getElementById('camera-top-btn').addEventListener('click', () => {
+    addListener('camera-top-btn', 'click', () => {
       this.viewerController.setCameraPreset('top');
     });
 
-    document.getElementById('camera-right-btn').addEventListener('click', () => {
+    addListener('camera-right-btn', 'click', () => {
       this.viewerController.setCameraPreset('right');
     });
 
-    document.getElementById('camera-iso-btn').addEventListener('click', () => {
+    addListener('camera-iso-btn', 'click', () => {
       this.viewerController.setCameraPreset('isometric');
     });
 
-    document.getElementById('wireframe-toggle').addEventListener('change', e => {
+    addListener('wireframe-toggle', 'change', e => {
       this.viewerController.toggleWireframe(e.target.checked);
     });
 
-    document.getElementById('grid-toggle').addEventListener('change', e => {
+    addListener('grid-toggle', 'change', e => {
       this.viewerController.toggleGrid(e.target.checked);
     });
 
-    document.getElementById('axes-toggle').addEventListener('change', e => {
+    addListener('axes-toggle', 'change', e => {
       this.viewerController.toggleAxes(e.target.checked);
     });
 
-    document.getElementById('help-btn').addEventListener('click', () => {
+    addListener('help-btn', 'click', () => {
       this.uiController.toggleHelpOverlay();
     });
 
-    document.getElementById('close-help-btn').addEventListener('click', () => {
+    addListener('close-help-btn', 'click', () => {
       this.uiController.toggleHelpOverlay();
     });
 
-    document.getElementById('export-btn').addEventListener('click', () => {
+    addListener('export-btn', 'click', () => {
       this.handleExport();
     });
 
-    document.getElementById('section-search-input').addEventListener('input', e => {
+    addListener('section-search-input', 'input', e => {
       this.handleSectionSearch(e.target.value);
     });
 
@@ -145,8 +197,10 @@ export class ApplicationController {
     this.eventBus.subscribe('SHORTCUT_TOGGLE_HELP', () => this.uiController.toggleHelpOverlay());
     this.eventBus.subscribe('SHORTCUT_TOGGLE_WIREFRAME', () => {
       const toggle = document.getElementById('wireframe-toggle');
-      toggle.checked = !toggle.checked;
-      this.viewerController.toggleWireframe(toggle.checked);
+      if (toggle) {
+        toggle.checked = !toggle.checked;
+        this.viewerController.toggleWireframe(toggle.checked);
+      }
     });
     this.eventBus.subscribe('SHORTCUT_CAMERA_FRONT', () =>
       this.viewerController.setCameraPreset('front')
@@ -174,7 +228,10 @@ export class ApplicationController {
     this.eventBus.subscribe('SHORTCUT_REFRESH', () => this.handleRefresh());
     this.eventBus.subscribe('SHORTCUT_EXPORT_MODEL', () => this.handleExport());
     this.eventBus.subscribe('SHORTCUT_FOCUS_SEARCH', () => {
-      document.getElementById('section-search-input').focus();
+      const searchInput = document.getElementById('section-search-input');
+      if (searchInput) {
+        searchInput.focus();
+      }
     });
 
     // State Events
@@ -343,7 +400,10 @@ export class ApplicationController {
       this.uiController.disableControls();
 
       // Set the model selector back
-      document.getElementById('model-selector').value = currentModel.id;
+      const modelSelector = document.getElementById('model-selector');
+      if (modelSelector) {
+        modelSelector.value = currentModel.id;
+      }
 
       // Reload the model
       this.handleLoadModel();
@@ -378,11 +438,19 @@ export class ApplicationController {
     const loadFileBtn = document.getElementById('load-file-btn');
 
     if (file) {
-      fileNameSpan.textContent = file.name;
-      loadFileBtn.disabled = false;
+      if (fileNameSpan) {
+        fileNameSpan.textContent = file.name;
+      }
+      if (loadFileBtn) {
+        loadFileBtn.disabled = false;
+      }
     } else {
-      fileNameSpan.textContent = '';
-      loadFileBtn.disabled = true;
+      if (fileNameSpan) {
+        fileNameSpan.textContent = '';
+      }
+      if (loadFileBtn) {
+        loadFileBtn.disabled = true;
+      }
     }
   }
 
@@ -484,7 +552,10 @@ export class ApplicationController {
       this.uiController.hideLoading();
 
       // Clear model selector
-      document.getElementById('model-selector').value = '';
+      const modelSelector = document.getElementById('model-selector');
+      if (modelSelector) {
+        modelSelector.value = '';
+      }
 
       // Emit event with complete data
       this.eventBus.emit(EVENTS.MODEL_LOADED, {

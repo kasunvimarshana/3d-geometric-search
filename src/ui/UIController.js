@@ -55,22 +55,30 @@ export class UIController {
    */
   bindEvents() {
     // Model selector change
-    this.elements.modelSelector.addEventListener('change', () => {
-      this.elements.loadModelBtn.disabled = !this.elements.modelSelector.value;
-    });
+    if (this.elements.modelSelector) {
+      this.elements.modelSelector.addEventListener('change', () => {
+        if (this.elements.loadModelBtn) {
+          this.elements.loadModelBtn.disabled = !this.elements.modelSelector.value;
+        }
+      });
+    }
 
     // Zoom slider
-    this.elements.zoomSlider.addEventListener('input', e => {
-      const zoom = parseInt(e.target.value);
-      this.elements.zoomValue.textContent = `${zoom}%`;
-      this.stateManager.setZoom(zoom);
-    });
+    if (this.elements.zoomSlider && this.elements.zoomValue) {
+      this.elements.zoomSlider.addEventListener('input', e => {
+        const zoom = parseInt(e.target.value);
+        this.elements.zoomValue.textContent = `${zoom}%`;
+        this.stateManager.setZoom(zoom);
+      });
+    }
   }
 
   /**
    * Populate model selector with available models
    */
   populateModelSelector(models) {
+    if (!this.elements.modelSelector) return;
+
     this.elements.modelSelector.innerHTML = '<option value="">Select a model...</option>';
 
     models.forEach(model => {
@@ -85,6 +93,8 @@ export class UIController {
    * Render sections list
    */
   renderSections(sections) {
+    if (!this.elements.sectionsList) return;
+
     this.elements.sectionsList.innerHTML = '';
 
     if (sections.length === 0) {
@@ -229,56 +239,62 @@ export class UIController {
    * Enable controls
    */
   enableControls() {
-    this.elements.resetViewBtn.disabled = false;
-    this.elements.frameObjectBtn.disabled = false;
-    this.elements.refreshBtn.disabled = false;
-    this.elements.zoomSlider.disabled = false;
-    this.elements.sectionSearchInput.disabled = false;
-    this.elements.cameraFrontBtn.disabled = false;
-    this.elements.cameraTopBtn.disabled = false;
-    this.elements.cameraRightBtn.disabled = false;
-    this.elements.cameraIsoBtn.disabled = false;
-    this.elements.wireframeToggle.disabled = false;
-    this.elements.exportFormat.disabled = false;
-    this.elements.exportBtn.disabled = false;
+    if (this.elements.resetViewBtn) this.elements.resetViewBtn.disabled = false;
+    if (this.elements.frameObjectBtn) this.elements.frameObjectBtn.disabled = false;
+    if (this.elements.refreshBtn) this.elements.refreshBtn.disabled = false;
+    if (this.elements.zoomSlider) this.elements.zoomSlider.disabled = false;
+    if (this.elements.sectionSearchInput) this.elements.sectionSearchInput.disabled = false;
+    if (this.elements.cameraFrontBtn) this.elements.cameraFrontBtn.disabled = false;
+    if (this.elements.cameraTopBtn) this.elements.cameraTopBtn.disabled = false;
+    if (this.elements.cameraRightBtn) this.elements.cameraRightBtn.disabled = false;
+    if (this.elements.cameraIsoBtn) this.elements.cameraIsoBtn.disabled = false;
+    if (this.elements.wireframeToggle) this.elements.wireframeToggle.disabled = false;
+    if (this.elements.exportFormat) this.elements.exportFormat.disabled = false;
+    if (this.elements.exportBtn) this.elements.exportBtn.disabled = false;
   }
 
   /**
    * Disable controls
    */
   disableControls() {
-    this.elements.resetViewBtn.disabled = true;
-    this.elements.frameObjectBtn.disabled = true;
-    this.elements.refreshBtn.disabled = true;
-    this.elements.zoomSlider.disabled = true;
-    this.elements.sectionSearchInput.disabled = true;
-    this.elements.cameraFrontBtn.disabled = true;
-    this.elements.cameraTopBtn.disabled = true;
-    this.elements.cameraRightBtn.disabled = true;
-    this.elements.cameraIsoBtn.disabled = true;
-    this.elements.wireframeToggle.disabled = true;
-    this.elements.exportFormat.disabled = true;
-    this.elements.exportBtn.disabled = true;
+    if (this.elements.resetViewBtn) this.elements.resetViewBtn.disabled = true;
+    if (this.elements.frameObjectBtn) this.elements.frameObjectBtn.disabled = true;
+    if (this.elements.refreshBtn) this.elements.refreshBtn.disabled = true;
+    if (this.elements.zoomSlider) this.elements.zoomSlider.disabled = true;
+    if (this.elements.sectionSearchInput) this.elements.sectionSearchInput.disabled = true;
+    if (this.elements.cameraFrontBtn) this.elements.cameraFrontBtn.disabled = true;
+    if (this.elements.cameraTopBtn) this.elements.cameraTopBtn.disabled = true;
+    if (this.elements.cameraRightBtn) this.elements.cameraRightBtn.disabled = true;
+    if (this.elements.cameraIsoBtn) this.elements.cameraIsoBtn.disabled = true;
+    if (this.elements.wireframeToggle) this.elements.wireframeToggle.disabled = true;
+    if (this.elements.exportFormat) this.elements.exportFormat.disabled = true;
+    if (this.elements.exportBtn) this.elements.exportBtn.disabled = true;
   }
 
   /**
    * Update section info display
    */
   updateSectionInfo(text) {
-    this.elements.sectionInfo.textContent = text;
+    if (this.elements.sectionInfo) {
+      this.elements.sectionInfo.textContent = text;
+    }
   }
 
   /**
    * Clear section info display
    */
   clearSectionInfo() {
-    this.elements.sectionInfo.textContent = '';
+    if (this.elements.sectionInfo) {
+      this.elements.sectionInfo.textContent = '';
+    }
   }
 
   /**
    * Highlight a section in the section list
    */
   highlightSectionInList(sectionId) {
+    if (!this.elements.sectionsList) return;
+
     // Clear previous highlights
     this.clearSectionHighlight();
 
@@ -298,6 +314,8 @@ export class UIController {
    * Clear section highlight in the list
    */
   clearSectionHighlight() {
+    if (!this.elements.sectionsList) return;
+
     const sectionItems = this.elements.sectionsList.querySelectorAll('.section-item');
     sectionItems.forEach(item => {
       item.classList.remove('selected');
@@ -308,6 +326,8 @@ export class UIController {
    * Show loading state
    */
   showLoading(message = 'Loading model...') {
+    if (!this.elements.loadingOverlay) return;
+
     this.elements.loadingOverlay.classList.remove('hidden');
     const textElement = this.elements.loadingOverlay.querySelector('.loading-text');
     if (textElement) {
@@ -319,7 +339,9 @@ export class UIController {
    * Hide loading state
    */
   hideLoading() {
-    this.elements.loadingOverlay.classList.add('hidden');
+    if (this.elements.loadingOverlay) {
+      this.elements.loadingOverlay.classList.add('hidden');
+    }
   }
 
   /**
@@ -359,6 +381,8 @@ export class UIController {
    * Toggle help overlay
    */
   toggleHelpOverlay() {
+    if (!this.elements.helpOverlay) return;
+
     const isHidden = this.elements.helpOverlay.classList.toggle('hidden');
 
     if (!isHidden) {
@@ -371,6 +395,8 @@ export class UIController {
    * Populate keyboard shortcuts in help overlay
    */
   populateShortcuts() {
+    if (!this.elements.shortcutsList) return;
+
     // Get shortcuts from the keyboard service via eventBus
     const shortcuts = {
       'View Controls': [
@@ -416,7 +442,11 @@ export class UIController {
    * Update zoom display
    */
   updateZoomDisplay(zoom) {
-    this.elements.zoomSlider.value = zoom;
-    this.elements.zoomValue.textContent = `${zoom}%`;
+    if (this.elements.zoomSlider) {
+      this.elements.zoomSlider.value = zoom;
+    }
+    if (this.elements.zoomValue) {
+      this.elements.zoomValue.textContent = `${zoom}%`;
+    }
   }
 }
