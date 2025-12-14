@@ -4,16 +4,66 @@
  */
 
 export const EVENTS = {
+  // Model Lifecycle Events
+  MODEL_LOAD_START: 'model:load:start',
+  MODEL_LOAD_PROGRESS: 'model:load:progress',
   MODEL_LOADED: 'model:loaded',
   MODEL_LOAD_ERROR: 'model:load:error',
+  MODEL_UNLOAD: 'model:unload',
+  MODEL_UPDATED: 'model:updated',
+  MODEL_PARSED: 'model:parsed',
+
+  // Section Lifecycle Events
+  SECTIONS_DISCOVERED: 'sections:discovered',
+  SECTIONS_UPDATED: 'sections:updated',
   SECTION_SELECTED: 'section:selected',
+  SECTION_DESELECTED: 'section:deselected',
   SECTION_ISOLATED: 'section:isolated',
   SECTION_HIGHLIGHTED: 'section:highlighted',
+  SECTION_UNHIGHLIGHTED: 'section:unhighlighted',
+  SECTION_VISIBILITY_CHANGED: 'section:visibility:changed',
+
+  // Model Interaction Events
+  MODEL_CLICKED: 'model:clicked',
+  OBJECT_SELECTED: 'object:selected',
+  OBJECT_DESELECTED: 'object:deselected',
+
+  // Assembly/Disassembly Events
+  MODEL_DISASSEMBLED: 'model:disassembled',
+  MODEL_REASSEMBLED: 'model:reassembled',
   ISOLATION_CLEARED: 'isolation:cleared',
+
+  // Focus and Navigation Events
+  FOCUS_MODE_ENTERED: 'focus:entered',
+  FOCUS_MODE_EXITED: 'focus:exited',
+  FOCUS_TARGET_CHANGED: 'focus:target:changed',
+
+  // Camera and View Events
   VIEW_RESET: 'view:reset',
+  CAMERA_PRESET_CHANGED: 'camera:preset:changed',
+  CAMERA_POSITION_CHANGED: 'camera:position:changed',
+  FRAME_OBJECT: 'frame:object',
+
+  // Visual State Events
   ZOOM_CHANGED: 'zoom:changed',
+  WIREFRAME_TOGGLED: 'wireframe:toggled',
+  GRID_TOGGLED: 'grid:toggled',
+  AXES_TOGGLED: 'axes:toggled',
   FULLSCREEN_TOGGLED: 'fullscreen:toggled',
+
+  // UI Synchronization Events
+  UI_UPDATE_REQUIRED: 'ui:update:required',
+  NAVIGATION_UPDATE_REQUIRED: 'navigation:update:required',
+  SELECTION_STATE_CHANGED: 'selection:state:changed',
+
+  // State Management Events
   STATE_CHANGED: 'state:changed',
+  STATE_SNAPSHOT: 'state:snapshot',
+  STATE_RESTORED: 'state:restored',
+
+  // Error and Warning Events
+  ERROR_OCCURRED: 'error:occurred',
+  WARNING_OCCURRED: 'warning:occurred',
 };
 
 export const CAMERA_DEFAULTS = {

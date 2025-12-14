@@ -1,6 +1,6 @@
 # 3D Geometric Search
 
-A professional, clean, and well-architected 3D model viewer with comprehensive multi-format support, advanced section management, navigation controls, keyboard shortcuts, and model export capabilities.
+A professional, clean, and well-architected 3D model viewer with comprehensive multi-format support, advanced section management, navigation controls, keyboard shortcuts, model export capabilities, and **robust centralized event handling**.
 
 ## ✨ Key Features
 
@@ -31,6 +31,7 @@ A professional, clean, and well-architected 3D model viewer with comprehensive m
 - **Loading Progress**: Real-time loading indicators
 - **Clean UI**: Minimal, professional interface focused on usability
 - **Responsive Design**: Adapts to different screen sizes
+- **🆕 Centralized Event System**: Robust event coordination and validation
 
 ### ⌨️ Keyboard Shortcuts
 
@@ -52,6 +53,7 @@ A professional, clean, and well-architected 3D model viewer with comprehensive m
 - **Design Patterns**: MVC, Observer, Repository, Facade, Service Layer
 - **Modular**: Testable, reusable, extensible components
 - **Production Ready**: Error handling, caching, performance optimized
+- **🆕 Event-Driven**: Centralized ModelEventCoordinator for robust event handling
 
 ## 📁 Project Structure
 
@@ -66,15 +68,16 @@ A professional, clean, and well-architected 3D model viewer with comprehensive m
 │   │   └── StateManager.js
 │   ├── domain/               # Domain models and constants
 │   │   ├── models.js
-│   │   └── constants.js
+│   │   └── constants.js       # 50+ event constants (ENHANCED)
 │   ├── repositories/         # Data access layer
 │   │   └── ModelRepository.js
 │   ├── services/             # Business logic services
 │   │   ├── ModelLoaderService.js         # Multi-format loading
 │   │   ├── SectionManagerService.js      # Section management
 │   │   ├── FormatConversionService.js    # Format conversion
-│   │   ├── KeyboardShortcutsService.js   # Keyboard control (NEW)
-│   │   └── ModelExportService.js         # Model export (NEW)
+│   │   ├── KeyboardShortcutsService.js   # Keyboard control
+│   │   ├── ModelExportService.js         # Model export
+│   │   └── ModelEventCoordinator.js      # Event orchestration (NEW)
 │   ├── ui/                   # User interface components
 │   │   └── UIController.js
 │   ├── styles/               # Stylesheets
@@ -84,7 +87,9 @@ A professional, clean, and well-architected 3D model viewer with comprehensive m
 │   ├── MULTI_FORMAT_SUPPORT.md          # Format guide
 │   ├── STEP_FORMAT_GUIDE.md             # STEP conversion
 │   ├── EXTERNAL_MODELS.md               # External loading
-│   └── ARCHITECTURE.md                  # Architecture details
+│   ├── ARCHITECTURE.md                  # Architecture details
+│   ├── FEATURE_GUIDE.md                 # Feature guide
+│   └── EVENT_ARCHITECTURE.md            # Event system (NEW)
 ├── public/                   # Static assets
 │   └── models/               # 3D model files
 ├── index.html                # Main HTML file
@@ -243,6 +248,55 @@ new Model('my-model', 'My Model Name', '/models/mymodel.gltf', 'gltf');
 - Efficient section isolation without object duplication
 - Optimized rendering loop with requestAnimationFrame
 
+## 🎓 Documentation
+
+### User Guides
+
+- **[Feature Guide](docs/FEATURE_GUIDE.md)** - Comprehensive feature walkthrough
+- **[Multi-Format Support](docs/MULTI_FORMAT_SUPPORT.md)** - Format compatibility guide
+- **[STEP Format Guide](docs/STEP_FORMAT_GUIDE.md)** - STEP conversion details
+- **[External Models](docs/EXTERNAL_MODELS.md)** - Loading external models
+- **[Testing Checklist](docs/TESTING_CHECKLIST.md)** - Comprehensive testing guide (**NEW**)
+
+### Developer Guides
+
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System architecture details
+- **[Event Architecture](docs/EVENT_ARCHITECTURE.md)** - Event system guide
+- **[Model Click Handling](docs/MODEL_CLICK_HANDLING.md)** - Interactive click feature (**NEW**)
+- **[System Audit Report](docs/SYSTEM_AUDIT_REPORT.md)** - Architecture analysis
+
+## 🔧 Event System
+
+Version 2.0 introduces a **robust, centralized event handling system** that ensures all model lifecycle changes are consistently captured and propagated throughout the application.
+
+### Key Benefits
+
+- **✅ Centralized Coordination**: Single source of truth for all model events
+- **✅ Event Validation**: All events validated before emission
+- **✅ History Tracking**: Complete audit trail of all events
+- **✅ Debug Mode**: Comprehensive debugging capabilities
+- **✅ State Snapshots**: Save and restore application state
+- **✅ Predictable Flow**: Clear event propagation patterns
+
+### Quick Example
+
+```javascript
+// Enable debug mode to see all events
+this.eventCoordinator.setDebugMode(true);
+
+// View event history
+const events = this.eventCoordinator.getEventHistory();
+console.log('Recent events:', events.slice(-10));
+
+// Create state snapshot
+const snapshot = this.eventCoordinator.createSnapshot();
+
+// Restore later
+this.eventCoordinator.restoreSnapshot(snapshot);
+```
+
+**📘 Complete Guide**: [docs/EVENT_ARCHITECTURE.md](docs/EVENT_ARCHITECTURE.md)
+
 ## Troubleshooting
 
 ### Model Not Loading
@@ -257,6 +311,12 @@ new Model('my-model', 'My Model Name', '/models/mymodel.gltf', 'gltf');
 - Try reducing the model complexity
 - Disable shadows in large scenes
 - Use smaller texture sizes
+
+### Event Issues
+
+- Enable debug mode: `eventCoordinator.setDebugMode(true)`
+- Check event history for troubleshooting
+- See [Event Architecture](docs/EVENT_ARCHITECTURE.md) for details
 
 ## Development
 
@@ -273,9 +333,32 @@ npm run format
 
 1. Follow the existing architecture patterns
 2. Create new services in `src/services/`
-3. Use the EventBus for cross-component communication
-4. Update StateManager for new state properties
-5. Add event constants to `src/domain/constants.js`
+3. Use ModelEventCoordinator for model-related events
+4. Use the EventBus for cross-component communication
+5. Update StateManager for new state properties
+6. Add event constants to `src/domain/constants.js`
+7. Add event handlers to ModelEventCoordinator
+8. Update documentation
+
+### Working with Events
+
+```javascript
+// 1. Define event in constants.js
+export const EVENTS = {
+  MY_NEW_EVENT: 'my:new:event',
+};
+
+// 2. Emit via ModelEventCoordinator
+this.eventCoordinator.emitEvent(EVENTS.MY_NEW_EVENT, {
+  data: 'value',
+  timestamp: Date.now(),
+});
+
+// 3. Subscribe in ApplicationController
+this.eventBus.subscribe(EVENTS.MY_NEW_EVENT, data => {
+  this.handleMyNewEvent(data);
+});
+```
 
 ## License
 
@@ -289,6 +372,8 @@ Contributions are welcome! Please ensure:
 2. All changes maintain SOLID principles
 3. UI remains clean and professional
 4. No breaking changes without discussion
+5. Events use ModelEventCoordinator
+6. Documentation is updated
 
 ## Contact
 

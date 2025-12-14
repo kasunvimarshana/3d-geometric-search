@@ -276,6 +276,35 @@ export class UIController {
   }
 
   /**
+   * Highlight a section in the section list
+   */
+  highlightSectionInList(sectionId) {
+    // Clear previous highlights
+    this.clearSectionHighlight();
+
+    // Find and highlight the section item
+    const sectionItems = this.elements.sectionsList.querySelectorAll('.section-item');
+    sectionItems.forEach(item => {
+      if (item.dataset.sectionId === sectionId) {
+        item.classList.add('selected');
+
+        // Scroll into view if needed
+        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  /**
+   * Clear section highlight in the list
+   */
+  clearSectionHighlight() {
+    const sectionItems = this.elements.sectionsList.querySelectorAll('.section-item');
+    sectionItems.forEach(item => {
+      item.classList.remove('selected');
+    });
+  }
+
+  /**
    * Show loading state
    */
   showLoading(message = 'Loading model...') {

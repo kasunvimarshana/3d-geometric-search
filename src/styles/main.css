@@ -529,6 +529,15 @@ button:disabled {
   border-bottom: none;
 }
 
+.section-item.selected > .section-header {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+.section-item.selected > .section-header .section-name {
+  font-weight: 600;
+}
+
 .section-header {
   display: flex;
   align-items: center;
@@ -539,6 +548,10 @@ button:disabled {
 
 .section-header:hover {
   background-color: var(--color-background);
+}
+
+.section-item.selected > .section-header:hover {
+  background-color: #2980b9; /* Darker shade of accent */
 }
 
 .section-toggle {

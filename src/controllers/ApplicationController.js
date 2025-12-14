@@ -1,6 +1,8 @@
 /**
  * Application Controller - Main orchestrator
  * Following Facade Pattern and coordinating all subsystems
+ *
+ * Enhanced with centralized ModelEventCoordinator for robust event handling
  */
 
 import { EventBus } from '../core/EventBus.js';
@@ -10,6 +12,7 @@ import { ModelLoaderService } from '../services/ModelLoaderService.js';
 import { SectionManagerService } from '../services/SectionManagerService.js';
 import { KeyboardShortcutsService } from '../services/KeyboardShortcutsService.js';
 import { ModelExportService } from '../services/ModelExportService.js';
+import { ModelEventCoordinator } from '../services/ModelEventCoordinator.js';
 import { ViewerController } from './ViewerController.js';
 import { UIController } from '../ui/UIController.js';
 import { EVENTS } from '../domain/constants.js';
@@ -28,6 +31,9 @@ export class ApplicationController {
     this.sectionManager = new SectionManagerService();
     this.keyboardShortcuts = new KeyboardShortcutsService(this.eventBus);
     this.exportService = new ModelExportService();
+
+    // Initialize ModelEventCoordinator for centralized event handling
+    this.eventCoordinator = new ModelEventCoordinator(this.eventBus, this.stateManager);
 
     // Initialize controllers
     const canvas = document.getElementById('canvas-3d');
@@ -172,12 +178,12 @@ export class ApplicationController {
     });
 
     // State Events
-    this.eventBus.subscribe(EVENTS.SECTION_SELECTED, sectionId => {
-      this.handleSectionSelected(sectionId);
+    this.eventBus.subscribe(EVENTS.SECTION_SELECTED, data => {
+      this.handleSectionSelected(data);
     });
 
-    this.eventBus.subscribe(EVENTS.SECTION_ISOLATED, sectionId => {
-      this.handleSectionIsolated(sectionId);
+    this.eventBus.subscribe(EVENTS.SECTION_ISOLATED, data => {
+      this.handleSectionIsolated(data);
     });
 
     this.eventBus.subscribe(EVENTS.ISOLATION_CLEARED, () => {
@@ -191,6 +197,32 @@ export class ApplicationController {
     this.eventBus.subscribe(EVENTS.VIEW_RESET, () => {
       this.viewerController.resetView();
     });
+
+    // Model Event Coordinator Synchronization Events
+    this.eventBus.subscribe(EVENTS.UI_UPDATE_REQUIRED, data => {
+      this.handleUIUpdateRequired(data);
+    });
+
+    this.eventBus.subscribe(EVENTS.NAVIGATION_UPDATE_REQUIRED, data => {
+      this.handleNavigationUpdateRequired(data);
+    });
+
+    this.eventBus.subscribe(EVENTS.SELECTION_STATE_CHANGED, data => {
+      this.handleSelectionStateChanged(data);
+    });
+
+    // Model Interaction Events
+    this.eventBus.subscribe(EVENTS.MODEL_CLICKED, data => {
+      this.handleModelClicked(data);
+    });
+
+    this.eventBus.subscribe(EVENTS.OBJECT_SELECTED, data => {
+      this.handleObjectSelected(data);
+    });
+
+    this.eventBus.subscribe(EVENTS.OBJECT_DESELECTED, () => {
+      this.handleObjectDeselected();
+    });
   }
 
   /**
@@ -203,15 +235,22 @@ export class ApplicationController {
     if (!modelId) return;
 
     try {
-      this.uiController.showLoading();
-      this.uiController.disableControls();
-
       // Get model from repository
       const model = this.modelRepository.getModelById(modelId);
 
       if (!model) {
         throw new Error('Model not found');
       }
+
+      // Emit load start event
+      this.eventCoordinator.emitEvent(EVENTS.MODEL_LOAD_START, {
+        modelId: model.id,
+        modelName: model.name,
+        source: 'repository',
+      });
+
+      this.uiController.showLoading(`Loading ${model.name}...`);
+      this.uiController.disableControls();
 
       // Try to load the model, fallback to demo geometry if file doesn't exist
       let loadedObject;
@@ -222,7 +261,7 @@ export class ApplicationController {
         loadedObject = this.modelLoader.createDemoGeometry();
       }
 
-      // Add to viewer
+      // Add to viewer (emits MODEL_UPDATED event)
       this.viewerController.addModel(loadedObject);
 
       // Create sections
@@ -236,19 +275,38 @@ export class ApplicationController {
       this.stateManager.setCurrentModel(model);
       this.stateManager.setSections(sections);
 
+      // Emit model loaded event with comprehensive data
+      this.eventCoordinator.emitEvent(EVENTS.MODEL_LOADED, {
+        model: {
+          id: model.id,
+          name: model.name,
+          type: model.type,
+          url: model.url,
+        },
+        sections,
+        object3D: loadedObject,
+      });
+
       // Update UI
       this.uiController.renderSections(sections);
       this.uiController.enableControls();
       this.uiController.hideLoading();
-
-      // Emit event
-      this.eventBus.emit(EVENTS.MODEL_LOADED, model);
+      this.uiController.showSuccess(`Model "${model.name}" loaded successfully`);
 
       console.log(`Model "${model.name}" loaded successfully with ${sections.length} sections`);
     } catch (error) {
       console.error('Failed to load model:', error);
+
+      // Emit error event
+      this.eventCoordinator.emitEvent(EVENTS.MODEL_LOAD_ERROR, {
+        error: error.message,
+        modelId: this.modelRepository.getModelById(modelSelector.value)?.id,
+        modelName: this.modelRepository.getModelById(modelSelector.value)?.name,
+      });
+
       this.uiController.showError(error.message);
       this.uiController.disableControls();
+      this.uiController.hideLoading();
     }
   }
 
@@ -413,6 +471,9 @@ export class ApplicationController {
       this.sectionManager.initialize(loadedObject);
       sections.forEach(section => this.sectionManager.addSection(section));
 
+      // Update ViewerController's mesh-to-section mapping for click handling
+      this.viewerController.updateMeshToSectionMap(sections);
+
       // Update state
       this.stateManager.setCurrentModel(model);
       this.stateManager.setSections(sections);
@@ -425,8 +486,12 @@ export class ApplicationController {
       // Clear model selector
       document.getElementById('model-selector').value = '';
 
-      // Emit event
-      this.eventBus.emit(EVENTS.MODEL_LOADED, model);
+      // Emit event with complete data
+      this.eventBus.emit(EVENTS.MODEL_LOADED, {
+        model,
+        sections,
+        object3D: loadedObject,
+      });
 
       console.log(
         `External model "${model.name}" loaded successfully with ${sections.length} sections`
@@ -452,7 +517,9 @@ export class ApplicationController {
   /**
    * Handle section selected
    */
-  handleSectionSelected(sectionId) {
+  handleSectionSelected(data) {
+    const { sectionId } = data;
+
     // Clear previous highlights
     const sections = this.stateManager.getSections();
     sections.forEach(section => {
@@ -465,23 +532,28 @@ export class ApplicationController {
     if (sectionId) {
       this.sectionManager.highlightSection(sectionId, true);
       const section = this.stateManager.getSection(sectionId);
-      this.uiController.updateSectionInfo(`Selected: ${section.name}`);
+      if (section) {
+        this.uiController.updateSectionInfo(`Selected: ${section.name}`);
+      }
     } else {
       this.uiController.clearSectionInfo();
     }
 
-    console.log('Section selected:', sectionId);
+    console.log('[ApplicationController] Section selected:', sectionId);
   }
 
   /**
    * Handle section isolated
    */
-  handleSectionIsolated(sectionId) {
+  handleSectionIsolated(data) {
+    const { sectionId } = data;
     if (sectionId) {
       this.sectionManager.isolateSection(sectionId);
       const section = this.stateManager.getSection(sectionId);
-      this.uiController.updateSectionInfo(`Isolated: ${section.name}`);
-      console.log('Section isolated:', sectionId);
+      if (section) {
+        this.uiController.updateSectionInfo(`Isolated: ${section.name}`);
+      }
+      console.log('[ApplicationController] Section isolated:', sectionId);
     }
   }
 
@@ -569,6 +641,190 @@ export class ApplicationController {
   }
 
   /**
+   * Handle UI update required from ModelEventCoordinator
+   */
+  handleUIUpdateRequired(data) {
+    const { type, message, progress } = data;
+
+    switch (type) {
+      case 'loading':
+        this.uiController.showLoading(message);
+        if (progress !== undefined) {
+          this.uiController.updateLoadingProgress(progress);
+        }
+        break;
+
+      case 'loaded':
+        this.uiController.hideLoading();
+        if (message) {
+          this.uiController.showSuccess(message);
+        }
+        break;
+
+      case 'error':
+        this.uiController.showError(message);
+        this.uiController.hideLoading();
+        break;
+
+      case 'unloaded':
+        this.uiController.clearSectionInfo();
+        this.uiController.disableControls();
+        break;
+
+      case 'isolation':
+      case 'focus-entered':
+      case 'focus-exited':
+      case 'isolation-cleared':
+        // UI already updated, log for debugging
+        if (this.eventCoordinator.debugMode) {
+          console.log('[ApplicationController] UI update:', type, message);
+        }
+        break;
+
+      default:
+        console.warn('[ApplicationController] Unknown UI update type:', type);
+    }
+  }
+
+  /**
+   * Handle navigation update required from ModelEventCoordinator
+   */
+  handleNavigationUpdateRequired(data) {
+    const { type, sections, sectionId } = data;
+
+    switch (type) {
+      case 'model-loaded':
+        // Re-render section list with new sections
+        if (sections) {
+          this.uiController.renderSections(sections);
+        }
+        break;
+
+      case 'model-unloaded':
+        // Clear section list
+        this.uiController.renderSections([]);
+        break;
+
+      case 'section-isolated':
+        // Re-render sections to reflect isolation state
+        if (data.sections) {
+          this.uiController.renderSections(data.sections);
+        }
+        break;
+
+      case 'isolation-cleared':
+        // Re-render all sections
+        const allSections = this.stateManager.getSections();
+        if (allSections) {
+          this.uiController.renderSections(allSections);
+        }
+        break;
+
+      case 'state-restored':
+        // Re-render sections from restored state
+        if (sections) {
+          this.uiController.renderSections(sections);
+        }
+        break;
+
+      default:
+        console.warn('[ApplicationController] Unknown navigation update type:', type);
+    }
+  }
+
+  /**
+   * Handle selection state changed from ModelEventCoordinator
+   */
+  handleSelectionStateChanged(data) {
+    const { selectedSection, section, previousSelection } = data;
+
+    if (selectedSection) {
+      // Update UI to show selected section
+      this.uiController.updateSectionInfo(section);
+      console.log(`[ApplicationController] Section selected: ${selectedSection}`);
+    } else if (previousSelection) {
+      // Clear selection in UI
+      this.uiController.clearSectionInfo();
+      console.log(`[ApplicationController] Section deselected: ${previousSelection}`);
+    }
+  }
+
+  /**
+   * Handle model clicked event
+   */
+  handleModelClicked(data) {
+    const { meshName, sectionId, point } = data;
+
+    if (this.eventCoordinator.debugMode) {
+      console.log('[ApplicationController] Model clicked:', {
+        meshName,
+        sectionId,
+        point,
+      });
+    }
+
+    // Update UI with click information
+    if (sectionId) {
+      const section = this.stateManager.getSection(sectionId);
+      if (section) {
+        this.uiController.updateSectionInfo(section);
+      }
+    }
+  }
+
+  /**
+   * Handle object selected event
+   */
+  handleObjectSelected(data) {
+    const { object, sectionId } = data;
+
+    if (this.eventCoordinator.debugMode) {
+      console.log('[ApplicationController] Object selected:', {
+        objectName: object?.name,
+        sectionId,
+      });
+    }
+
+    // Highlight the selected section in the viewer
+    if (sectionId) {
+      // Clear previous highlights
+      const sections = this.stateManager.getSections();
+      sections.forEach(section => {
+        if (section.id !== sectionId) {
+          this.sectionManager.highlightSection(section.id, false);
+        }
+      });
+
+      // Highlight selected section
+      this.sectionManager.highlightSection(sectionId, true);
+
+      // Update UI to highlight section in list
+      this.uiController.highlightSectionInList(sectionId);
+    }
+  }
+
+  /**
+   * Handle object deselected event
+   */
+  handleObjectDeselected() {
+    if (this.eventCoordinator.debugMode) {
+      console.log('[ApplicationController] Object deselected');
+    }
+
+    // Clear all highlights
+    const sections = this.stateManager.getSections();
+    sections.forEach(section => {
+      this.sectionManager.highlightSection(section.id, false);
+    });
+
+    // Clear UI section highlight
+    this.uiController.clearSectionHighlight();
+
+    // Clear section info
+    this.uiController.clearSectionInfo();
+  }
+
+  /**
    * Dispose of all resources
    */
   dispose() {
@@ -578,6 +834,7 @@ export class ApplicationController {
     this.stateManager.clear();
     this.eventBus.clear();
     this.keyboardShortcuts.dispose();
+    this.eventCoordinator.dispose();
 
     console.log('Application disposed');
   }

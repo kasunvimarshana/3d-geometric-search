@@ -1,11 +1,13 @@
 /**
  * Viewer Controller - Manages 3D scene rendering and interactions
  * Following Single Responsibility Principle
+ *
+ * Enhanced with comprehensive event emission for all model lifecycle changes
  */
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { CAMERA_DEFAULTS, RENDERER_CONFIG, COLORS } from '../domain/constants.js';
+import { CAMERA_DEFAULTS, RENDERER_CONFIG, COLORS, EVENTS } from '../domain/constants.js';
 
 export class ViewerController {
   constructor(canvas, eventBus, stateManager) {
@@ -25,6 +27,12 @@ export class ViewerController {
     this.focusedObject = null;
     this.savedCameraState = null;
     this.cameraPresets = this.initializeCameraPresets();
+
+    // Click handling and raycasting
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    this.selectedObject = null;
+    this.meshToSectionMap = new Map(); // Maps mesh UUID to section ID
 
     this.initialize();
   }
@@ -104,6 +112,9 @@ export class ViewerController {
     // Handle window resize
     window.addEventListener('resize', () => this.handleResize());
 
+    // Setup click handling for model interactions
+    this.setupClickHandling();
+
     // Start animation loop
     this.animate();
   }
@@ -133,6 +144,126 @@ export class ViewerController {
   }
 
   /**
+   * Setup click handling for model interactions
+   */
+  setupClickHandling() {
+    this.canvas.addEventListener('click', event => this.handleCanvasClick(event));
+    this.canvas.addEventListener('mousemove', event => this.handleCanvasMouseMove(event));
+  }
+
+  /**
+   * Handle canvas click events
+   */
+  handleCanvasClick(event) {
+    // Prevent interaction if no model is loaded
+    if (!this.currentModel) return;
+
+    // Calculate normalized device coordinates
+    const rect = this.canvas.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Update raycaster
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    // Find intersections with model
+    const intersects = this.raycaster.intersectObject(this.currentModel, true);
+
+    if (intersects.length > 0) {
+      const intersectedObject = intersects[0].object;
+      const intersectedPoint = intersects[0].point;
+
+      // Get section ID from mesh
+      const sectionId = this.getMeshSectionId(intersectedObject);
+
+      // Emit MODEL_CLICKED event with detailed information
+      this.eventBus.emit(EVENTS.MODEL_CLICKED, {
+        mesh: intersectedObject,
+        meshName: intersectedObject.name,
+        meshUUID: intersectedObject.uuid,
+        sectionId: sectionId,
+        point: intersectedPoint.toArray(),
+        distance: intersects[0].distance,
+        timestamp: Date.now(),
+      });
+
+      // Update selected object
+      this.selectedObject = intersectedObject;
+
+      // Emit OBJECT_SELECTED event
+      this.eventBus.emit(EVENTS.OBJECT_SELECTED, {
+        object: intersectedObject,
+        sectionId: sectionId,
+        timestamp: Date.now(),
+      });
+    } else {
+      // Clicked on empty space - deselect
+      if (this.selectedObject) {
+        this.eventBus.emit(EVENTS.OBJECT_DESELECTED, {
+          timestamp: Date.now(),
+        });
+        this.selectedObject = null;
+      }
+    }
+  }
+
+  /**
+   * Handle canvas mouse move for hover effects (future enhancement)
+   */
+  handleCanvasMouseMove(event) {
+    // Placeholder for future hover highlighting
+    // Can be implemented to show previews before clicking
+  }
+
+  /**
+   * Get section ID for a given mesh
+   */
+  getMeshSectionId(mesh) {
+    // First try direct mapping by UUID
+    if (this.meshToSectionMap.has(mesh.uuid)) {
+      return this.meshToSectionMap.get(mesh.uuid);
+    }
+
+    // Try mapping by name
+    if (mesh.name) {
+      for (const [uuid, sectionId] of this.meshToSectionMap.entries()) {
+        const mappedMesh = this.currentModel.getObjectByProperty('uuid', uuid);
+        if (mappedMesh && mappedMesh.name === mesh.name) {
+          return sectionId;
+        }
+      }
+    }
+
+    // If no mapping found, return null
+    return null;
+  }
+
+  /**
+   * Update mesh-to-section mapping
+   */
+  updateMeshToSectionMap(sections) {
+    this.meshToSectionMap.clear();
+
+    if (!sections || sections.length === 0) return;
+
+    // Build mapping from sections to meshes
+    sections.forEach(section => {
+      if (section.meshNames && section.meshNames.length > 0) {
+        section.meshNames.forEach(meshName => {
+          // Find mesh by name in current model
+          if (this.currentModel) {
+            this.currentModel.traverse(child => {
+              if (child.isMesh && (child.name === meshName || child.uuid === meshName)) {
+                this.meshToSectionMap.set(child.uuid, section.id);
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
    * Add a 3D model to the scene
    */
   addModel(object) {
@@ -147,6 +278,12 @@ export class ViewerController {
 
     // Focus camera on model
     this.focusOnObject(object);
+
+    // Emit model updated event
+    this.eventBus.emit(EVENTS.MODEL_UPDATED, {
+      object3D: object,
+      timestamp: Date.now(),
+    });
   }
 
   /**
@@ -173,6 +310,13 @@ export class ViewerController {
     // Update state
     this.stateManager.setCameraPosition(this.camera.position);
     this.stateManager.setCameraTarget(center);
+
+    // Emit camera position changed event
+    this.eventBus.emit(EVENTS.CAMERA_POSITION_CHANGED, {
+      position: this.camera.position.toArray(),
+      target: center.toArray(),
+      timestamp: Date.now(),
+    });
   }
 
   /**
@@ -193,6 +337,17 @@ export class ViewerController {
         CAMERA_DEFAULTS.TARGET.z
       );
       this.controls.update();
+
+      // Emit camera position changed event for default position
+      this.eventBus.emit(EVENTS.CAMERA_POSITION_CHANGED, {
+        position: [
+          CAMERA_DEFAULTS.POSITION.x,
+          CAMERA_DEFAULTS.POSITION.y,
+          CAMERA_DEFAULTS.POSITION.z,
+        ],
+        target: [CAMERA_DEFAULTS.TARGET.x, CAMERA_DEFAULTS.TARGET.y, CAMERA_DEFAULTS.TARGET.z],
+        timestamp: Date.now(),
+      });
     }
 
     this.stateManager.setZoom(100);
@@ -239,6 +394,12 @@ export class ViewerController {
   removeModel() {
     if (this.currentModel) {
       this.scene.remove(this.currentModel);
+
+      // Emit model unload event
+      this.eventBus.emit(EVENTS.MODEL_UNLOAD, {
+        timestamp: Date.now(),
+      });
+
       this.currentModel = null;
     }
   }
@@ -253,7 +414,7 @@ export class ViewerController {
   /**
    * Enable focus mode on specific object
    */
-  enterFocusMode(object) {
+  enterFocusMode(object, sectionId = null) {
     if (!object) return;
 
     // Save current camera state
@@ -276,6 +437,13 @@ export class ViewerController {
     this.focusOnObject(object);
     this.focusMode = true;
     this.focusedObject = object;
+
+    // Emit focus mode entered event
+    this.eventBus.emit(EVENTS.FOCUS_MODE_ENTERED, {
+      object,
+      sectionId,
+      timestamp: Date.now(),
+    });
 
     console.log('Entered focus mode');
   }
@@ -307,6 +475,11 @@ export class ViewerController {
     this.focusMode = false;
     this.focusedObject = null;
     this.savedCameraState = null;
+
+    // Emit focus mode exited event
+    this.eventBus.emit(EVENTS.FOCUS_MODE_EXITED, {
+      timestamp: Date.now(),
+    });
 
     console.log('Exited focus mode');
   }
@@ -341,6 +514,14 @@ export class ViewerController {
     );
     this.controls.update();
 
+    // Emit camera preset changed event
+    this.eventBus.emit(EVENTS.CAMERA_PRESET_CHANGED, {
+      preset: presetName,
+      position: this.camera.position.toArray(),
+      target: this.controls.target.toArray(),
+      timestamp: Date.now(),
+    });
+
     console.log(`Camera preset '${presetName}' applied`);
   }
 
@@ -354,6 +535,13 @@ export class ViewerController {
     if (!object) return;
 
     this.focusOnObject(object);
+
+    // Emit frame object event
+    this.eventBus.emit(EVENTS.FRAME_OBJECT, {
+      object,
+      timestamp: Date.now(),
+    });
+
     console.log('Object framed in view');
   }
 
@@ -382,6 +570,12 @@ export class ViewerController {
       }
     });
 
+    // Emit wireframe toggled event
+    this.eventBus.emit(EVENTS.WIREFRAME_TOGGLED, {
+      enabled,
+      timestamp: Date.now(),
+    });
+
     console.log(`Wireframe mode: ${enabled ? 'enabled' : 'disabled'}`);
   }
 
@@ -392,6 +586,13 @@ export class ViewerController {
     const gridHelper = this.scene.children.find(child => child.type === 'GridHelper');
     if (gridHelper) {
       gridHelper.visible = visible;
+
+      // Emit grid toggled event
+      this.eventBus.emit(EVENTS.GRID_TOGGLED, {
+        visible,
+        timestamp: Date.now(),
+      });
+
       console.log(`Grid: ${visible ? 'visible' : 'hidden'}`);
     }
   }
@@ -403,6 +604,13 @@ export class ViewerController {
     const axesHelper = this.scene.children.find(child => child.type === 'AxesHelper');
     if (axesHelper) {
       axesHelper.visible = visible;
+
+      // Emit axes toggled event
+      this.eventBus.emit(EVENTS.AXES_TOGGLED, {
+        visible,
+        timestamp: Date.now(),
+      });
+
       console.log(`Axes: ${visible ? 'visible' : 'hidden'}`);
     }
   }

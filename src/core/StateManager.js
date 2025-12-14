@@ -79,7 +79,7 @@ export class StateManager {
    */
   setSelectedSection(sectionId) {
     this.setState({ selectedSection: sectionId });
-    this.eventBus.emit(EVENTS.SECTION_SELECTED, sectionId);
+    this.eventBus.emit(EVENTS.SECTION_SELECTED, { sectionId });
   }
 
   /**
@@ -94,7 +94,7 @@ export class StateManager {
    */
   setIsolatedSection(sectionId) {
     this.setState({ isolatedSection: sectionId });
-    this.eventBus.emit(EVENTS.SECTION_ISOLATED, sectionId);
+    this.eventBus.emit(EVENTS.SECTION_ISOLATED, { sectionId });
   }
 
   /**
@@ -183,14 +183,16 @@ export class StateManager {
    * Save current state to history
    */
   saveToHistory() {
-    const snapshot = JSON.parse(JSON.stringify({
-      currentModel: this.state.currentModel,
-      selectedSection: this.state.selectedSection,
-      isolatedSection: this.state.isolatedSection,
-      zoom: this.state.zoom,
-      cameraPosition: this.state.cameraPosition,
-      cameraTarget: this.state.cameraTarget,
-    }));
+    const snapshot = JSON.parse(
+      JSON.stringify({
+        currentModel: this.state.currentModel,
+        selectedSection: this.state.selectedSection,
+        isolatedSection: this.state.isolatedSection,
+        zoom: this.state.zoom,
+        cameraPosition: this.state.cameraPosition,
+        cameraTarget: this.state.cameraTarget,
+      })
+    );
 
     this.history.push(snapshot);
 
