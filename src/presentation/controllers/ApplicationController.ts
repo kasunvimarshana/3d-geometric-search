@@ -1,6 +1,6 @@
 /**
  * Application Controller
- * 
+ *
  * Main controller coordinating all UI components and services.
  * Handles user interactions and event routing.
  */
@@ -112,58 +112,136 @@ export class ApplicationController {
   }
 
   private setupDomainEventHandlers(): void {
-    // Model loading event
-    this.eventBus.subscribe(EventType.MODEL_LOADING, (event) => {
-      const payload = event.payload as { filename: string };
-      this.loadingOverlay.show(`Loading ${payload.filename}...`);
-      this.statusBar.setStatus('Loading model...', 'info');
-    });
+    try {
+      // Model loading event
+      this.eventBus.subscribe(EventType.MODEL_LOADING, (event) => {
+        try {
+          const payload = event.payload as { filename: string };
+          this.loadingOverlay.show(`Loading ${payload.filename}...`);
+          this.statusBar.setStatus('Loading model...', 'info');
+        } catch (error) {
+          console.error('[Controller] Error handling MODEL_LOADING:', error);
+        }
+      });
 
-    // Model loaded event
-    this.eventBus.subscribe(EventType.MODEL_LOADED, (event) => {
-      const payload = event.payload as { filename: string; sectionCount: number; format: string };
-      this.loadingOverlay.hide();
-      
-      const model = this.modelService.getCurrentModel();
-      if (model) {
-        this.sectionTree.setModel(model);
-        this.statusBar.setStatus('Model loaded successfully', 'success');
-        this.statusBar.setModelInfo(
-          `${payload.filename} | ${payload.sectionCount} sections | ${payload.format.toUpperCase()}`
-        );
-      }
-    });
+      // Model loaded event
+      this.eventBus.subscribe(EventType.MODEL_LOADED, (event) => {
+        try {
+          const payload = event.payload as {
+            filename: string;
+            sectionCount: number;
+            format: string;
+          };
+          this.loadingOverlay.hide();
 
-    // Model load error event
-    this.eventBus.subscribe(EventType.MODEL_LOAD_ERROR, (event) => {
-      const payload = event.payload as { error: Error };
-      this.loadingOverlay.hide();
-      this.statusBar.setStatus(`Error: ${payload.error.message}`, 'error');
-    });
+          const model = this.modelService.getCurrentModel();
+          if (model) {
+            this.sectionTree.setModel(model);
+            this.statusBar.setStatus('Model loaded successfully', 'success');
+            this.statusBar.setModelInfo(
+              `${payload.filename} | ${payload.sectionCount} sections | ${payload.format.toUpperCase()}`
+            );
+          } else {
+            console.warn('[Controller] Model loaded but getCurrentModel returned null');
+          }
+        } catch (error) {
+          console.error('[Controller] Error handling MODEL_LOADED:', error);
+          this.loadingOverlay.hide();
+          this.statusBar.setStatus('Error displaying model', 'error');
+        }
+      });
 
-    // Section selected event
-    this.eventBus.subscribe(EventType.SECTION_SELECTED, () => {
-      const section = this.modelService.getSelectedSection();
-      if (section) {
-        this.propertiesPanel.showSection(section);
-        this.statusBar.setStatus(`Selected: ${section.name}`, 'info');
-      }
-    });
+      // Model load error event
+      this.eventBus.subscribe(EventType.MODEL_LOAD_ERROR, (event) => {
+        try {
+          const payload = event.payload as { error: Error };
+          this.loadingOverlay.hide();
+          const message = payload.error?.message || 'Unknown error';
+          this.statusBar.setStatus(`Error: ${message}`, 'error');
+        } catch (error) {
+          console.error('[Controller] Error handling MODEL_LOAD_ERROR:', error);
+          this.loadingOverlay.hide();
+        }
+      });
 
-    // Section focused event
-    this.eventBus.subscribe(EventType.SECTION_FOCUSED, (event) => {
-      const payload = event.payload as { sectionId: string };
-      this.statusBar.setStatus(`Focused on section: ${payload.sectionId}`, 'info');
-    });
+      // Section selected event
+      this.eventBus.subscribe(EventType.SECTION_SELECTED, () => {
+        try {
+          const section = this.modelService.getSelectedSection();
+          if (section) {
+            this.propertiesPanel.showSection(section);
+            this.statusBar.setStatus(`Selected: ${section.name}`, 'info');
+          }
+        } catch (error) {
+          console.error('[Controller] Error handling SECTION_SELECTED:', error);
+        }
+      });
 
-    // Disassembly/reassembly events
-    this.eventBus.subscribe(EventType.MODEL_DISASSEMBLED, () => {
-      this.statusBar.setStatus('Model disassembled', 'success');
-    });
+      // Section focused event
+      this.eventBus.subscribe(EventType.SECTION_FOCUSED, (event) => {
+        try {
+          const payload = event.payload as { sectionId: string };
+          this.statusBar.setStatus(`Focused on section: ${payload.sectionId}`, 'info');
+        } catch (error) {
+          console.error('[Controller] Error handling SECTION_FOCUSED:', error);
+        }
+      });
 
-    this.eventBus.subscribe(EventType.MODEL_REASSEMBLED, () => {
-      this.statusBar.setStatus('Model reassembled', 'success');
-    });
+      // Disassembly/reassembly events
+      this.eventBus.subscribe(EventType.MODEL_DISASSEMBLED, () => {
+        try {
+          this.statusBar.setStatus('Model disassembled', 'success');
+        } catch (error) {
+          console.error('[Controller] Error handling MODEL_DISASSEMBLED:', error);
+        }
+      });
+
+      this.eventBus.subscribe(EventType.MODEL_REASSEMBLED, () => {
+        try {
+          this.statusBar.setStatus('Model reassembled', 'success');
+        } catch (error) {
+          console.error('[Controller] Error handling MODEL_REASSEMBLED:', error);
+        }
+      });
+
+      // Model cleared event
+      this.eventBus.subscribe(EventType.MODEL_CLEARED, () => {
+        try {
+          this.sectionTree.clear();
+          this.propertiesPanel.clear();
+          this.statusBar.setModelInfo('');
+          this.statusBar.setStatus('Model cleared', 'info');
+        } catch (error) {
+          console.error('[Controller] Error handling MODEL_CLEARED:', error);
+        }
+      });
+
+      // Fullscreen events
+      this.eventBus.subscribe(EventType.VIEW_FULLSCREEN, (event) => {
+        try {
+          const payload = event.payload as { enabled: boolean };
+          this.statusBar.setStatus(
+            payload.enabled ? 'Entered fullscreen' : 'Exited fullscreen',
+            'success'
+          );
+        } catch (error) {
+          console.error('[Controller] Error handling VIEW_FULLSCREEN:', error);
+        }
+      });
+
+      this.eventBus.subscribe(EventType.VIEW_FULLSCREEN_ERROR, (event) => {
+        try {
+          const payload = event.payload as { error: Error };
+          const message = payload.error?.message || 'Fullscreen not supported';
+          this.statusBar.setStatus(message, 'error');
+        } catch (error) {
+          console.error('[Controller] Error handling VIEW_FULLSCREEN_ERROR:', error);
+        }
+      });
+    } catch (error) {
+      console.error('[Controller] Fatal error setting up event handlers:', error);
+      this.statusBar.setStatus('Application error', 'error');
+    }
   }
 
   private handleLoadModel(): void {
@@ -174,51 +252,72 @@ export class ApplicationController {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+      console.warn('[Controller] No file selected');
+      return;
+    }
 
     try {
       await this.modelService.loadModel(file);
     } catch (error) {
+      console.error('[Controller] File load error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       this.statusBar.setStatus(`Failed to load model: ${errorMsg}`, 'error');
+      this.loadingOverlay.hide(); // Ensure overlay is hidden on error
+    } finally {
+      // Reset input to allow loading the same file again
+      input.value = '';
     }
-
-    // Reset input
-    input.value = '';
   }
 
   private handleDisassemble(): void {
-    const model = this.modelService.getCurrentModel();
-    if (!model) {
-      this.statusBar.setStatus('No model loaded', 'error');
-      return;
-    }
+    try {
+      const model = this.modelService.getCurrentModel();
+      if (!model) {
+        this.statusBar.setStatus('No model loaded', 'error');
+        return;
+      }
 
-    this.operationsService.disassemble(model);
+      if (this.operationsService.getDisassemblyState()) {
+        this.statusBar.setStatus('Model is already disassembled', 'info');
+        return;
+      }
+
+      this.operationsService.disassemble(model);
+    } catch (error) {
+      console.error('[Controller] Disassemble error:', error);
+      this.statusBar.setStatus('Failed to disassemble model', 'error');
+    }
   }
 
   private handleReassemble(): void {
-    if (!this.operationsService.getDisassemblyState()) {
-      this.statusBar.setStatus('Model is not disassembled', 'error');
-      return;
-    }
+    try {
+      if (!this.operationsService.getDisassemblyState()) {
+        this.statusBar.setStatus('Model is not disassembled', 'error');
+        return;
+      }
 
-    this.operationsService.reassemble();
+      this.operationsService.reassemble();
+    } catch (error) {
+      console.error('[Controller] Reassemble error:', error);
+      this.statusBar.setStatus('Failed to reassemble model', 'error');
+    }
   }
 
   private async handleFullscreen(): Promise<void> {
     const viewport = document.getElementById('viewport');
-    if (!viewport) return;
+    if (!viewport) {
+      console.error('[Controller] Viewport element not found');
+      this.statusBar.setStatus('Cannot enter fullscreen: viewport not found', 'error');
+      return;
+    }
 
     try {
       await this.viewService.toggleFullscreen(viewport);
-      const state = this.viewService.getState();
-      this.statusBar.setStatus(
-        state.isFullscreen ? 'Entered fullscreen' : 'Exited fullscreen',
-        'success'
-      );
+      // Status is set by event handler
     } catch (error) {
-      this.statusBar.setStatus('Fullscreen not supported', 'error');
+      console.error('[Controller] Fullscreen error:', error);
+      // Error status is set by event handler
     }
   }
 }

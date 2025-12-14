@@ -1,13 +1,18 @@
 /**
  * View Service
- * 
+ *
  * Manages view state and camera operations.
  * Coordinates view-related actions with the renderer.
  */
 
 import { IRenderer } from '@domain/interfaces/IRenderer';
 import { IEventBus } from '@domain/interfaces/IEventBus';
-import { ViewResetEvent, EventType } from '@domain/events/DomainEvents';
+import {
+  ViewResetEvent,
+  DisplayOptionChangedEvent,
+  ViewFullscreenEvent,
+  ViewFullscreenErrorEvent,
+} from '@domain/events/DomainEvents';
 
 export interface ViewState {
   wireframe: boolean;
@@ -30,51 +35,109 @@ export class ViewService {
   ) {}
 
   resetView(): void {
-    this.renderer.resetCamera();
-    this.eventBus.publish(new ViewResetEvent());
+    try {
+      this.renderer.resetCamera();
+      this.eventBus.publish(new ViewResetEvent());
+    } catch (error) {
+      console.error('[ViewService] Error resetting view:', error);
+    }
   }
 
   fitToView(): void {
-    this.renderer.fitToView();
+    try {
+      this.renderer.fitToView();
+    } catch (error) {
+      console.error('[ViewService] Error fitting to view:', error);
+    }
   }
 
   zoomIn(): void {
-    this.renderer.zoomIn();
+    try {
+      this.renderer.zoomIn();
+    } catch (error) {
+      console.error('[ViewService] Error zooming in:', error);
+    }
   }
 
   zoomOut(): void {
-    this.renderer.zoomOut();
+    try {
+      this.renderer.zoomOut();
+    } catch (error) {
+      console.error('[ViewService] Error zooming out:', error);
+    }
   }
 
   setWireframe(enabled: boolean): void {
-    this.state.wireframe = enabled;
-    this.renderer.setWireframe(enabled);
-    this.publishDisplayChange('wireframe', enabled);
+    try {
+      this.state.wireframe = enabled;
+      this.renderer.setWireframe(enabled);
+      this.publishDisplayChange('wireframe', enabled);
+    } catch (error) {
+      console.error('[ViewService] Error setting wireframe:', error);
+    }
   }
 
   setGridVisible(visible: boolean): void {
-    this.state.showGrid = visible;
-    this.renderer.setGridVisible(visible);
-    this.publishDisplayChange('grid', visible);
+    try {
+      this.state.showGrid = visible;
+      this.renderer.setGridVisible(visible);
+      this.publishDisplayChange('grid', visible);
+    } catch (error) {
+      console.error('[ViewService] Error setting grid visibility:', error);
+    }
   }
 
   setAxesVisible(visible: boolean): void {
-    this.state.showAxes = visible;
-    this.renderer.setAxesVisible(visible);
-    this.publishDisplayChange('axes', visible);
+    try {
+      this.state.showAxes = visible;
+      this.renderer.setAxesVisible(visible);
+      this.publishDisplayChange('axes', visible);
+    } catch (error) {
+      console.error('[ViewService] Error setting axes visibility:', error);
+    }
   }
 
   async toggleFullscreen(element: HTMLElement): Promise<void> {
-    if (!document.fullscreenElement) {
-      await element.requestFullscreen();
-      this.state.isFullscreen = true;
-    } else {
-      await document.exitFullscreen();
-      this.state.isFullscreen = false;
+    if (!element) {
+      const error = new Error('No element provided for fullscreen');
+      this.eventBus.publish(new ViewFullscreenErrorEvent({ error }));
+      throw error;
     }
-    
-    // Resize renderer after fullscreen change
-    setTimeout(() => this.renderer.resize(), 100);
+
+    try {
+      if (!document.fullscreenElement) {
+        // Check if fullscreen is supported
+        if (!element.requestFullscreen) {
+          throw new Error('Fullscreen API not supported by browser');
+        }
+
+        await element.requestFullscreen();
+        this.state.isFullscreen = true;
+      } else {
+        await document.exitFullscreen();
+        this.state.isFullscreen = false;
+      }
+
+      // Resize renderer after fullscreen change
+      setTimeout(() => {
+        try {
+          this.renderer.resize();
+        } catch (error) {
+          console.error('[ViewService] Error resizing after fullscreen:', error);
+        }
+      }, 100);
+
+      // Publish fullscreen event
+      this.eventBus.publish(new ViewFullscreenEvent({ enabled: this.state.isFullscreen }));
+    } catch (error) {
+      console.error('[ViewService] Fullscreen error:', error);
+      this.state.isFullscreen = false;
+
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.eventBus.publish(new ViewFullscreenErrorEvent({ error: errorObj }));
+
+      throw error;
+    }
   }
 
   getState(): Readonly<ViewState> {
@@ -82,10 +145,10 @@ export class ViewService {
   }
 
   private publishDisplayChange(option: string, value: boolean): void {
-    this.eventBus.publish({
-      type: EventType.DISPLAY_OPTION_CHANGED,
-      timestamp: new Date(),
-      payload: { option, value },
-    });
+    try {
+      this.eventBus.publish(new DisplayOptionChangedEvent({ option, value }));
+    } catch (error) {
+      console.error('[ViewService] Error publishing display change:', error);
+    }
   }
 }

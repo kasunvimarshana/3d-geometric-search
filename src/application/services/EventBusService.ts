@@ -1,6 +1,6 @@
 /**
  * Event Bus Service
- * 
+ *
  * Centralized event management implementation.
  * Provides pub/sub pattern for decoupled component communication.
  */
@@ -12,29 +12,86 @@ export class EventBusService implements IEventBus {
   private readonly handlers: Map<EventType, Set<EventHandler>> = new Map();
   private readonly eventHistory: DomainEvent[] = [];
   private readonly maxHistorySize = 100;
+  private isProcessing = false;
+  private eventQueue: DomainEvent[] = [];
 
   publish(event: DomainEvent): void {
-    // Store in history
-    this.eventHistory.push(event);
-    if (this.eventHistory.length > this.maxHistorySize) {
-      this.eventHistory.shift();
+    // Validate event
+    if (!event || !event.type) {
+      console.error('Invalid event published:', event);
+      return;
     }
 
-    // Notify handlers
-    const handlers = this.handlers.get(event.type);
-    if (!handlers) return;
+    // Queue event if currently processing to avoid recursion
+    if (this.isProcessing) {
+      this.eventQueue.push(event);
+      return;
+    }
 
-    // Execute handlers safely
-    handlers.forEach((handler) => {
-      try {
-        handler(event);
-      } catch (error) {
-        console.error(`Error in event handler for ${event.type}:`, error);
+    this.processEvent(event);
+
+    // Process queued events
+    while (this.eventQueue.length > 0) {
+      const queuedEvent = this.eventQueue.shift();
+      if (queuedEvent) {
+        this.processEvent(queuedEvent);
       }
-    });
+    }
+  }
+
+  private processEvent(event: DomainEvent): void {
+    this.isProcessing = true;
+
+    try {
+      // Store in history
+      this.eventHistory.push(event);
+      if (this.eventHistory.length > this.maxHistorySize) {
+        this.eventHistory.shift();
+      }
+
+      // Notify handlers
+      const handlers = this.handlers.get(event.type);
+      if (!handlers || handlers.size === 0) {
+        // No handlers - not necessarily an error
+        return;
+      }
+
+      // Execute handlers safely with error isolation
+      let errorCount = 0;
+      handlers.forEach((handler) => {
+        try {
+          handler(event);
+        } catch (error) {
+          errorCount++;
+          console.error(`[EventBus] Handler error for ${event.type}:`, error, '\nEvent:', event);
+
+          // Don't let handler errors break the event system
+          if (error instanceof Error) {
+            console.error('Stack:', error.stack);
+          }
+        }
+      });
+
+      if (errorCount > 0) {
+        console.warn(`[EventBus] ${errorCount} handler(s) failed for event ${event.type}`);
+      }
+    } finally {
+      this.isProcessing = false;
+    }
   }
 
   subscribe<T = unknown>(eventType: EventType, handler: EventHandler<T>): () => void {
+    // Validate inputs
+    if (!eventType) {
+      console.error('[EventBus] Cannot subscribe: invalid event type');
+      return () => {}; // Return no-op unsubscribe
+    }
+
+    if (typeof handler !== 'function') {
+      console.error('[EventBus] Cannot subscribe: handler must be a function');
+      return () => {};
+    }
+
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
     }
@@ -47,9 +104,19 @@ export class EventBusService implements IEventBus {
   }
 
   unsubscribe(eventType: EventType, handler: EventHandler): void {
+    if (!eventType || !handler) {
+      console.warn('[EventBus] Invalid unsubscribe call');
+      return;
+    }
+
     const handlers = this.handlers.get(eventType);
     if (handlers) {
       handlers.delete(handler);
+
+      // Clean up empty handler sets
+      if (handlers.size === 0) {
+        this.handlers.delete(eventType);
+      }
     }
   }
 
@@ -66,14 +133,33 @@ export class EventBusService implements IEventBus {
     if (!type) {
       return this.eventHistory[this.eventHistory.length - 1];
     }
-    
+
     for (let i = this.eventHistory.length - 1; i >= 0; i--) {
       const event = this.eventHistory[i];
       if (event && event.type === type) {
         return event;
       }
     }
-    
+
     return undefined;
+  }
+
+  /**
+   * Get diagnostic information about the event bus state
+   */
+  getDiagnostics(): {
+    handlerCount: number;
+    eventTypes: EventType[];
+    historySize: number;
+    isProcessing: boolean;
+    queueSize: number;
+  } {
+    return {
+      handlerCount: Array.from(this.handlers.values()).reduce((sum, set) => sum + set.size, 0),
+      eventTypes: Array.from(this.handlers.keys()),
+      historySize: this.eventHistory.length,
+      isProcessing: this.isProcessing,
+      queueSize: this.eventQueue.length,
+    };
   }
 }

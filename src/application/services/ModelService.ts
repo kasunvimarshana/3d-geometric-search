@@ -1,6 +1,6 @@
 /**
  * Model Service
- * 
+ *
  * Orchestrates model-related operations.
  * Manages model state and coordinates between loaders and renderers.
  */
@@ -16,6 +16,7 @@ import {
   ModelLoadErrorEvent,
   SectionSelectedEvent,
   SectionFocusedEvent,
+  ModelClearedEvent,
 } from '@domain/events/DomainEvents';
 
 export class ModelService {
@@ -29,13 +30,43 @@ export class ModelService {
   ) {}
 
   async loadModel(file: File): Promise<void> {
+    // Validate input
+    if (!file) {
+      const error = new Error('No file provided');
+      this.eventBus.publish(new ModelLoadErrorEvent({ error }));
+      throw error;
+    }
+
+    // Validate file size (e.g., 500MB limit)
+    const maxSize = 500 * 1024 * 1024;
+    if (file.size > maxSize) {
+      const error = new Error(
+        `File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum size: ${maxSize / 1024 / 1024}MB`
+      );
+      this.eventBus.publish(new ModelLoadErrorEvent({ error }));
+      throw error;
+    }
+
     try {
       // Publish loading event
       this.eventBus.publish(new ModelLoadingEvent({ filename: file.name }));
 
       // Determine format
       const format = this.detectFormat(file.name);
-      
+
+      if (format === ModelFormat.UNKNOWN) {
+        throw new Error(
+          `Unsupported file format. Supported formats: .gltf, .glb, .obj, .stl, .step, .stp`
+        );
+      }
+
+      // Check if loader supports format
+      if (!this.loader.canLoad(format)) {
+        throw new Error(
+          `No loader available for format: ${format}. This format may require additional configuration.`
+        );
+      }
+
       // Read file
       const data = await this.readFile(file);
 
@@ -45,6 +76,16 @@ export class ModelService {
         data,
         format,
       });
+
+      // Validate result
+      if (!result || !result.model) {
+        throw new Error('Loader returned invalid result');
+      }
+
+      // Clear previous model
+      if (this.currentModel) {
+        this.clearModel();
+      }
 
       // Store and render
       this.currentModel = result.model;
@@ -61,46 +102,77 @@ export class ModelService {
 
       // Log warnings if any
       if (result.warnings && result.warnings.length > 0) {
-        result.warnings.forEach((warning) => console.warn(warning));
+        result.warnings.forEach((warning) => console.warn('[ModelLoader]', warning));
       }
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
+      console.error('[ModelService] Load error:', errorObj);
       this.eventBus.publish(new ModelLoadErrorEvent({ error: errorObj }));
       throw error;
     }
   }
 
   selectSection(sectionId: string): void {
-    if (!this.currentModel) return;
+    if (!this.currentModel) {
+      console.warn('[ModelService] No model loaded, cannot select section');
+      return;
+    }
+
+    if (!sectionId) {
+      console.warn('[ModelService] Invalid section ID');
+      return;
+    }
 
     const section = this.currentModel.getSection(sectionId);
-    if (!section) return;
+    if (!section) {
+      console.warn(`[ModelService] Section not found: ${sectionId}`);
+      return;
+    }
 
-    // Clear previous selection
-    this.currentModel.clearSelection();
-    
-    // Set new selection
-    section.isSelected = true;
-    this.selectedSectionId = sectionId;
+    try {
+      // Clear previous selection
+      this.currentModel.clearSelection();
 
-    // Highlight in renderer
-    this.renderer.highlightSection(section);
+      // Set new selection
+      section.isSelected = true;
+      this.selectedSectionId = sectionId;
 
-    // Publish event
-    this.eventBus.publish(new SectionSelectedEvent({ sectionId }));
+      // Highlight in renderer
+      this.renderer.highlightSection(section);
+
+      // Publish event
+      this.eventBus.publish(new SectionSelectedEvent({ sectionId }));
+    } catch (error) {
+      console.error('[ModelService] Error selecting section:', error);
+    }
   }
 
   focusOnSection(sectionId: string): void {
-    if (!this.currentModel) return;
+    if (!this.currentModel) {
+      console.warn('[ModelService] No model loaded, cannot focus on section');
+      return;
+    }
+
+    if (!sectionId) {
+      console.warn('[ModelService] Invalid section ID');
+      return;
+    }
 
     const section = this.currentModel.getSection(sectionId);
-    if (!section) return;
+    if (!section) {
+      console.warn(`[ModelService] Section not found: ${sectionId}`);
+      return;
+    }
 
-    // Focus in renderer
-    this.renderer.focusOnSection(section);
+    try {
+      // Focus in renderer
+      this.renderer.focusOnSection(section);
 
-    // Publish event
-    this.eventBus.publish(new SectionFocusedEvent({ sectionId }));
+      // Publish event
+      this.eventBus.publish(new SectionFocusedEvent({ sectionId }));
+    } catch (error) {
+      console.error('[ModelService] Error focusing on section:', error);
+    }
   }
 
   getCurrentModel(): Model | null {
@@ -113,21 +185,28 @@ export class ModelService {
   }
 
   clearModel(): void {
-    this.currentModel = null;
-    this.selectedSectionId = null;
-    this.renderer.clearScene();
+    try {
+      this.currentModel = null;
+      this.selectedSectionId = null;
+      this.renderer.clearScene();
+
+      // Publish event
+      this.eventBus.publish(new ModelClearedEvent());
+    } catch (error) {
+      console.error('[ModelService] Error clearing model:', error);
+    }
   }
 
   private detectFormat(filename: string): ModelFormat {
     const ext = filename.toLowerCase().split('.').pop() || '';
-    
+
     const formatMap: Record<string, ModelFormat> = {
-      'gltf': ModelFormat.GLTF,
-      'glb': ModelFormat.GLB,
-      'step': ModelFormat.STEP,
-      'stp': ModelFormat.STEP,
-      'obj': ModelFormat.OBJ,
-      'stl': ModelFormat.STL,
+      gltf: ModelFormat.GLTF,
+      glb: ModelFormat.GLB,
+      step: ModelFormat.STEP,
+      stp: ModelFormat.STEP,
+      obj: ModelFormat.OBJ,
+      stl: ModelFormat.STL,
     };
 
     return formatMap[ext] || ModelFormat.UNKNOWN;
@@ -136,7 +215,7 @@ export class ModelService {
   private async readFile(file: File): Promise<ArrayBuffer> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (event): void => {
         const result = event.target?.result;
         if (result instanceof ArrayBuffer) {

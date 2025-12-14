@@ -1,6 +1,6 @@
 /**
  * Loading Overlay Component
- * 
+ *
  * Shows/hides loading state with spinner.
  * Provides user feedback during model loading.
  */
@@ -17,21 +17,50 @@ export class LoadingOverlayComponent {
   }
 
   show(message = 'Loading...'): void {
-    const textElement = this.overlay.querySelector('.loading-text');
-    if (textElement) {
-      textElement.textContent = message;
+    try {
+      if (!this.overlay) {
+        console.error('[LoadingOverlay] Overlay element not available');
+        return;
+      }
+
+      const textElement = this.overlay.querySelector('.loading-text');
+      if (textElement) {
+        textElement.textContent = message;
+      }
+      this.overlay.classList.remove('hidden');
+    } catch (error) {
+      console.error('[LoadingOverlay] Error showing overlay:', error);
     }
-    this.overlay.classList.remove('hidden');
   }
 
   hide(): void {
-    this.overlay.classList.add('hidden');
+    try {
+      if (!this.overlay) {
+        console.error('[LoadingOverlay] Overlay element not available');
+        return;
+      }
+
+      this.overlay.classList.add('hidden');
+    } catch (error) {
+      console.error('[LoadingOverlay] Error hiding overlay:', error);
+    }
   }
 
   updateMessage(message: string): void {
-    const textElement = this.overlay.querySelector('.loading-text');
-    if (textElement) {
-      textElement.textContent = message;
+    try {
+      if (!this.overlay) {
+        console.error('[LoadingOverlay] Overlay element not available');
+        return;
+      }
+
+      const textElement = this.overlay.querySelector('.loading-text');
+      if (textElement) {
+        textElement.textContent = message;
+      } else {
+        console.warn('[LoadingOverlay] Loading text element not found');
+      }
+    } catch (error) {
+      console.error('[LoadingOverlay] Error updating message:', error);
     }
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Section Tree Component
- * 
+ *
  * Displays hierarchical model structure.
  * Handles section selection and navigation.
  */
@@ -22,35 +22,62 @@ export class SectionTreeComponent {
   }
 
   setModel(model: Model): void {
-    this.clear();
-    
-    const rootSections = model.getRootSections();
-    
-    if (rootSections.length === 0) {
-      this.container.innerHTML = '<p class="empty-message">No sections available</p>';
-      return;
+    try {
+      if (!model) {
+        console.error('[SectionTree] Null model provided');
+        this.clear();
+        return;
+      }
+
+      this.clear();
+
+      const rootSections = model.getRootSections();
+
+      if (rootSections.length === 0) {
+        this.container.innerHTML = '<p class="empty-message">No sections available</p>';
+        return;
+      }
+
+      const tree = document.createElement('ul');
+      tree.className = 'tree-root';
+
+      rootSections.forEach((section) => {
+        try {
+          const node = this.createNode(section, model);
+          tree.appendChild(node);
+        } catch (error) {
+          console.error('[SectionTree] Error creating node:', error);
+        }
+      });
+
+      this.container.appendChild(tree);
+    } catch (error) {
+      console.error('[SectionTree] Error setting model:', error);
+      this.container.innerHTML = '<p class="error-message">Error loading model structure</p>';
     }
-
-    const tree = document.createElement('ul');
-    tree.className = 'tree-root';
-
-    rootSections.forEach((section) => {
-      const node = this.createNode(section, model);
-      tree.appendChild(node);
-    });
-
-    this.container.appendChild(tree);
   }
 
   clear(): void {
-    this.container.innerHTML = '';
+    try {
+      this.container.innerHTML = '';
+    } catch (error) {
+      console.error('[SectionTree] Error clearing tree:', error);
+    }
   }
 
   onSelect(handler: (sectionId: string) => void): void {
+    if (typeof handler !== 'function') {
+      console.error('[SectionTree] onSelect: handler must be a function');
+      return;
+    }
     this.onSectionSelect = handler;
   }
 
   onFocus(handler: (sectionId: string) => void): void {
+    if (typeof handler !== 'function') {
+      console.error('[SectionTree] onFocus: handler must be a function');
+      return;
+    }
     this.onSectionFocus = handler;
   }
 
@@ -59,93 +86,124 @@ export class SectionTreeComponent {
     li.className = 'tree-node';
     li.dataset['sectionId'] = section.id;
 
-    const content = document.createElement('div');
-    content.className = 'tree-node-content';
+    try {
+      const content = document.createElement('div');
+      content.className = 'tree-node-content';
 
-    // Expand/collapse button for nodes with children
-    const children = model.getChildSections(section.id);
-    if (children.length > 0) {
-      const toggle = document.createElement('button');
-      toggle.className = 'tree-toggle';
-      toggle.textContent = '▶';
-      toggle.onclick = (e) => {
-        e.stopPropagation();
-        this.toggleNode(li);
+      // Expand/collapse button for nodes with children
+      const children = model.getChildSections(section.id);
+      if (children.length > 0) {
+        const toggle = document.createElement('button');
+        toggle.className = 'tree-toggle';
+        toggle.textContent = '▶';
+        toggle.onclick = (e) => {
+          e.stopPropagation();
+          this.toggleNode(li);
+        };
+        content.appendChild(toggle);
+      } else {
+        const spacer = document.createElement('span');
+        spacer.className = 'tree-spacer';
+        content.appendChild(spacer);
+      }
+
+      // Section name
+      const label = document.createElement('span');
+      label.className = 'tree-label';
+      label.textContent = section.name;
+      label.onclick = () => {
+        this.handleSelect(section.id);
       };
-      content.appendChild(toggle);
-    } else {
-      const spacer = document.createElement('span');
-      spacer.className = 'tree-spacer';
-      content.appendChild(spacer);
-    }
+      content.appendChild(label);
 
-    // Section name
-    const label = document.createElement('span');
-    label.className = 'tree-label';
-    label.textContent = section.name;
-    label.onclick = () => {
-      this.handleSelect(section.id);
-    };
-    content.appendChild(label);
+      // Focus button
+      const focusBtn = document.createElement('button');
+      focusBtn.className = 'tree-focus-btn';
+      focusBtn.textContent = '🎯';
+      focusBtn.title = 'Focus on section';
+      focusBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.handleFocus(section.id);
+      };
+      content.appendChild(focusBtn);
 
-    // Focus button
-    const focusBtn = document.createElement('button');
-    focusBtn.className = 'tree-focus-btn';
-    focusBtn.textContent = '🎯';
-    focusBtn.title = 'Focus on section';
-    focusBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.handleFocus(section.id);
-    };
-    content.appendChild(focusBtn);
+      li.appendChild(content);
 
-    li.appendChild(content);
+      // Add children
+      if (children.length > 0) {
+        const childList = document.createElement('ul');
+        childList.className = 'tree-children';
 
-    // Add children
-    if (children.length > 0) {
-      const childList = document.createElement('ul');
-      childList.className = 'tree-children';
-      
-      children.forEach((child) => {
-        const childNode = this.createNode(child, model);
-        childList.appendChild(childNode);
-      });
+        children.forEach((child) => {
+          try {
+            const childNode = this.createNode(child, model);
+            childList.appendChild(childNode);
+          } catch (error) {
+            console.error('[SectionTree] Error creating child node:', error);
+          }
+        });
 
-      li.appendChild(childList);
+        li.appendChild(childList);
+      }
+    } catch (error) {
+      console.error('[SectionTree] Error in createNode:', error);
+      li.innerHTML = '<div class="tree-node-content error">Error loading section</div>';
     }
 
     return li;
   }
 
   private toggleNode(node: HTMLElement): void {
-    node.classList.toggle('expanded');
-    const toggle = node.querySelector('.tree-toggle');
-    if (toggle) {
-      toggle.textContent = node.classList.contains('expanded') ? '▼' : '▶';
+    try {
+      node.classList.toggle('expanded');
+      const toggle = node.querySelector('.tree-toggle');
+      if (toggle) {
+        toggle.textContent = node.classList.contains('expanded') ? '▼' : '▶';
+      }
+    } catch (error) {
+      console.error('[SectionTree] Error toggling node:', error);
     }
   }
 
   private handleSelect(sectionId: string): void {
-    // Remove previous selection
-    this.container.querySelectorAll('.tree-node-content').forEach((el) => {
-      el.classList.remove('selected');
-    });
+    try {
+      if (!sectionId) {
+        console.warn('[SectionTree] handleSelect: invalid sectionId');
+        return;
+      }
 
-    // Add selection to clicked node
-    const node = this.container.querySelector(`[data-section-id="${sectionId}"]`);
-    if (node) {
-      const content = node.querySelector('.tree-node-content');
-      content?.classList.add('selected');
-    }
+      // Remove previous selection
+      this.container.querySelectorAll('.tree-node-content').forEach((el) => {
+        el.classList.remove('selected');
+      });
 
-    if (this.onSectionSelect) {
-      this.onSectionSelect(sectionId);
+      // Add selection to clicked node
+      const node = this.container.querySelector(`[data-section-id="${sectionId}"]`);
+      if (node) {
+        const content = node.querySelector('.tree-node-content');
+        content?.classList.add('selected');
+      }
+
+      if (this.onSectionSelect) {
+        this.onSectionSelect(sectionId);
+      }
+    } catch (error) {
+      console.error('[SectionTree] Error handling select:', error);
     }
   }
 
   private handleFocus(sectionId: string): void {
-    if (this.onSectionFocus) {
-      this.onSectionFocus(sectionId);
+    try {
+      if (!sectionId) {
+        console.warn('[SectionTree] handleFocus: invalid sectionId');
+        return;
+      }
+
+      if (this.onSectionFocus) {
+        this.onSectionFocus(sectionId);
+      }
+    } catch (error) {
+      console.error('[SectionTree] Error handling focus:', error);
     }
   }
 }
