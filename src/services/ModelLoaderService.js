@@ -1,6 +1,7 @@
 /**
  * Model Loader Service - Handles loading and parsing of 3D models
  * Following Single Responsibility Principle and Dependency Inversion
+ * Supports: GLTF/GLB (preferred), OBJ, STL, FBX, STEP (via conversion)
  */
 
 import * as THREE from 'three';
@@ -8,8 +9,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { IModelLoader } from '../domain/models.js';
 import { MODEL_TYPES } from '../domain/constants.js';
+import { FormatConversionService } from './FormatConversionService.js';
 
 export class ModelLoaderService extends IModelLoader {
   constructor() {
@@ -18,12 +21,15 @@ export class ModelLoaderService extends IModelLoader {
     this.objLoader = new OBJLoader();
     this.mtlLoader = new MTLLoader();
     this.stlLoader = new STLLoader();
+    this.fbxLoader = new FBXLoader();
     this.textureLoader = new THREE.TextureLoader();
+    this.conversionService = new FormatConversionService();
     this.loadedObjects = new Map(); // modelId -> THREE.Object3D
+    this.loadingProgress = new Map(); // modelId -> progress percentage
   }
 
   /**
-   * Load a 3D model
+   * Load a 3D model with format detection and conversion support
    * @param {Model} model - Model to load
    * @returns {Promise<THREE.Object3D>} - Loaded 3D object
    */
@@ -47,11 +53,13 @@ export class ModelLoaderService extends IModelLoader {
         case MODEL_TYPES.STL:
           object = await this.loadSTL(model.url);
           break;
+        case MODEL_TYPES.FBX:
+          object = await this.loadFBX(model.url);
+          break;
         case MODEL_TYPES.STEP:
         case MODEL_TYPES.STP:
-          throw new Error(
-            'STEP format requires server-side conversion. Please convert to GLTF/GLB format.'
-          );
+          object = await this.loadSTEP(model.url);
+          break;
         default:
           throw new Error(`Unsupported model type: ${model.type}`);
       }
@@ -209,6 +217,75 @@ export class ModelLoaderService extends IModelLoader {
     }
 
     return object;
+  }
+
+  /**
+   * Load FBX model
+   */
+  async loadFBX(url) {
+    return new Promise((resolve, reject) => {
+      const loadUrl = url instanceof File ? URL.createObjectURL(url) : url;
+
+      this.fbxLoader.load(
+        loadUrl,
+        object => {
+          // FBX loader returns complete object with hierarchy
+          const processed = this.processLoadedObject(object);
+
+          // Clean up object URL if it was created
+          if (url instanceof File) {
+            URL.revokeObjectURL(loadUrl);
+          }
+
+          resolve(processed);
+        },
+        xhr => {
+          // Progress callback
+          const progress = xhr.loaded / xhr.total;
+          console.log(`FBX loading progress: ${(progress * 100).toFixed(0)}%`);
+        },
+        error => {
+          if (url instanceof File) {
+            URL.revokeObjectURL(loadUrl);
+          }
+          reject(error);
+        }
+      );
+    });
+  }
+
+  /**
+   * Load STEP model (with automatic conversion)
+   */
+  async loadSTEP(url) {
+    try {
+      // Check if we have a File object (can attempt conversion)
+      if (url instanceof File) {
+        console.log('Attempting STEP conversion...');
+
+        const conversionResult = await this.conversionService.convertSTEPToGLTF(url);
+
+        if (conversionResult.success && conversionResult.data) {
+          // Conversion successful, load the converted GLTF
+          console.log('STEP conversion successful, loading GLTF...');
+          return await this.loadGLTF(conversionResult.data);
+        } else if (conversionResult.requiresManualConversion) {
+          // Conversion not available, provide instructions
+          const error = new Error(conversionResult.message);
+          error.instructions = conversionResult.instructions;
+          error.isManualConversionRequired = true;
+          throw error;
+        }
+      }
+
+      // URL-based STEP files cannot be converted client-side
+      throw new Error(
+        'STEP format from URL requires pre-conversion. Please convert to GLTF/GLB format first. See documentation: /docs/STEP_FORMAT_GUIDE.md'
+      );
+    } catch (error) {
+      console.error('STEP loading failed:', error);
+      throw error;
+    }
   }
 
   /**

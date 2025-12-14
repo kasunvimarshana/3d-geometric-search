@@ -24,11 +24,28 @@ export class UIController {
       loadFileBtn: document.getElementById('load-file-btn'),
       fileName: document.getElementById('file-name'),
       sectionsList: document.getElementById('sections-list'),
+      sectionSearchInput: document.getElementById('section-search-input'),
       resetViewBtn: document.getElementById('reset-view-btn'),
+      frameObjectBtn: document.getElementById('frame-object-btn'),
       refreshBtn: document.getElementById('refresh-btn'),
       fullscreenBtn: document.getElementById('fullscreen-btn'),
+      cameraFrontBtn: document.getElementById('camera-front-btn'),
+      cameraTopBtn: document.getElementById('camera-top-btn'),
+      cameraRightBtn: document.getElementById('camera-right-btn'),
+      cameraIsoBtn: document.getElementById('camera-iso-btn'),
+      wireframeToggle: document.getElementById('wireframe-toggle'),
+      gridToggle: document.getElementById('grid-toggle'),
+      axesToggle: document.getElementById('axes-toggle'),
       zoomSlider: document.getElementById('zoom-slider'),
       zoomValue: document.getElementById('zoom-value'),
+      exportFormat: document.getElementById('export-format'),
+      exportBtn: document.getElementById('export-btn'),
+      helpBtn: document.getElementById('help-btn'),
+      helpOverlay: document.getElementById('help-overlay'),
+      closeHelpBtn: document.getElementById('close-help-btn'),
+      shortcutsList: document.getElementById('shortcuts-list'),
+      loadingOverlay: document.getElementById('loading-overlay'),
+      loadingProgress: document.getElementById('loading-progress'),
       sectionInfo: document.getElementById('section-info'),
     };
   }
@@ -213,8 +230,17 @@ export class UIController {
    */
   enableControls() {
     this.elements.resetViewBtn.disabled = false;
+    this.elements.frameObjectBtn.disabled = false;
     this.elements.refreshBtn.disabled = false;
     this.elements.zoomSlider.disabled = false;
+    this.elements.sectionSearchInput.disabled = false;
+    this.elements.cameraFrontBtn.disabled = false;
+    this.elements.cameraTopBtn.disabled = false;
+    this.elements.cameraRightBtn.disabled = false;
+    this.elements.cameraIsoBtn.disabled = false;
+    this.elements.wireframeToggle.disabled = false;
+    this.elements.exportFormat.disabled = false;
+    this.elements.exportBtn.disabled = false;
   }
 
   /**
@@ -222,8 +248,17 @@ export class UIController {
    */
   disableControls() {
     this.elements.resetViewBtn.disabled = true;
+    this.elements.frameObjectBtn.disabled = true;
     this.elements.refreshBtn.disabled = true;
     this.elements.zoomSlider.disabled = true;
+    this.elements.sectionSearchInput.disabled = true;
+    this.elements.cameraFrontBtn.disabled = true;
+    this.elements.cameraTopBtn.disabled = true;
+    this.elements.cameraRightBtn.disabled = true;
+    this.elements.cameraIsoBtn.disabled = true;
+    this.elements.wireframeToggle.disabled = true;
+    this.elements.exportFormat.disabled = true;
+    this.elements.exportBtn.disabled = true;
   }
 
   /**
@@ -243,22 +278,109 @@ export class UIController {
   /**
    * Show loading state
    */
-  showLoading() {
-    this.updateSectionInfo('Loading model...');
+  showLoading(message = 'Loading model...') {
+    this.elements.loadingOverlay.classList.remove('hidden');
+    const textElement = this.elements.loadingOverlay.querySelector('.loading-text');
+    if (textElement) {
+      textElement.textContent = message;
+    }
   }
 
   /**
    * Hide loading state
    */
   hideLoading() {
-    this.clearSectionInfo();
+    this.elements.loadingOverlay.classList.add('hidden');
+  }
+
+  /**
+   * Update loading progress
+   */
+  updateLoadingProgress(percent) {
+    if (this.elements.loadingProgress) {
+      this.elements.loadingProgress.textContent = `${Math.round(percent)}%`;
+    }
   }
 
   /**
    * Show error message
    */
   showError(message) {
-    this.updateSectionInfo(`Error: ${message}`);
+    this.updateSectionInfo(`⚠️ Error: ${message}`);
+    console.error(message);
+  }
+
+  /**
+   * Show info message
+   */
+  showInfo(message) {
+    this.updateSectionInfo(`ℹ️ ${message}`);
+  }
+
+  /**
+   * Show success message
+   */
+  showSuccess(message) {
+    this.updateSectionInfo(`✓ ${message}`);
+    // Clear after 3 seconds
+    setTimeout(() => this.clearSectionInfo(), 3000);
+  }
+
+  /**
+   * Toggle help overlay
+   */
+  toggleHelpOverlay() {
+    const isHidden = this.elements.helpOverlay.classList.toggle('hidden');
+
+    if (!isHidden) {
+      // Populate shortcuts when shown
+      this.populateShortcuts();
+    }
+  }
+
+  /**
+   * Populate keyboard shortcuts in help overlay
+   */
+  populateShortcuts() {
+    // Get shortcuts from the keyboard service via eventBus
+    const shortcuts = {
+      'View Controls': [
+        { key: 'R', description: 'Reset camera view' },
+        { key: 'F', description: 'Frame model in view' },
+        { key: 'W', description: 'Toggle wireframe mode' },
+        { key: 'H', description: 'Toggle help overlay' },
+        { key: 'F11', description: 'Toggle fullscreen' },
+      ],
+      'Camera Presets': [
+        { key: '1', description: 'Front view' },
+        { key: '5', description: 'Top view' },
+        { key: '4', description: 'Right view' },
+        { key: '7', description: 'Isometric view' },
+      ],
+      Navigation: [
+        { key: 'Esc', description: 'Exit focus mode' },
+        { key: '/', description: 'Focus search box' },
+      ],
+      Advanced: [
+        { key: 'Ctrl+E', description: 'Export model' },
+        { key: 'F5', description: 'Refresh view' },
+      ],
+    };
+
+    let html = '';
+    for (const [category, items] of Object.entries(shortcuts)) {
+      html += '<div class="shortcuts-category">';
+      html += `<h3>${category}</h3>`;
+      items.forEach(item => {
+        html += '<div class="shortcut-item">';
+        html += `<span class="shortcut-key">${item.key}</span>`;
+        html += `<span class="shortcut-description">${item.description}</span>`;
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    this.elements.shortcutsList.innerHTML = html;
   }
 
   /**

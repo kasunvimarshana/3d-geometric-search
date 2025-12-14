@@ -88,6 +88,7 @@ export class ModelRepository {
     if (filename.endsWith('.gltf')) return 'gltf';
     if (filename.endsWith('.obj')) return 'obj';
     if (filename.endsWith('.stl') || filename.endsWith('.stla')) return 'stl';
+    if (filename.endsWith('.fbx')) return 'fbx';
     if (filename.endsWith('.step') || filename.endsWith('.stp')) return 'step';
     if (filename.endsWith('.mtl')) return 'mtl';
 

@@ -12,7 +12,7 @@ export class ViewerController {
     this.canvas = canvas;
     this.eventBus = eventBus;
     this.stateManager = stateManager;
-    
+
     this.scene = null;
     this.camera = null;
     this.renderer = null;
@@ -20,7 +20,28 @@ export class ViewerController {
     this.currentModel = null;
     this.animationFrameId = null;
 
+    // Enhanced features
+    this.focusMode = false;
+    this.focusedObject = null;
+    this.savedCameraState = null;
+    this.cameraPresets = this.initializeCameraPresets();
+
     this.initialize();
+  }
+
+  /**
+   * Initialize camera presets
+   */
+  initializeCameraPresets() {
+    return {
+      front: { position: [0, 0, 15], target: [0, 0, 0] },
+      back: { position: [0, 0, -15], target: [0, 0, 0] },
+      top: { position: [0, 15, 0], target: [0, 0, 0] },
+      bottom: { position: [0, -15, 0], target: [0, 0, 0] },
+      left: { position: [-15, 0, 0], target: [0, 0, 0] },
+      right: { position: [15, 0, 0], target: [0, 0, 0] },
+      isometric: { position: [10, 10, 10], target: [0, 0, 0] },
+    };
   }
 
   /**
@@ -143,11 +164,7 @@ export class ViewerController {
 
     // Set camera position
     const distance = cameraDistance * 1.5;
-    this.camera.position.set(
-      center.x + distance,
-      center.y + distance * 0.5,
-      center.z + distance
-    );
+    this.camera.position.set(center.x + distance, center.y + distance * 0.5, center.z + distance);
 
     // Update controls target
     this.controls.target.copy(center);
@@ -231,6 +248,163 @@ export class ViewerController {
    */
   getCurrentModel() {
     return this.currentModel;
+  }
+
+  /**
+   * Enable focus mode on specific object
+   */
+  enterFocusMode(object) {
+    if (!object) return;
+
+    // Save current camera state
+    this.savedCameraState = {
+      position: this.camera.position.clone(),
+      target: this.controls.target.clone(),
+      zoom: this.camera.zoom,
+    };
+
+    // Hide all objects except focused one
+    if (this.currentModel) {
+      this.currentModel.traverse(child => {
+        if (child.isMesh && child !== object) {
+          child.visible = false;
+        }
+      });
+    }
+
+    // Focus camera on object
+    this.focusOnObject(object);
+    this.focusMode = true;
+    this.focusedObject = object;
+
+    console.log('Entered focus mode');
+  }
+
+  /**
+   * Exit focus mode
+   */
+  exitFocusMode() {
+    if (!this.focusMode) return;
+
+    // Restore visibility
+    if (this.currentModel) {
+      this.currentModel.traverse(child => {
+        if (child.isMesh) {
+          child.visible = true;
+        }
+      });
+    }
+
+    // Restore camera state
+    if (this.savedCameraState) {
+      this.camera.position.copy(this.savedCameraState.position);
+      this.controls.target.copy(this.savedCameraState.target);
+      this.camera.zoom = this.savedCameraState.zoom;
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+    }
+
+    this.focusMode = false;
+    this.focusedObject = null;
+    this.savedCameraState = null;
+
+    console.log('Exited focus mode');
+  }
+
+  /**
+   * Set camera to preset view
+   */
+  setCameraPreset(presetName) {
+    const preset = this.cameraPresets[presetName];
+    if (!preset) {
+      console.warn(`Camera preset '${presetName}' not found`);
+      return;
+    }
+
+    // Get model center if available
+    let center = new THREE.Vector3(0, 0, 0);
+    if (this.currentModel) {
+      const box = new THREE.Box3().setFromObject(this.currentModel);
+      center = box.getCenter(new THREE.Vector3());
+    }
+
+    // Set camera position and target
+    this.camera.position.set(
+      center.x + preset.position[0],
+      center.y + preset.position[1],
+      center.z + preset.position[2]
+    );
+    this.controls.target.set(
+      center.x + preset.target[0],
+      center.y + preset.target[1],
+      center.z + preset.target[2]
+    );
+    this.controls.update();
+
+    console.log(`Camera preset '${presetName}' applied`);
+  }
+
+  /**
+   * Frame object in view (fit to screen)
+   */
+  frameObject(object) {
+    if (!object) {
+      object = this.currentModel;
+    }
+    if (!object) return;
+
+    this.focusOnObject(object);
+    console.log('Object framed in view');
+  }
+
+  /**
+   * Get current focus state
+   */
+  getFocusMode() {
+    return this.focusMode;
+  }
+
+  /**
+   * Toggle wireframe mode
+   */
+  toggleWireframe(enabled) {
+    if (!this.currentModel) return;
+
+    this.currentModel.traverse(child => {
+      if (child.isMesh && child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(mat => {
+            mat.wireframe = enabled;
+          });
+        } else {
+          child.material.wireframe = enabled;
+        }
+      }
+    });
+
+    console.log(`Wireframe mode: ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Toggle grid helper visibility
+   */
+  toggleGrid(visible) {
+    const gridHelper = this.scene.children.find(child => child.type === 'GridHelper');
+    if (gridHelper) {
+      gridHelper.visible = visible;
+      console.log(`Grid: ${visible ? 'visible' : 'hidden'}`);
+    }
+  }
+
+  /**
+   * Toggle axes helper visibility
+   */
+  toggleAxes(visible) {
+    const axesHelper = this.scene.children.find(child => child.type === 'AxesHelper');
+    if (axesHelper) {
+      axesHelper.visible = visible;
+      console.log(`Axes: ${visible ? 'visible' : 'hidden'}`);
+    }
   }
 
   /**

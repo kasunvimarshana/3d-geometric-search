@@ -5,6 +5,218 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-12-14
+
+### Added - Major Feature Release
+
+#### New Services
+
+- **KeyboardShortcutsService** (`src/services/KeyboardShortcutsService.js`):
+  - Comprehensive keyboard control system
+  - View controls (R, F, W, H)
+  - Camera presets (1-7 for different views)
+  - Navigation shortcuts (Esc, /)
+  - Advanced operations (Ctrl+E for export, F5 for refresh)
+  - Configurable and extensible shortcut mapping
+  - Context-aware (disabled in input fields)
+
+- **ModelExportService** (`src/services/ModelExportService.js`):
+  - Export models to GLTF, GLB, OBJ, and STL formats
+  - Automatic download to user's computer
+  - Validation and error handling
+  - Support for binary and text-based formats
+
+#### Enhanced Viewer Features
+
+- **Camera Presets**: Quick access to standard views
+  - Front, Back, Top, Bottom, Left, Right views
+  - Isometric view for 3D perspective
+  - Button controls + keyboard shortcuts
+
+- **Focus Mode**:
+  - Enter focus mode to isolate specific objects
+  - Saved camera state for restoration
+  - Exit with Escape key or exit button
+
+- **Visual Controls**:
+  - Wireframe toggle (solid/wireframe rendering)
+  - Grid helper visibility toggle
+  - Axes helper visibility toggle
+  - Frame object (fit to screen)
+
+- **Section Search**:
+  - Real-time section filtering
+  - Search by section name
+  - Instant results display
+
+#### UI Enhancements
+
+- **Loading Overlay**:
+  - Animated spinner
+  - Progress indicator
+  - Customizable loading messages
+
+- **Help Overlay**:
+  - Interactive keyboard shortcuts guide
+  - Categorized shortcuts (View, Camera, Navigation, Advanced)
+  - Professional modal design with backdrop blur
+
+- **Enhanced Controls Panel**:
+  - Search sections input field
+  - Camera preset buttons
+  - Display toggles (wireframe, grid, axes)
+  - Export controls with format selection
+  - Help button with keyboard icon
+
+- **Success/Info Messages**:
+  - Success notifications with auto-dismiss
+  - Info messages for user guidance
+  - Icon prefixes for visual clarity
+
+### Enhanced - Improved Functionality
+
+- **ViewerController**:
+  - initializeCameraPresets() method
+  - enterFocusMode() / exitFocusMode()
+  - setCameraPreset(presetName)
+  - frameObject() for fit-to-screen
+  - toggleWireframe(), toggleGrid(), toggleAxes()
+  - Saved camera state management
+
+- **ApplicationController**:
+  - Integration with KeyboardShortcutsService
+  - Integration with ModelExportService
+  - handleFrameObject()
+  - handleExport() with format validation
+  - handleSectionSearch() with real-time filtering
+  - Comprehensive keyboard shortcut bindings
+
+- **UIController**:
+  - Extended element references (30+ UI elements)
+  - showSuccess() with auto-dismiss
+  - updateLoadingProgress()
+  - toggleHelpOverlay()
+  - populateShortcuts() for help display
+  - Enhanced enableControls() / disableControls()
+
+### Fixed
+
+- Duplicate Tab key in keyboard shortcuts
+- Missing aria-label on select elements
+- Safari compatibility for backdrop-filter
+- Line ending consistency (CRLF warnings)
+
+### Changed
+
+- **Version**: 1.2.0 → 2.0.0 (major release)
+- **Description**: Updated to reflect new keyboard shortcuts and export features
+- **UI Layout**: More comprehensive control panel
+- **Loading States**: Professional loading overlay instead of simple text
+- **Help System**: Interactive overlay instead of static documentation
+
+## [1.2.0] - 2025-12-14
+
+### Added - Comprehensive Multi-Format Support
+
+#### New Format Support
+
+- **FBX Format**: Full support for Autodesk FBX files
+  - Three.js FBXLoader integration
+  - Animation and hierarchy preservation
+  - Automatic normalization and centering
+- **Enhanced STEP Support**: Intelligent conversion system
+  - FormatConversionService with automatic conversion attempt
+  - Server-side conversion API integration (configurable)
+  - Fallback to manual conversion instructions
+  - Detailed conversion guide and tool recommendations
+- **Format Detection**: Extended repository to detect .fbx, .step, .stp files
+- **File Input**: Accept all supported formats (.gltf, .glb, .obj, .stl, .fbx, .step, .stp)
+
+#### New Services
+
+- **FormatConversionService** (`src/services/FormatConversionService.js`):
+  - STEP-to-GLTF conversion with caching
+  - Configurable conversion endpoints
+  - Client-side instruction fallback
+  - Conversion statistics and cache management
+
+#### Enhanced Components
+
+- **ModelLoaderService**:
+  - loadFBX() method for FBX files
+  - loadSTEP() method with automatic conversion
+  - Loading progress tracking
+  - Enhanced error messages with conversion instructions
+- **ApplicationController**:
+  - FBX validation and loading
+  - STEP conversion info messages
+  - Enhanced error handling with detailed instructions
+- **UIController**:
+  - New showInfo() method for informational messages
+  - Icon prefixes for error/info messages (⚠️, ℹ️)
+- **Constants**:
+  - FBX added to SUPPORTED_FORMATS.COMMON
+  - FILE_EXTENSIONS.FBX and MIME_TYPES.FBX
+  - Updated format categorization
+
+#### Documentation
+
+- **New**: `docs/MULTI_FORMAT_SUPPORT.md` (comprehensive format guide)
+  - Format comparison and selection guide
+  - Technical details for all supported formats
+  - Performance considerations
+  - Conversion workflows
+  - Best practices
+  - Troubleshooting
+- **Enhanced**: `docs/STEP_FORMAT_GUIDE.md`
+  - Updated with conversion service architecture
+  - FreeCAD batch conversion script
+  - Additional conversion tools
+- **Updated**: README.md
+  - Multi-format support prominently featured
+  - Format-specific loading instructions
+  - Updated project structure
+  - Version 1.2.0 notes
+
+#### User Interface
+
+- Updated placeholder: "Model URL (GLTF, GLB, OBJ, FBX, STL)"
+- Enhanced format info:
+  - **Supported:** GLTF/GLB (preferred), OBJ, STL, FBX
+  - **STEP/STP:** Automatic conversion attempted
+- Better visual hierarchy with strong emphasis
+- Multi-line format information
+
+#### Architecture Improvements
+
+- Strategy Pattern for format conversion
+- Conversion caching to avoid redundant processing
+- Configurable conversion endpoints for custom APIs
+- Graceful degradation: API → Manual instructions
+- Clean separation: Loading vs. Conversion concerns
+
+### Changed
+
+- **package.json**: Version bumped to 1.2.0
+- **Description**: Now highlights multi-format support
+- **File validation**: Updated to accept FBX files
+- **Error messages**: More informative with context-specific guidance
+- **STEP handling**: From immediate error to conversion attempt
+
+### Fixed
+
+- ✅ clearScene() → removeModel() method call fixed
+- ✅ File validation allows all documented formats
+- ✅ STEP files no longer immediately rejected
+
+### Technical Debt
+
+- Added FBXLoader dependency (Three.js examples)
+- Increased bundle size slightly due to new loaders
+- Conversion service requires API endpoint configuration for production
+
+---
+
 ## [1.1.0] - 2025-12-14
 
 ### Added - External Model Loading

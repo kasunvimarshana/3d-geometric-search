@@ -27,7 +27,7 @@
               <input
                 type="text"
                 id="model-url-input"
-                placeholder="Model URL (GLTF, GLB, OBJ, STL)"
+                placeholder="Model URL (GLTF, GLB, OBJ, FBX, STL)"
               />
               <button id="load-url-btn">Load URL</button>
 
@@ -35,14 +35,17 @@
                 <input
                   type="file"
                   id="model-file-input"
-                  accept=".gltf,.glb,.obj,.stl,.stla,.step,.stp"
+                  accept=".gltf,.glb,.obj,.stl,.stla,.fbx,.step,.stp"
                 />
                 <label for="model-file-input" class="file-input-label">Choose File</label>
                 <span id="file-name" class="file-name"></span>
               </div>
               <button id="load-file-btn" disabled>Load File</button>
               <div class="format-info">
-                <small>Supported: GLTF, GLB, OBJ, STL • STEP requires conversion</small>
+                <small
+                  ><strong>Supported:</strong> GLTF/GLB (preferred), OBJ, STL, FBX<br />
+                  <strong>STEP/STP:</strong> Automatic conversion attempted</small
+                >
               </div>
             </div>
           </div>
@@ -53,11 +56,50 @@
           </div>
 
           <div class="control-group">
+            <label>Search Sections:</label>
+            <input
+              type="text"
+              id="section-search-input"
+              placeholder="Search sections..."
+              disabled
+            />
+          </div>
+
+          <div class="control-group">
             <label>View Controls:</label>
             <div class="button-grid">
               <button id="reset-view-btn" disabled>Reset View</button>
+              <button id="frame-object-btn" disabled>Frame Model</button>
               <button id="refresh-btn" disabled>Refresh</button>
               <button id="fullscreen-btn">Fullscreen</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>Camera Presets:</label>
+            <div class="button-grid">
+              <button id="camera-front-btn" disabled>Front</button>
+              <button id="camera-top-btn" disabled>Top</button>
+              <button id="camera-right-btn" disabled>Right</button>
+              <button id="camera-iso-btn" disabled>Isometric</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>Display:</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="wireframe-toggle" disabled />
+                <span>Wireframe Mode</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="grid-toggle" checked />
+                <span>Show Grid</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="axes-toggle" checked />
+                <span>Show Axes</span>
+              </label>
             </div>
           </div>
 
@@ -66,6 +108,24 @@
             <input type="range" id="zoom-slider" min="1" max="200" value="100" disabled />
             <span id="zoom-value">100%</span>
           </div>
+
+          <div class="control-group">
+            <label for="export-format">Export Model:</label>
+            <div class="export-controls">
+              <select id="export-format" aria-label="Select export format" disabled>
+                <option value="">Select format...</option>
+                <option value="glb">GLB (Binary glTF)</option>
+                <option value="gltf">GLTF (JSON)</option>
+                <option value="obj">OBJ (Wavefront)</option>
+                <option value="stl">STL (Stereolithography)</option>
+              </select>
+              <button id="export-btn" disabled>Export</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <button id="help-btn" class="help-button">⌨️ Keyboard Shortcuts</button>
+          </div>
         </div>
       </div>
 
@@ -73,6 +133,18 @@
         <canvas id="canvas-3d"></canvas>
         <div id="info-overlay">
           <span id="section-info"></span>
+        </div>
+        <div id="loading-overlay" class="hidden">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading model...</div>
+          <div id="loading-progress" class="loading-progress">0%</div>
+        </div>
+        <div id="help-overlay" class="hidden">
+          <div class="help-content">
+            <h2>⌨️ Keyboard Shortcuts</h2>
+            <button id="close-help-btn" class="close-help-btn">✕</button>
+            <div id="shortcuts-list"></div>
+          </div>
         </div>
       </div>
     </div>

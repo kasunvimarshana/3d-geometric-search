@@ -8,6 +8,8 @@ import { StateManager } from '../core/StateManager.js';
 import { ModelRepository } from '../repositories/ModelRepository.js';
 import { ModelLoaderService } from '../services/ModelLoaderService.js';
 import { SectionManagerService } from '../services/SectionManagerService.js';
+import { KeyboardShortcutsService } from '../services/KeyboardShortcutsService.js';
+import { ModelExportService } from '../services/ModelExportService.js';
 import { ViewerController } from './ViewerController.js';
 import { UIController } from '../ui/UIController.js';
 import { EVENTS } from '../domain/constants.js';
@@ -24,6 +26,8 @@ export class ApplicationController {
     // Initialize services
     this.modelLoader = new ModelLoaderService();
     this.sectionManager = new SectionManagerService();
+    this.keyboardShortcuts = new KeyboardShortcutsService(this.eventBus);
+    this.exportService = new ModelExportService();
 
     // Initialize controllers
     const canvas = document.getElementById('canvas-3d');
@@ -79,6 +83,92 @@ export class ApplicationController {
 
     document.getElementById('fullscreen-btn').addEventListener('click', () => {
       this.handleToggleFullscreen();
+    });
+
+    document.getElementById('frame-object-btn').addEventListener('click', () => {
+      this.handleFrameObject();
+    });
+
+    document.getElementById('camera-front-btn').addEventListener('click', () => {
+      this.viewerController.setCameraPreset('front');
+    });
+
+    document.getElementById('camera-top-btn').addEventListener('click', () => {
+      this.viewerController.setCameraPreset('top');
+    });
+
+    document.getElementById('camera-right-btn').addEventListener('click', () => {
+      this.viewerController.setCameraPreset('right');
+    });
+
+    document.getElementById('camera-iso-btn').addEventListener('click', () => {
+      this.viewerController.setCameraPreset('isometric');
+    });
+
+    document.getElementById('wireframe-toggle').addEventListener('change', e => {
+      this.viewerController.toggleWireframe(e.target.checked);
+    });
+
+    document.getElementById('grid-toggle').addEventListener('change', e => {
+      this.viewerController.toggleGrid(e.target.checked);
+    });
+
+    document.getElementById('axes-toggle').addEventListener('change', e => {
+      this.viewerController.toggleAxes(e.target.checked);
+    });
+
+    document.getElementById('help-btn').addEventListener('click', () => {
+      this.uiController.toggleHelpOverlay();
+    });
+
+    document.getElementById('close-help-btn').addEventListener('click', () => {
+      this.uiController.toggleHelpOverlay();
+    });
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+      this.handleExport();
+    });
+
+    document.getElementById('section-search-input').addEventListener('input', e => {
+      this.handleSectionSearch(e.target.value);
+    });
+
+    // Keyboard shortcuts
+    this.eventBus.subscribe('SHORTCUT_RESET_VIEW', () => this.handleResetView());
+    this.eventBus.subscribe('SHORTCUT_FRAME_OBJECT', () => this.handleFrameObject());
+    this.eventBus.subscribe('SHORTCUT_TOGGLE_HELP', () => this.uiController.toggleHelpOverlay());
+    this.eventBus.subscribe('SHORTCUT_TOGGLE_WIREFRAME', () => {
+      const toggle = document.getElementById('wireframe-toggle');
+      toggle.checked = !toggle.checked;
+      this.viewerController.toggleWireframe(toggle.checked);
+    });
+    this.eventBus.subscribe('SHORTCUT_CAMERA_FRONT', () =>
+      this.viewerController.setCameraPreset('front')
+    );
+    this.eventBus.subscribe('SHORTCUT_CAMERA_BACK', () =>
+      this.viewerController.setCameraPreset('back')
+    );
+    this.eventBus.subscribe('SHORTCUT_CAMERA_TOP', () =>
+      this.viewerController.setCameraPreset('top')
+    );
+    this.eventBus.subscribe('SHORTCUT_CAMERA_BOTTOM', () =>
+      this.viewerController.setCameraPreset('bottom')
+    );
+    this.eventBus.subscribe('SHORTCUT_CAMERA_LEFT', () =>
+      this.viewerController.setCameraPreset('left')
+    );
+    this.eventBus.subscribe('SHORTCUT_CAMERA_RIGHT', () =>
+      this.viewerController.setCameraPreset('right')
+    );
+    this.eventBus.subscribe('SHORTCUT_CAMERA_ISOMETRIC', () =>
+      this.viewerController.setCameraPreset('isometric')
+    );
+    this.eventBus.subscribe('SHORTCUT_EXIT_FOCUS', () => this.viewerController.exitFocusMode());
+    this.eventBus.subscribe('SHORTCUT_TOGGLE_FULLSCREEN', () => this.handleToggleFullscreen());
+    this.eventBus.subscribe('SHORTCUT_REFRESH', () => this.handleRefresh());
+    this.eventBus.subscribe('SHORTCUT_EXPORT_MODEL', () => this.handleExport());
+    this.eventBus.subscribe('SHORTCUT_FOCUS_SEARCH', () => {
+      document.getElementById('section-search-input').focus();
     });
 
     // State Events
@@ -276,20 +366,22 @@ export class ApplicationController {
     }
 
     // Validate file type
-    const validExtensions = ['.gltf', '.glb', '.obj', '.stl', '.stla', '.step', '.stp'];
+    const validExtensions = ['.gltf', '.glb', '.obj', '.stl', '.stla', '.fbx', '.step', '.stp'];
     const fileExt = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
 
     if (!validExtensions.includes(fileExt)) {
-      this.uiController.showError('Please select a GLTF, GLB, OBJ, STL, or STEP file');
+      this.uiController.showError(
+        'Please select a supported file: GLTF, GLB, OBJ, STL, FBX, or STEP'
+      );
       return;
     }
 
-    // Special handling for STEP files
+    // Info message for STEP files (conversion will be attempted)
     if (fileExt === '.step' || fileExt === '.stp') {
-      this.uiController.showError(
-        'STEP files require conversion. Please convert to GLTF format first using CAD software (e.g., FreeCAD, Blender).'
+      console.log('STEP file detected. Attempting automatic conversion to GLTF...');
+      this.uiController.showInfo(
+        'STEP file detected. Attempting automatic conversion... This may take a moment.'
       );
-      return;
     }
 
     // Create model from file
@@ -341,8 +433,19 @@ export class ApplicationController {
       );
     } catch (error) {
       console.error('Failed to load external model:', error);
-      this.uiController.showError(`Failed to load model: ${error.message}`);
+
+      // Handle STEP conversion instructions if available
+      if (error.isManualConversionRequired && error.instructions) {
+        const toolsList = error.instructions.tools.map(t => `• ${t.name} (${t.url})`).join('\n');
+        this.uiController.showError(
+          `${error.message}\n\nRecommended conversion tools:\n${toolsList}\n\nSee: ${error.instructions.documentation}`
+        );
+      } else {
+        this.uiController.showError(`Failed to load model: ${error.message}`);
+      }
+
       this.uiController.disableControls();
+      this.uiController.hideLoading();
     }
   }
 
@@ -400,6 +503,72 @@ export class ApplicationController {
   }
 
   /**
+   * Handle frame object
+   */
+  handleFrameObject() {
+    this.viewerController.frameObject();
+    console.log('Model framed in view');
+  }
+
+  /**
+   * Handle export model
+   */
+  async handleExport() {
+    const formatSelect = document.getElementById('export-format');
+    const format = formatSelect.value;
+
+    if (!format) {
+      this.uiController.showError('Please select an export format');
+      return;
+    }
+
+    const model = this.viewerController.getCurrentModel();
+    if (!model) {
+      this.uiController.showError('No model loaded to export');
+      return;
+    }
+
+    try {
+      this.uiController.showLoading('Exporting model...');
+
+      const currentModel = this.stateManager.getCurrentModel();
+      const filename = currentModel?.name?.replace(/\.[^/.]+$/, '') || 'model';
+
+      await this.exportService.export(model, format, filename);
+
+      this.uiController.hideLoading();
+      this.uiController.showSuccess(`Model exported successfully as ${filename}.${format}`);
+
+      console.log(`Model exported as ${format}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      this.uiController.hideLoading();
+      this.uiController.showError(`Export failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Handle section search
+   */
+  handleSectionSearch(query) {
+    const sections = this.stateManager.getSections();
+
+    if (!query || query.trim() === '') {
+      // Show all sections
+      this.uiController.renderSections(sections);
+      return;
+    }
+
+    // Filter sections by name
+    const filtered = sections.filter(section =>
+      section.name.toLowerCase().includes(query.toLowerCase())
+    );
+
+    this.uiController.renderSections(filtered);
+    console.log(`Filtered ${filtered.length} of ${sections.length} sections`);
+  }
+
+  /**
    * Dispose of all resources
    */
   dispose() {
@@ -408,6 +577,7 @@ export class ApplicationController {
     this.sectionManager.clear();
     this.stateManager.clear();
     this.eventBus.clear();
+    this.keyboardShortcuts.dispose();
 
     console.log('Application disposed');
   }

@@ -1,24 +1,59 @@
 # 3D Geometric Search
 
-A professional, clean, and well-architected 3D model viewer with advanced section management, navigation, and interaction capabilities.
+A professional, clean, and well-architected 3D model viewer with comprehensive multi-format support, advanced section management, navigation controls, keyboard shortcuts, and model export capabilities.
 
-## Features
+## ✨ Key Features
 
-- **Dynamic Model Loading**: Load and display 3D models (GLTF/GLB format)
-- **External Model Support**: Load models from URLs or local files
-- **Section Management**: Automatic detection and hierarchical organization of model sections
+### 🎯 Multi-Format Support
+
+- **GLTF/GLB** (preferred): Web-optimized, modern standard
+- **OBJ/MTL**: Universal 3D format with material support
+- **STL**: 3D printing and CAD standard
+- **FBX**: Autodesk interchange format with animation
+- **STEP/STP**: CAD/engineering format with automatic conversion
+
+### 🔧 Core Functionality
+
+- **Dynamic Model Loading**: URLs and local file upload
+- **Section Management**: Automatic detection and hierarchical organization
 - **Section Isolation**: Focus on specific sections by hiding others
 - **Section Highlighting**: Visual highlighting of selected sections
+- **Section Search**: Real-time filtering of sections by name
 - **Interactive Navigation**: Orbit, pan, and zoom controls
+- **Camera Presets**: Quick views (Front, Top, Right, Isometric)
+- **Focus Mode**: Isolated viewing of specific objects
+- **Wireframe Toggle**: Switch between solid and wireframe rendering
+- **Grid/Axes Helpers**: Visual reference aids
+- **Model Export**: Save models as GLTF, GLB, OBJ, or STL
+- **Keyboard Shortcuts**: Comprehensive keyboard control
 - **Fullscreen Mode**: Distraction-free viewing experience
+- **Format Conversion**: Intelligent STEP-to-GLTF conversion
+- **Loading Progress**: Real-time loading indicators
 - **Clean UI**: Minimal, professional interface focused on usability
 - **Responsive Design**: Adapts to different screen sizes
 
-## Architecture
+### ⌨️ Keyboard Shortcuts
 
-The application follows **SOLID principles** and **clean code architecture**:
+- **R**: Reset camera view
+- **F**: Frame model in view
+- **W**: Toggle wireframe mode
+- **H**: Toggle help overlay
+- **1-7**: Camera preset views (Front, Top, Right, Isometric, etc.)
+- **Esc**: Exit focus mode
+- **F11**: Toggle fullscreen
+- **Ctrl+E**: Export model
+- **/**: Focus search box
+- **F5**: Refresh view
 
-### Project Structure
+### 🏗️ Architecture Excellence
+
+- **SOLID Principles**: Single Responsibility, Open/Closed, Dependency Inversion
+- **Clean Code**: DRY, separation of concerns, maintainability
+- **Design Patterns**: MVC, Observer, Repository, Facade, Service Layer
+- **Modular**: Testable, reusable, extensible components
+- **Production Ready**: Error handling, caching, performance optimized
+
+## 📁 Project Structure
 
 ```
 3d-geometric-search/
@@ -35,39 +70,30 @@ The application follows **SOLID principles** and **clean code architecture**:
 │   ├── repositories/         # Data access layer
 │   │   └── ModelRepository.js
 │   ├── services/             # Business logic services
-│   │   ├── ModelLoaderService.js
-│   │   └── SectionManagerService.js
+│   │   ├── ModelLoaderService.js         # Multi-format loading
+│   │   ├── SectionManagerService.js      # Section management
+│   │   ├── FormatConversionService.js    # Format conversion
+│   │   ├── KeyboardShortcutsService.js   # Keyboard control (NEW)
+│   │   └── ModelExportService.js         # Model export (NEW)
 │   ├── ui/                   # User interface components
 │   │   └── UIController.js
 │   ├── styles/               # Stylesheets
 │   │   └── main.css
 │   └── main.js               # Application entry point
+├── docs/                     # Documentation
+│   ├── MULTI_FORMAT_SUPPORT.md          # Format guide
+│   ├── STEP_FORMAT_GUIDE.md             # STEP conversion
+│   ├── EXTERNAL_MODELS.md               # External loading
+│   └── ARCHITECTURE.md                  # Architecture details
 ├── public/                   # Static assets
-│   └── models/               # 3D model files (GLTF/GLB)
+│   └── models/               # 3D model files
 ├── index.html                # Main HTML file
-├── package.json
+├── package.json              # v2.0.0
 ├── vite.config.js
 └── README.md
 ```
 
-### Design Patterns
-
-- **MVC Pattern**: Separation of concerns between model, view, and controller
-- **Observer Pattern**: Event-driven architecture using EventBus
-- **Repository Pattern**: Abstraction of data access
-- **Facade Pattern**: ApplicationController as a unified interface
-- **Service Layer**: Business logic encapsulation
-- **Interface Segregation**: Clear separation of responsibilities
-
-### Key Principles
-
-1. **Single Responsibility**: Each class has one clear purpose
-2. **Dependency Inversion**: High-level modules don't depend on low-level modules
-3. **Open/Closed**: Open for extension, closed for modification
-4. **DRY (Don't Repeat Yourself)**: No code duplication
-5. **Separation of Concerns**: Clear boundaries between layers
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -95,7 +121,7 @@ The application follows **SOLID principles** and **clean code architecture**:
    npm run dev
    ```
 
-4. Open your browser and navigate to `http://localhost:3000`
+4. Open your browser and navigate to `http://localhost:3001`
 
 ### Building for Production
 
@@ -111,9 +137,9 @@ The built files will be in the `dist/` directory.
 npm run preview
 ```
 
-## Usage
+## 📖 Usage
 
-### Loading a Model
+### Loading Models
 
 #### From Built-in Models
 
@@ -123,18 +149,39 @@ npm run preview
 
 #### From External URL
 
-1. Enter a model URL in the "Model URL" field (e.g., `https://example.com/model.gltf`)
-2. Click "Load URL"
-3. The model will be loaded from the specified URL
+1. Enter a model URL in the "Model URL" field
+2. Supported formats: GLTF, GLB, OBJ, STL, FBX
+3. Click "Load URL"
+4. The model will be loaded from the specified URL
+
+**Example URLs**:
+
+```
+https://example.com/model.glb
+https://example.com/model.obj
+https://example.com/model.stl
+```
 
 #### From Local File
 
 1. Click "Choose File" in the External Model section
-2. Select a GLTF or GLB file from your computer
+2. Select a file: `.gltf`, `.glb`, `.obj`, `.stl`, `.fbx`, `.step`, `.stp`
 3. Click "Load File"
-4. The model will be loaded from your local file system
+4. **STEP files**: Automatic conversion to GLTF will be attempted
 
-> **Note**: For more details on loading external models, see [docs/EXTERNAL_MODELS.md](docs/EXTERNAL_MODELS.md)
+**Supported Formats**:
+
+- ✅ GLTF/GLB (recommended for web)
+- ✅ OBJ/MTL (universal compatibility)
+- ✅ STL (3D printing)
+- ✅ FBX (Autodesk ecosystem)
+- ⚙️ STEP/STP (CAD - auto-conversion attempted)
+
+> **📘 Documentation**:
+>
+> - Multi-format guide: [docs/MULTI_FORMAT_SUPPORT.md](docs/MULTI_FORMAT_SUPPORT.md)
+> - STEP conversion: [docs/STEP_FORMAT_GUIDE.md](docs/STEP_FORMAT_GUIDE.md)
+> - External models: [docs/EXTERNAL_MODELS.md](docs/EXTERNAL_MODELS.md)
 
 ### Navigating the 3D View
 

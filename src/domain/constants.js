@@ -60,17 +60,17 @@ export const MODEL_TYPES = {
 };
 
 export const SUPPORTED_FORMATS = {
-  // Web-optimized formats (native Three.js support)
+  // Web-optimized formats (native Three.js support, preferred)
   WEB_NATIVE: ['gltf', 'glb'],
 
   // Common 3D formats (Three.js loaders available)
-  COMMON: ['obj', 'stl'],
+  COMMON: ['obj', 'stl', 'fbx'],
 
   // CAD/Engineering formats (require conversion or third-party libraries)
   CAD: ['step', 'stp'],
 
-  // Future support
-  PLANNED: ['fbx', 'dae', 'ply'],
+  // Future support (planned)
+  PLANNED: ['dae', 'ply', '3ds'],
 };
 
 export const FILE_EXTENSIONS = {
@@ -78,6 +78,7 @@ export const FILE_EXTENSIONS = {
   OBJ: ['.obj'],
   MTL: ['.mtl'],
   STL: ['.stl', '.stla'],
+  FBX: ['.fbx'],
   STEP: ['.step', '.stp'],
 };
 
@@ -86,5 +87,6 @@ export const MIME_TYPES = {
   GLB: 'model/gltf-binary',
   OBJ: 'text/plain',
   STL: 'application/sla',
+  FBX: 'application/octet-stream',
   STEP: 'application/step',
 };
