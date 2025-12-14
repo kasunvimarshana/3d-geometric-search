@@ -1,6 +1,6 @@
 /**
  * Three.js Renderer
- * 
+ *
  * Implementation of IRenderer using Three.js.
  * Handles 3D scene rendering, camera control, and visual effects.
  */
@@ -60,7 +60,7 @@ export class ThreeJSRenderer implements IRenderer {
 
       // Start animation loop
       this.animate();
-      
+
       resolve();
     });
   }
@@ -72,7 +72,7 @@ export class ThreeJSRenderer implements IRenderer {
 
     this.controls.dispose();
     this.renderer.dispose();
-    
+
     if (this.container && this.renderer.domElement.parentElement) {
       this.container.removeChild(this.renderer.domElement);
     }
@@ -101,15 +101,18 @@ export class ThreeJSRenderer implements IRenderer {
 
       // Create group for model
       this.modelGroup = new THREE.Group();
-      
+
       if (threeJsObject && typeof threeJsObject === 'object' && 'isObject3D' in threeJsObject) {
         // Clone the loaded Three.js object
         this.modelGroup.add(threeJsObject as THREE.Object3D);
       } else {
         // Fallback: create placeholder geometry if no Three.js object provided
-        console.warn('No Three.js object provided, creating placeholder for model:', model.metadata.filename);
+        console.warn(
+          'No Three.js object provided, creating placeholder for model:',
+          model.metadata.filename
+        );
         const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshStandardMaterial({ 
+        const material = new THREE.MeshStandardMaterial({
           color: 0x3498db,
           metalness: 0.3,
           roughness: 0.7,
@@ -117,12 +120,12 @@ export class ThreeJSRenderer implements IRenderer {
         const cube = new THREE.Mesh(geometry, material);
         this.modelGroup.add(cube);
       }
-      
+
       this.scene.add(this.modelGroup);
 
       // Fit to view
       this.fitToView();
-      
+
       resolve();
     });
   }
@@ -197,13 +200,9 @@ export class ThreeJSRenderer implements IRenderer {
 
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = this.camera.fov * (Math.PI / 180);
-    const distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+    const distance = (maxDim / (2 * Math.tan(fov / 2))) * 1.5;
 
-    this.camera.position.set(
-      center.x + distance,
-      center.y + distance,
-      center.z + distance
-    );
+    this.camera.position.set(center.x + distance, center.y + distance, center.z + distance);
     this.controls.target.copy(center);
     this.controls.update();
   }
@@ -223,13 +222,9 @@ export class ThreeJSRenderer implements IRenderer {
 
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = this.camera.fov * (Math.PI / 180);
-    const distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+    const distance = (maxDim / (2 * Math.tan(fov / 2))) * 1.5;
 
-    this.camera.position.set(
-      center.x + distance,
-      center.y + distance,
-      center.z + distance
-    );
+    this.camera.position.set(center.x + distance, center.y + distance, center.z + distance);
     this.controls.target.copy(center);
     this.controls.update();
   }
@@ -321,7 +316,7 @@ export class ThreeJSRenderer implements IRenderer {
     group.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose();
-        
+
         if (Array.isArray(child.material)) {
           child.material.forEach((mat) => mat.dispose());
         } else {

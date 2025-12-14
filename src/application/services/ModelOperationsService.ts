@@ -1,16 +1,13 @@
 /**
  * Model Operations Service
- * 
+ *
  * Handles complex model operations like disassembly and reassembly.
  * Manages model transformations and animations.
  */
 
 import { Model } from '@domain/models/Model';
 import { IEventBus } from '@domain/interfaces/IEventBus';
-import {
-  ModelDisassembledEvent,
-  ModelReassembledEvent,
-} from '@domain/events/DomainEvents';
+import { ModelDisassembledEvent, ModelReassembledEvent } from '@domain/events/DomainEvents';
 
 export class ModelOperationsService {
   private isDisassembled = false;
@@ -26,7 +23,7 @@ export class ModelOperationsService {
     // 2. Calculate explosion center
     // 3. Move sections away from center
     // 4. Animate the movement
-    
+
     this.isDisassembled = true;
 
     this.eventBus.publish(new ModelDisassembledEvent());

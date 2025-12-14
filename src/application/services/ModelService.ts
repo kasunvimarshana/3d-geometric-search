@@ -1,6 +1,6 @@
 /**
  * Model Service
- * 
+ *
  * Orchestrates model-related operations.
  * Manages model state and coordinates between loaders and renderers.
  */
@@ -35,7 +35,7 @@ export class ModelService {
 
       // Determine format
       const format = this.detectFormat(file.name);
-      
+
       // Read file
       const data = await this.readFile(file);
 
@@ -78,7 +78,7 @@ export class ModelService {
 
     // Clear previous selection
     this.currentModel.clearSelection();
-    
+
     // Set new selection
     section.isSelected = true;
     this.selectedSectionId = sectionId;
@@ -120,14 +120,14 @@ export class ModelService {
 
   private detectFormat(filename: string): ModelFormat {
     const ext = filename.toLowerCase().split('.').pop() || '';
-    
+
     const formatMap: Record<string, ModelFormat> = {
-      'gltf': ModelFormat.GLTF,
-      'glb': ModelFormat.GLB,
-      'step': ModelFormat.STEP,
-      'stp': ModelFormat.STEP,
-      'obj': ModelFormat.OBJ,
-      'stl': ModelFormat.STL,
+      gltf: ModelFormat.GLTF,
+      glb: ModelFormat.GLB,
+      step: ModelFormat.STEP,
+      stp: ModelFormat.STEP,
+      obj: ModelFormat.OBJ,
+      stl: ModelFormat.STL,
     };
 
     return formatMap[ext] || ModelFormat.UNKNOWN;
@@ -136,7 +136,7 @@ export class ModelService {
   private async readFile(file: File): Promise<ArrayBuffer> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (event): void => {
         const result = event.target?.result;
         if (result instanceof ArrayBuffer) {

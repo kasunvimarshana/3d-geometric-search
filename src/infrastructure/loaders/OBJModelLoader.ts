@@ -1,6 +1,6 @@
 /**
  * OBJ Loader
- * 
+ *
  * Loads OBJ format models (with optional MTL materials).
  * Common format for geometry exchange.
  */
@@ -24,9 +24,10 @@ export class OBJModelLoader implements IModelLoader {
       try {
         // Convert ArrayBuffer to text
         const decoder = new TextDecoder('utf-8');
-        const text = typeof options.data === 'string' 
-          ? options.data 
-          : decoder.decode(options.data as ArrayBuffer);
+        const text =
+          typeof options.data === 'string'
+            ? options.data
+            : decoder.decode(options.data as ArrayBuffer);
 
         const group = this.loader.parse(text);
 
@@ -73,7 +74,7 @@ export class OBJModelLoader implements IModelLoader {
       if (child instanceof THREE.Mesh) {
         child.geometry.computeBoundingBox();
         const box = child.geometry.boundingBox;
-        
+
         if (box) {
           section.boundingBox = {
             min: { x: box.min.x, y: box.min.y, z: box.min.z },

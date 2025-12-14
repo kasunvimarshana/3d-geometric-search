@@ -1,6 +1,6 @@
 /**
  * STL Loader
- * 
+ *
  * Loads STL format models (ASCII and binary).
  * Common format for 3D printing and manufacturing.
  */
@@ -45,10 +45,12 @@ export class STLModelLoader implements IModelLoader {
           options.filename.replace('.stl', ''),
           null,
           [],
-          box ? {
-            min: { x: box.min.x, y: box.min.y, z: box.min.z },
-            max: { x: box.max.x, y: box.max.y, z: box.max.z },
-          } : null
+          box
+            ? {
+                min: { x: box.min.x, y: box.min.y, z: box.min.z },
+                max: { x: box.max.x, y: box.max.y, z: box.max.z },
+              }
+            : null
         );
 
         model.addSection(section);

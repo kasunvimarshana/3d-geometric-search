@@ -1,6 +1,6 @@
 /**
  * 3D Model
- * 
+ *
  * Core domain entity representing a complete 3D model.
  * Manages sections, hierarchy, and model-level properties.
  */
@@ -40,7 +40,7 @@ export class Model {
 
   addSection(section: ModelSection): void {
     this.sections.set(section.id, section);
-    
+
     if (section.parentId === null) {
       if (!this.rootSectionIds.includes(section.id)) {
         this.rootSectionIds.push(section.id);

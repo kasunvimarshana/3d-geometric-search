@@ -1,6 +1,6 @@
 /**
  * glTF Loader
- * 
+ *
  * Loads glTF and GLB format models.
  * Preferred format for web-based 3D rendering.
  */
@@ -23,10 +23,8 @@ export class GLTFModelLoader implements IModelLoader {
     return new Promise((resolve, reject) => {
       try {
         // Convert ArrayBuffer to Blob URL
-        const blob = new Blob([options.data], { 
-          type: options.format === ModelFormat.GLB 
-            ? 'model/gltf-binary' 
-            : 'model/gltf+json' 
+        const blob = new Blob([options.data], {
+          type: options.format === ModelFormat.GLB ? 'model/gltf-binary' : 'model/gltf+json',
         });
         const url = URL.createObjectURL(blob);
 
@@ -85,7 +83,7 @@ export class GLTFModelLoader implements IModelLoader {
       if (child instanceof THREE.Mesh) {
         child.geometry.computeBoundingBox();
         const box = child.geometry.boundingBox;
-        
+
         if (box) {
           section.boundingBox = {
             min: { x: box.min.x, y: box.min.y, z: box.min.z },

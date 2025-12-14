@@ -1,6 +1,6 @@
 /**
  * Model Loader Interface
- * 
+ *
  * Contract for loading 3D models from various formats.
  * Implementations handle format-specific parsing and conversion.
  */
@@ -21,7 +21,7 @@ export interface LoadResult {
 
 export interface IModelLoader {
   readonly supportedFormats: ModelFormat[];
-  
+
   canLoad(format: ModelFormat): boolean;
   load(options: LoadOptions): Promise<LoadResult>;
 }

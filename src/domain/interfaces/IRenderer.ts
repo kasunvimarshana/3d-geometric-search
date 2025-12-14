@@ -1,6 +1,6 @@
 /**
  * Renderer Interface
- * 
+ *
  * Contract for 3D scene rendering.
  * Abstracts rendering engine details from the domain.
  */
@@ -23,27 +23,27 @@ export interface CameraPosition {
 export interface IRenderer {
   initialize(container: HTMLElement): Promise<void>;
   dispose(): void;
-  
+
   render(): void;
   resize(): void;
-  
+
   loadModel(model: Model, threeJsObject?: unknown): Promise<void>;
   clearScene(): void;
-  
+
   highlightSection(section: ModelSection): void;
   clearHighlight(): void;
-  
+
   focusOnSection(section: ModelSection): void;
   resetCamera(): void;
   fitToView(): void;
-  
+
   setWireframe(enabled: boolean): void;
   setGridVisible(visible: boolean): void;
   setAxesVisible(visible: boolean): void;
-  
+
   zoomIn(): void;
   zoomOut(): void;
-  
+
   getCameraPosition(): CameraPosition;
   setCameraPosition(position: CameraPosition): void;
 }
