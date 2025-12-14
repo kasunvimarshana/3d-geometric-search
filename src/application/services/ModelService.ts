@@ -16,7 +16,12 @@ import {
   ModelLoadErrorEvent,
   SectionSelectedEvent,
   SectionFocusedEvent,
+  SectionDeselectedEvent,
+  SelectionClearedEvent,
   ModelClearedEvent,
+  SectionClickedEvent,
+  ViewportClickedEvent,
+  ClickErrorEvent,
 } from '@domain/events/DomainEvents';
 
 export class ModelService {
@@ -184,6 +189,61 @@ export class ModelService {
     return this.currentModel.getSection(this.selectedSectionId);
   }
 
+  clearSelection(): void {
+    try {
+      if (!this.currentModel) {
+        console.warn('[ModelService] No model loaded, cannot clear selection');
+        return;
+      }
+
+      // Clear selection in model
+      this.currentModel.clearSelection();
+      this.selectedSectionId = null;
+
+      // Clear highlight in renderer
+      this.renderer.clearHighlight();
+
+      // Publish event
+      this.eventBus.publish(new SelectionClearedEvent());
+    } catch (error) {
+      console.error('[ModelService] Error clearing selection:', error);
+    }
+  }
+
+  deselectSection(sectionId: string): void {
+    try {
+      if (!this.currentModel) {
+        console.warn('[ModelService] No model loaded');
+        return;
+      }
+
+      if (!sectionId) {
+        console.warn('[ModelService] Invalid section ID');
+        return;
+      }
+
+      const section = this.currentModel.getSection(sectionId);
+      if (!section) {
+        console.warn(`[ModelService] Section not found: ${sectionId}`);
+        return;
+      }
+
+      // Deselect section
+      section.isSelected = false;
+      if (this.selectedSectionId === sectionId) {
+        this.selectedSectionId = null;
+      }
+
+      // Clear highlight in renderer
+      this.renderer.clearHighlight();
+
+      // Publish event
+      this.eventBus.publish(new SectionDeselectedEvent({ sectionId }));
+    } catch (error) {
+      console.error('[ModelService] Error deselecting section:', error);
+    }
+  }
+
   clearModel(): void {
     try {
       this.currentModel = null;
@@ -194,6 +254,78 @@ export class ModelService {
       this.eventBus.publish(new ModelClearedEvent());
     } catch (error) {
       console.error('[ModelService] Error clearing model:', error);
+    }
+  }
+
+  handleSectionClick(sectionId: string, event: MouseEvent): void {
+    try {
+      if (!this.currentModel) {
+        console.warn('[ModelService] No model loaded, ignoring click');
+        return;
+      }
+
+      if (!sectionId) {
+        console.warn('[ModelService] Invalid section ID in click');
+        return;
+      }
+
+      // Publish click event
+      this.eventBus.publish(
+        new SectionClickedEvent({
+          sectionId,
+          x: event.clientX,
+          y: event.clientY,
+          button: event.button,
+        })
+      );
+
+      // Select the clicked section
+      this.selectSection(sectionId);
+    } catch (error) {
+      console.error('[ModelService] Error handling section click:', error);
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.eventBus.publish(new ClickErrorEvent({ error: errorObj, context: 'section click' }));
+    }
+  }
+
+  handleViewportClick(event: MouseEvent): void {
+    try {
+      // Publish viewport click event
+      this.eventBus.publish(
+        new ViewportClickedEvent({
+          x: event.clientX,
+          y: event.clientY,
+          button: event.button,
+        })
+      );
+
+      // Clear selection on empty space click (left button only)
+      if (event.button === 0) {
+        this.clearSelection();
+      }
+    } catch (error) {
+      console.error('[ModelService] Error handling viewport click:', error);
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.eventBus.publish(new ClickErrorEvent({ error: errorObj, context: 'viewport click' }));
+    }
+  }
+
+  enableClickHandling(): void {
+    try {
+      this.renderer.enableClickHandling(
+        (sectionId: string, event: MouseEvent) => this.handleSectionClick(sectionId, event),
+        (event: MouseEvent) => this.handleViewportClick(event)
+      );
+    } catch (error) {
+      console.error('[ModelService] Error enabling click handling:', error);
+    }
+  }
+
+  disableClickHandling(): void {
+    try {
+      this.renderer.disableClickHandling();
+    } catch (error) {
+      console.error('[ModelService] Error disabling click handling:', error);
     }
   }
 

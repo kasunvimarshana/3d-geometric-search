@@ -1,6 +1,6 @@
 /**
  * Three.js Renderer
- * 
+ *
  * Implementation of IRenderer using Three.js.
  * Handles 3D scene rendering, camera control, and visual effects.
  */
@@ -26,6 +26,13 @@ export class ThreeJSRenderer implements IRenderer {
   private axesHelper: THREE.AxesHelper | null = null;
 
   private animationFrameId: number | null = null;
+
+  // Click handling
+  private raycaster: THREE.Raycaster = new THREE.Raycaster();
+  private mouse: THREE.Vector2 = new THREE.Vector2();
+  private clickHandler: ((event: MouseEvent) => void) | null = null;
+  private onSectionClickCallback: ((sectionId: string, event: MouseEvent) => void) | null = null;
+  private onViewportClickCallback: ((event: MouseEvent) => void) | null = null;
 
   initialize(container: HTMLElement): Promise<void> {
     return new Promise((resolve) => {
@@ -60,7 +67,7 @@ export class ThreeJSRenderer implements IRenderer {
 
       // Start animation loop
       this.animate();
-      
+
       resolve();
     });
   }
@@ -72,7 +79,7 @@ export class ThreeJSRenderer implements IRenderer {
 
     this.controls.dispose();
     this.renderer.dispose();
-    
+
     if (this.container && this.renderer.domElement.parentElement) {
       this.container.removeChild(this.renderer.domElement);
     }
@@ -101,15 +108,18 @@ export class ThreeJSRenderer implements IRenderer {
 
       // Create group for model
       this.modelGroup = new THREE.Group();
-      
+
       if (threeJsObject && typeof threeJsObject === 'object' && 'isObject3D' in threeJsObject) {
         // Clone the loaded Three.js object
         this.modelGroup.add(threeJsObject as THREE.Object3D);
       } else {
         // Fallback: create placeholder geometry if no Three.js object provided
-        console.warn('No Three.js object provided, creating placeholder for model:', model.metadata.filename);
+        console.warn(
+          'No Three.js object provided, creating placeholder for model:',
+          model.metadata.filename
+        );
         const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshStandardMaterial({ 
+        const material = new THREE.MeshStandardMaterial({
           color: 0x3498db,
           metalness: 0.3,
           roughness: 0.7,
@@ -117,12 +127,12 @@ export class ThreeJSRenderer implements IRenderer {
         const cube = new THREE.Mesh(geometry, material);
         this.modelGroup.add(cube);
       }
-      
+
       this.scene.add(this.modelGroup);
 
       // Fit to view
       this.fitToView();
-      
+
       resolve();
     });
   }
@@ -197,13 +207,9 @@ export class ThreeJSRenderer implements IRenderer {
 
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = this.camera.fov * (Math.PI / 180);
-    const distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+    const distance = (maxDim / (2 * Math.tan(fov / 2))) * 1.5;
 
-    this.camera.position.set(
-      center.x + distance,
-      center.y + distance,
-      center.z + distance
-    );
+    this.camera.position.set(center.x + distance, center.y + distance, center.z + distance);
     this.controls.target.copy(center);
     this.controls.update();
   }
@@ -223,13 +229,9 @@ export class ThreeJSRenderer implements IRenderer {
 
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = this.camera.fov * (Math.PI / 180);
-    const distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+    const distance = (maxDim / (2 * Math.tan(fov / 2))) * 1.5;
 
-    this.camera.position.set(
-      center.x + distance,
-      center.y + distance,
-      center.z + distance
-    );
+    this.camera.position.set(center.x + distance, center.y + distance, center.z + distance);
     this.controls.target.copy(center);
     this.controls.update();
   }
@@ -287,6 +289,90 @@ export class ThreeJSRenderer implements IRenderer {
     this.controls.update();
   }
 
+  enableClickHandling(
+    onSectionClick: (sectionId: string, event: MouseEvent) => void,
+    onViewportClick: (event: MouseEvent) => void
+  ): void {
+    try {
+      if (!this.renderer || !this.renderer.domElement) {
+        console.error('[Renderer] Cannot enable click handling: renderer not initialized');
+        return;
+      }
+
+      // Store callbacks
+      this.onSectionClickCallback = onSectionClick;
+      this.onViewportClickCallback = onViewportClick;
+
+      // Create click handler
+      this.clickHandler = (event: MouseEvent) => {
+        try {
+          // Prevent default behavior
+          event.preventDefault();
+
+          // Calculate mouse position in normalized device coordinates (-1 to +1)
+          const rect = this.renderer.domElement.getBoundingClientRect();
+          this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+          // Update raycaster
+          this.raycaster.setFromCamera(this.mouse, this.camera);
+
+          // Check for intersections with model
+          if (this.modelGroup) {
+            const intersects = this.raycaster.intersectObjects(this.modelGroup.children, true);
+
+            if (intersects.length > 0 && intersects[0]) {
+              // Find the clicked object with userData.sectionId
+              let clickedObject = intersects[0].object;
+              let sectionId: string | null = null;
+
+              // Traverse up the hierarchy to find sectionId
+              while (clickedObject && !sectionId) {
+                if (clickedObject.userData && clickedObject.userData.sectionId) {
+                  sectionId = clickedObject.userData.sectionId;
+                  break;
+                }
+                clickedObject = clickedObject.parent as THREE.Object3D;
+              }
+
+              if (sectionId && this.onSectionClickCallback) {
+                this.onSectionClickCallback(sectionId, event);
+                return;
+              }
+            }
+          }
+
+          // No section clicked, treat as viewport click
+          if (this.onViewportClickCallback) {
+            this.onViewportClickCallback(event);
+          }
+        } catch (error) {
+          console.error('[Renderer] Error handling click:', error);
+        }
+      };
+
+      // Add event listener
+      this.renderer.domElement.addEventListener('click', this.clickHandler);
+      console.log('[Renderer] Click handling enabled');
+    } catch (error) {
+      console.error('[Renderer] Error enabling click handling:', error);
+    }
+  }
+
+  disableClickHandling(): void {
+    try {
+      if (this.clickHandler && this.renderer && this.renderer.domElement) {
+        this.renderer.domElement.removeEventListener('click', this.clickHandler);
+        this.clickHandler = null;
+        this.onSectionClickCallback = null;
+        this.onViewportClickCallback = null;
+        console.log('[Renderer] Click handling disabled');
+      }
+    } catch (error) {
+      console.error('[Renderer] Error disabling click handling:', error);
+    }
+  }
+
   private setupLighting(): void {
     // Ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -321,7 +407,7 @@ export class ThreeJSRenderer implements IRenderer {
     group.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose();
-        
+
         if (Array.isArray(child.material)) {
           child.material.forEach((mat) => mat.dispose());
         } else {

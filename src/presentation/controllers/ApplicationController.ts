@@ -141,6 +141,9 @@ export class ApplicationController {
             this.statusBar.setModelInfo(
               `${payload.filename} | ${payload.sectionCount} sections | ${payload.format.toUpperCase()}`
             );
+
+            // Enable click handling on model
+            this.modelService.enableClickHandling();
           } else {
             console.warn('[Controller] Model loaded but getCurrentModel returned null');
           }
@@ -211,8 +214,79 @@ export class ApplicationController {
           this.propertiesPanel.clear();
           this.statusBar.setModelInfo('');
           this.statusBar.setStatus('Model cleared', 'info');
+
+          // Disable click handling
+          this.modelService.disableClickHandling();
+
+          // Disable click handling
+          this.modelService.disableClickHandling();
         } catch (error) {
           console.error('[Controller] Error handling MODEL_CLEARED:', error);
+        }
+      });
+
+      // Section deselected event
+      this.eventBus.subscribe(EventType.SECTION_DESELECTED, (event) => {
+        try {
+          const payload = event.payload as { sectionId: string };
+          this.propertiesPanel.clear();
+          this.statusBar.setStatus(`Deselected: ${payload.sectionId}`, 'info');
+        } catch (error) {
+          console.error('[Controller] Error handling SECTION_DESELECTED:', error);
+        }
+      });
+
+      // Selection cleared event
+      this.eventBus.subscribe(EventType.SELECTION_CLEARED, () => {
+        try {
+          this.propertiesPanel.clear();
+          this.statusBar.setStatus('Selection cleared', 'info');
+        } catch (error) {
+          console.error('[Controller] Error handling SELECTION_CLEARED:', error);
+        }
+      });
+
+      // Operation error event
+      this.eventBus.subscribe(EventType.OPERATION_ERROR, (event) => {
+        try {
+          const payload = event.payload as { operation: string; error: Error };
+          const message = payload.error?.message || 'Unknown error';
+          this.statusBar.setStatus(`${payload.operation} failed: ${message}`, 'error');
+        } catch (error) {
+          console.error('[Controller] Error handling OPERATION_ERROR:', error);
+        }
+      });
+
+      // Section clicked event
+      this.eventBus.subscribe(EventType.SECTION_CLICKED, (event) => {
+        try {
+          const payload = event.payload as { sectionId: string; x: number; y: number };
+          console.log('[Controller] Section clicked:', payload.sectionId);
+          // Selection is handled automatically by ModelService.handleSectionClick
+        } catch (error) {
+          console.error('[Controller] Error handling SECTION_CLICKED:', error);
+        }
+      });
+
+      // Viewport clicked event
+      this.eventBus.subscribe(EventType.VIEWPORT_CLICKED, (event) => {
+        try {
+          const payload = event.payload as { x: number; y: number };
+          console.log('[Controller] Viewport clicked at:', payload.x, payload.y);
+          // Selection clearing is handled automatically by ModelService.handleViewportClick
+        } catch (error) {
+          console.error('[Controller] Error handling VIEWPORT_CLICKED:', error);
+        }
+      });
+
+      // Click error event
+      this.eventBus.subscribe(EventType.CLICK_ERROR, (event) => {
+        try {
+          const payload = event.payload as { error: Error; context: string };
+          const message = payload.error?.message || 'Unknown error';
+          this.statusBar.setStatus(`Click error (${payload.context}): ${message}`, 'error');
+        } catch (error) {
+          console.error('[Controller] Error handling CLICK_ERROR:', error);
         }
       });
 

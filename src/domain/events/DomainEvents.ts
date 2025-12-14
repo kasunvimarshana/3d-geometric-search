@@ -20,6 +20,12 @@ export enum EventType {
   SECTION_HIGHLIGHTED = 'section:highlighted',
   SELECTION_CLEARED = 'selection:cleared',
 
+  // Interaction events
+  MODEL_CLICKED = 'model:clicked',
+  SECTION_CLICKED = 'section:clicked',
+  VIEWPORT_CLICKED = 'viewport:clicked',
+  CLICK_ERROR = 'click:error',
+
   // View events
   VIEW_RESET = 'view:reset',
   VIEW_ZOOM_CHANGED = 'view:zoom',
@@ -87,6 +93,20 @@ export class SectionFocusedEvent implements DomainEvent {
   constructor(public readonly payload: { sectionId: string }) {}
 }
 
+export class SectionDeselectedEvent implements DomainEvent {
+  readonly type = EventType.SECTION_DESELECTED;
+  readonly timestamp = new Date();
+
+  constructor(public readonly payload: { sectionId: string }) {}
+}
+
+export class ModelUpdatedEvent implements DomainEvent {
+  readonly type = EventType.MODEL_UPDATED;
+  readonly timestamp = new Date();
+
+  constructor(public readonly payload?: { changes?: string[] }) {}
+}
+
 export class ViewResetEvent implements DomainEvent {
   readonly type = EventType.VIEW_RESET;
   readonly timestamp = new Date();
@@ -150,4 +170,34 @@ export class DisplayOptionChangedEvent implements DomainEvent {
   readonly timestamp = new Date();
 
   constructor(public readonly payload: { option: string; value: boolean | number | string }) {}
+}
+
+export class ModelClickedEvent implements DomainEvent {
+  readonly type = EventType.MODEL_CLICKED;
+  readonly timestamp = new Date();
+
+  constructor(public readonly payload: { x: number; y: number; button: number }) {}
+}
+
+export class SectionClickedEvent implements DomainEvent {
+  readonly type = EventType.SECTION_CLICKED;
+  readonly timestamp = new Date();
+
+  constructor(
+    public readonly payload: { sectionId: string; x: number; y: number; button: number }
+  ) {}
+}
+
+export class ViewportClickedEvent implements DomainEvent {
+  readonly type = EventType.VIEWPORT_CLICKED;
+  readonly timestamp = new Date();
+
+  constructor(public readonly payload: { x: number; y: number; button: number }) {}
+}
+
+export class ClickErrorEvent implements DomainEvent {
+  readonly type = EventType.CLICK_ERROR;
+  readonly timestamp = new Date();
+
+  constructor(public readonly payload: { error: Error; context: string }) {}
 }
