@@ -73,19 +73,6 @@ export class ModelService {
       // Determine format
       const format = this.detectFormat(file.name);
 
-      if (format === ModelFormat.UNKNOWN) {
-        throw new Error(
-          `Unsupported file format. Supported formats: .gltf, .glb, .obj, .stl, .step, .stp`
-        );
-      }
-
-      // Check if loader supports format
-      if (!this.loader.canLoad(format)) {
-        throw new Error(
-          `No loader available for format: ${format}. This format may require additional configuration.`
-        );
-      }
-
       // Read file
       const data = await this.readFile(file);
 
@@ -160,13 +147,12 @@ export class ModelService {
       return;
     }
 
-    try {
-      // Clear previous selection
-      this.currentModel.clearSelection();
+    // Clear previous selection
+    this.currentModel.clearSelection();
 
-      // Set new selection
-      section.isSelected = true;
-      this.selectedSectionId = sectionId;
+    // Set new selection
+    section.isSelected = true;
+    this.selectedSectionId = sectionId;
 
       // Highlight in renderer
       this.renderer.highlightSection(section);

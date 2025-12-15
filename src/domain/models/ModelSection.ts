@@ -1,6 +1,6 @@
 /**
  * Model Section
- * 
+ *
  * Represents a section (component/part) within a 3D model.
  * Contains hierarchy information and geometric properties.
  */

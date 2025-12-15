@@ -7,11 +7,7 @@
 
 import { Model } from '@domain/models/Model';
 import { IEventBus } from '@domain/interfaces/IEventBus';
-import {
-  ModelDisassembledEvent,
-  ModelReassembledEvent,
-  OperationErrorEvent,
-} from '@domain/events/DomainEvents';
+import { ModelDisassembledEvent, ModelReassembledEvent } from '@domain/events/DomainEvents';
 
 export class ModelOperationsService {
   private isDisassembled = false;
