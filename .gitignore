@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads and data
+data/uploads/*
+data/indexed/*
+!data/uploads/.gitkeep
+!data/indexed/.gitkeep
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker
+*.log
+
+# 3D Model files (keep samples only)
+*.stl
+*.step
+*.stp
+*.iges
+*.igs
+*.obj
+*.ply
+!data/samples/*.stl
+
+# Thumbnails and cache
+thumbnails/
+*.cache
+.cache/
+
+# Testing
+.pytest_cache/
+coverage/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+Thumbs.db
