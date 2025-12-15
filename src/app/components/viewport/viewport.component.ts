@@ -83,7 +83,13 @@ export class ViewportComponent implements OnInit, AfterViewInit, OnDestroy {
     this.modelService.state$
       .pipe(takeUntil(this.destroy$))
       .subscribe((state: ModelState) => {
+        const hadModel = this.hasModel;
         this.hasModel = !!state.tree;
+        
+        // Trigger fit to all when model is first loaded
+        if (!hadModel && this.hasModel && state.status === 'ready') {
+          setTimeout(() => this.viewerService.fitToAll(), 100);
+        }
       });
 
     // Subscribe to viewer state for camera
