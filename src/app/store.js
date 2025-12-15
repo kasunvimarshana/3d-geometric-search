@@ -50,8 +50,8 @@ listenerMiddleware.startListening({
       ModelRegistry.register(modelId, rootObject);
       const tree = buildModelTree(rootObject);
       api.dispatch(modelLoaded({ modelId, tree }));
-      const cam = api.getState().viewer.camera;
-      if (!cam) api.dispatch(fitToAll());
+      // Always trigger a fit after load to ensure the model is visible
+      api.dispatch(fitToAll());
     } catch (err) {
       api.dispatch(loadFailed({ error: String(err?.message || err) }));
     }

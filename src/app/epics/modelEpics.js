@@ -36,6 +36,15 @@ const loadModelEpic = (action$) =>
     )
   );
 
+const autoFitOnLoadedEpic = (action$) =>
+  action$.pipe(
+    isAnyOf(modelLoaded),
+    concatMap(() => {
+      // After the model is registered and tree built, fit the whole scene
+      return of(fitToAll());
+    })
+  );
+
 const selectionEpic = (action$) =>
   action$.pipe(
     isAnyOf(selectNode),
@@ -97,6 +106,7 @@ const refreshEpic = (action$) =>
 
 export const modelEpics = [
   loadModelEpic,
+  autoFitOnLoadedEpic,
   selectionEpic,
   isolationEpic,
   highlightEpic,

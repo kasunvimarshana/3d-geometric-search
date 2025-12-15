@@ -22,9 +22,9 @@ export default function App () {
   return (
     <div className='layout'>
       <Toolbar />
-      <aside className='sidebar'>
+      {/* <aside className='sidebar'>
         <TreeView />
-      </aside>
+      </aside> */}
       <main className='main'>
         <ErrorBoundary>
           <Viewport />
