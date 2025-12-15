@@ -1,0 +1,20 @@
+{
+  "recommendations": [
+    {
+      "extensionId": "dbaeumer.vscode-eslint",
+      "reason": "ESLint for JavaScript linting"
+    },
+    {
+      "extensionId": "esbenp.prettier-vscode",
+      "reason": "Code formatter"
+    },
+    {
+      "extensionId": "christian-kohler.npm-intellisense",
+      "reason": "NPM package autocomplete"
+    },
+    {
+      "extensionId": "ms-vscode.vscode-typescript-next",
+      "reason": "Better JavaScript support"
+    }
+  ]
+}

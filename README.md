@@ -1,277 +1,326 @@
-# 3D GeoSearch - Open Source 3D Geometric Search Engine
+# 3D Geometric Search Engine
 
-A free and open-source 3D geometric search application that enables users to upload or sketch 3D models and find similar geometry from a searchable repository based on shape and structural similarity.
+An open-source web application for searching and matching 3D models based on geometric similarity. Inspired by 3Dfindit.com, this tool enables engineers and designers to find similar parts by shape rather than text metadata.
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 
 ## Features
 
-- 🔍 **Shape-Based Search**: Find similar 3D models based on geometric similarity, not just text metadata
-- 📤 **Multiple Input Methods**: Upload 3D files or sketch simple shapes
-- 🎨 **3D Visualization**: Interactive 3D preview using Three.js
-- 📊 **Ranked Results**: Get similarity scores for search results
-- 🔧 **Multiple Format Support**: STEP, STL, OBJ, PLY, and more
-- 🚀 **Fast Processing**: Efficient geometric descriptor computation
-- 🌐 **Web-Based**: No installation required for end users
+- **Multi-Format Support**: Upload and process glTF/GLB, STEP (AP203/AP214/AP242), OBJ/MTL, and STL files
+- **Geometric Analysis**: Extract shape descriptors including surface area, volume, bounding box, sphericity, and more
+- **Similarity Search**: Find similar models using advanced geometric feature comparison
+- **Interactive 3D Visualization**: View and rotate models in real-time using Three.js
+- **Drag & Drop Interface**: Intuitive UI for uploading and exploring 3D models
+- **Open Source**: Fully MIT licensed with no proprietary dependencies
 
-## Technology Stack
+## Supported File Formats
 
-### Backend
+| Format        | Extensions      | Description                                |
+| ------------- | --------------- | ------------------------------------------ |
+| glTF          | `.gltf`, `.glb` | GL Transmission Format (preferred for web) |
+| STEP          | `.step`, `.stp` | ISO 10303 (AP203, AP214, AP242)            |
+| Wavefront OBJ | `.obj`, `.mtl`  | Common 3D model format                     |
+| STL           | `.stl`          | Stereolithography format                   |
 
-- **FastAPI**: Modern Python web framework
-- **Open3D**: 3D data processing and feature extraction
-- **Trimesh**: Mesh processing and format conversion
-- **NumPy/SciPy**: Numerical computations
-- **PostgreSQL**: Database for model storage
-- **Redis**: Caching layer
-
-### Frontend
-
-- **React**: UI framework
-- **Three.js**: 3D visualization
-- **React Three Fiber**: React renderer for Three.js
-- **Tailwind CSS**: Styling
-- **Axios**: API communication
-
-### Geometric Algorithms
-
-- **Shape Descriptors**:
-  - D2 Shape Distribution
-  - Light Field Descriptor
-  - Spherical Harmonic Descriptor
-  - Global feature vectors (volume, surface area, compactness)
-- **Similarity Metrics**: Euclidean distance, cosine similarity
-- **Indexing**: FAISS for efficient nearest neighbor search
-
-## Project Structure
+## Architecture
 
 ```
-3d-geosearch/
-├── backend/
-│   ├── app/
-│   │   ├── api/              # API endpoints
-│   │   ├── core/             # Configuration and settings
-│   │   ├── models/           # Database models
-│   │   ├── services/         # Business logic
-│   │   │   ├── geometry/     # 3D processing
-│   │   │   ├── search/       # Search algorithms
-│   │   │   └── storage/      # File storage
-│   │   └── main.py
-│   ├── tests/
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── services/         # API clients
-│   │   ├── hooks/            # Custom hooks
-│   │   └── utils/
-│   ├── public/
-│   ├── package.json
-│   └── Dockerfile
-├── data/
-│   ├── models/               # Sample 3D models
-│   └── indexed/              # Processed model database
-├── docker-compose.yml
-└── README.md
+├── Frontend (HTML/CSS/JavaScript)
+│   ├── Three.js for 3D rendering
+│   ├── Drag-drop upload interface
+│   └── Search results visualization
+│
+├── Backend (Node.js/Express)
+│   ├── File upload handling
+│   ├── Format parsers
+│   └── REST API
+│
+├── Geometric Engine
+│   ├── Feature extraction
+│   ├── Shape descriptors
+│   └── Similarity algorithms
+│
+└── Database (SQLite)
+    └── Model metadata storage
 ```
 
 ## Installation
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Or: Python 3.9+, Node.js 18+, PostgreSQL 14+
+- Node.js >= 18.0.0
+- npm or yarn
 
-### Quick Start with Docker
+### Quick Start
+
+1. **Clone the repository**
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd 3d-geosearch
-
-# Start all services
-docker-compose up -d
-
-# Access the application
-# Frontend: http://localhost:3000
-# API: http://localhost:8000
-# API Docs: http://localhost:8000/docs
+git clone <your-repo-url>
+cd 3d-geometric-search
 ```
 
-### Development Setup
-
-#### Backend
+2. **Install dependencies**
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-#### Frontend
-
-```bash
-cd frontend
 npm install
+```
+
+3. **Start the server**
+
+```bash
 npm start
+```
+
+4. **Open your browser**
+
+```
+http://localhost:3000
+```
+
+### Development Mode
+
+```bash
+npm run dev
 ```
 
 ## Usage
 
-### Upload and Search
+### Uploading Models
 
-1. Navigate to the web interface
-2. Drag and drop a 3D model file (STL, STEP, OBJ, etc.)
-3. Wait for processing and feature extraction
-4. View ranked similar models from the database
+1. Drag and drop a 3D file (`.gltf`, `.glb`, `.step`, `.stp`, `.obj`, `.stl`) onto the upload area
+2. The system will automatically:
+   - Parse the geometry
+   - Extract geometric features
+   - Generate a 3D preview
+   - Store the model in the database
 
-### Sketch and Search
+### Searching for Similar Models
 
-1. Click "Sketch Mode"
-2. Draw a simple 3D shape using the sketch tool
-3. Submit for search
-4. Get results based on shape similarity
+1. Select an uploaded model or upload a new query model
+2. Click "Find Similar"
+3. Browse ranked results based on geometric similarity
+4. View detailed comparisons and feature breakdowns
 
-### API Usage
+### Template Shapes
 
-```python
-import requests
+Select from pre-defined geometric primitives:
 
-# Upload a model
-with open('model.stl', 'rb') as f:
-    response = requests.post(
-        'http://localhost:8000/api/search/upload',
-        files={'file': f}
-    )
+- Cube
+- Sphere
+- Cylinder
+- Cone
+- Torus
+- Custom shapes
 
-results = response.json()
-for result in results['matches']:
-    print(f"Model: {result['name']}, Similarity: {result['score']}")
+## Geometric Features
+
+The system extracts the following features for similarity comparison:
+
+### Primary Descriptors
+
+- **Surface Area**: Total surface area in square units
+- **Volume**: Enclosed volume in cubic units
+- **Bounding Box**: Axis-aligned minimum bounding box dimensions
+- **Sphericity**: Measure of how sphere-like the shape is
+- **Compactness**: Surface area to volume ratio
+
+### Advanced Descriptors
+
+- **Principal Axes**: Orientation via PCA (Principal Component Analysis)
+- **Aspect Ratios**: Dimensional proportions (length/width/height)
+- **Convex Hull**: Convexity measure
+- **Shape Distribution**: D2 shape function (distance distribution)
+- **Curvature Statistics**: Mean, Gaussian, and principal curvatures
+- **Topological Features**: Euler characteristic, genus
+
+### Similarity Metrics
+
+Multiple algorithms for ranking similarity:
+
+- **Euclidean Distance**: L2 norm in feature space
+- **Cosine Similarity**: Angle-based similarity
+- **Weighted Feature Distance**: Custom weights per feature
+- **Shape Context Matching**: Histogram-based comparison
+
+## API Documentation
+
+### REST Endpoints
+
+#### Upload Model
+
+```http
+POST /api/upload
+Content-Type: multipart/form-data
+
+Body: file (3D model file)
+Response: { modelId, features, preview }
 ```
 
-## How It Works
+#### Search Similar
 
-### 1. Model Upload & Processing
+```http
+POST /api/search
+Content-Type: application/json
 
-- User uploads a 3D file or creates a sketch
-- Backend converts file to standard format (trimesh)
-- Mesh normalization (centering, scaling)
+Body: { modelId, threshold, limit }
+Response: { results: [{ modelId, similarity, features }] }
+```
 
-### 2. Feature Extraction
+#### Get Model
 
-- Compute geometric descriptors:
-  - **D2 Descriptor**: Distribution of distances between random point pairs
-  - **Volume/Surface Area**: Basic geometric properties
-  - **Compactness**: Measure of shape efficiency
-  - **Bounding Box Ratios**: Aspect ratios
-  - **Convex Hull Features**: Convexity measures
+```http
+GET /api/models/:id
+Response: { modelId, filename, features, uploadDate }
+```
 
-### 3. Similarity Search
+#### List Models
 
-- Extract features from query model
-- Use FAISS for efficient k-NN search in feature space
-- Rank results by distance/similarity score
-- Return top N matches with metadata
+```http
+GET /api/models
+Response: { models: [...] }
+```
 
-### 4. Result Display
+#### Delete Model
 
-- Render 3D previews of similar models
-- Show similarity scores and metadata
-- Allow filtering and sorting
+```http
+DELETE /api/models/:id
+Response: { success: true }
+```
 
 ## Configuration
 
-Edit `backend/app/core/config.py`:
+Create a `.env` file for custom configuration:
 
-```python
-DATABASE_URL = "postgresql://user:pass@localhost/geosearch"
-UPLOAD_DIR = "./data/uploads"
-MAX_UPLOAD_SIZE = 100  # MB
-SEARCH_RESULTS_LIMIT = 20
+```env
+PORT=3000
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=50000000
+DATABASE_PATH=./database/models.db
+ENABLE_CORS=true
 ```
 
-## API Endpoints
+## Project Structure
 
-### Search
-
-- `POST /api/search/upload` - Upload and search by file
-- `POST /api/search/sketch` - Search by sketch data
-- `GET /api/search/{search_id}` - Get search results
-
-### Models
-
-- `GET /api/models` - List all indexed models
-- `GET /api/models/{id}` - Get model details
-- `POST /api/models/index` - Index a new model
-- `DELETE /api/models/{id}` - Remove model
-
-### Admin
-
-- `POST /api/admin/reindex` - Rebuild search index
-- `GET /api/admin/stats` - Get system statistics
-
-## Adding Models to the Database
-
-```bash
-# Index a directory of models
-curl -X POST http://localhost:8000/api/admin/index-directory \
-  -H "Content-Type: application/json" \
-  -d '{"path": "/path/to/models"}'
-
-# Index a single model
-curl -X POST http://localhost:8000/api/models/index \
-  -F "file=@model.stl" \
-  -F "name=My Model" \
-  -F "category=mechanical"
+```
+3d-geometric-search/
+├── server.js                 # Main server entry point
+├── package.json              # Dependencies
+├── README.md                 # This file
+├── LICENSE                   # MIT License
+│
+├── public/                   # Frontend files
+│   ├── index.html           # Main UI
+│   ├── styles.css           # Styling
+│   ├── app.js               # Frontend logic
+│   └── viewer.js            # 3D visualization
+│
+├── src/                      # Backend source
+│   ├── parsers/             # File format parsers
+│   │   ├── gltf-parser.js
+│   │   ├── step-parser.js
+│   │   ├── obj-parser.js
+│   │   └── stl-parser.js
+│   │
+│   ├── geometric/           # Geometric analysis
+│   │   ├── feature-extractor.js
+│   │   ├── descriptors.js
+│   │   └── similarity.js
+│   │
+│   ├── database/            # Database layer
+│   │   └── db.js
+│   │
+│   └── utils/               # Utilities
+│       └── validators.js
+│
+├── uploads/                 # Uploaded files (gitignored)
+├── database/                # SQLite database
+└── examples/                # Example models
 ```
 
-## Performance
+## Performance Considerations
 
-- **Feature Extraction**: ~0.5-2s per model (depends on complexity)
-- **Search Query**: <100ms for 10k models using FAISS
-- **Concurrent Users**: Supports 50+ simultaneous searches
+- **Browser-Based**: Small datasets (<100 models) can run entirely in the browser
+- **Server-Side**: Large datasets leverage backend processing and indexing
+- **Chunked Upload**: Large files are uploaded in chunks to prevent timeouts
+- **Caching**: Feature vectors are cached to speed up repeat searches
+- **Indexing**: SQLite indexes on geometric features for faster queries
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please follow these guidelines:
 
-### Development Priorities
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- [ ] Additional shape descriptors (FPFH, SHOT)
-- [ ] Machine learning-based similarity
-- [ ] Batch processing for large datasets
-- [ ] Advanced sketch interface
-- [ ] Material and texture support
-- [ ] Export and comparison tools
+### Development Guidelines
+
+- Follow ESLint rules
+- Write tests for new features
+- Update documentation
+- Use meaningful commit messages
+
+## Roadmap
+
+- [ ] Advanced STEP file parsing (AP242 with PMI)
+- [ ] Machine learning-based shape matching
+- [ ] Cloud storage integration
+- [ ] Batch processing API
+- [ ] Export to various formats
+- [ ] Real-time collaborative viewing
+- [ ] Mobile app support
+
+## Known Limitations
+
+- **STEP Parsing**: Complex STEP files may require external libraries (OpenCascade.js)
+- **File Size**: Browser parsing limited to ~50MB files
+- **Precision**: Similarity is approximate and may need fine-tuning
+- **Format Coverage**: Some rare CAD formats not yet supported
+
+## Troubleshooting
+
+### Common Issues
+
+**Q: Models not displaying in viewer**
+
+- Check browser console for errors
+- Ensure file format is supported
+- Verify file is not corrupted
+
+**Q: Slow search performance**
+
+- Reduce dataset size
+- Enable server-side processing
+- Check database indexes
+
+**Q: STEP files not parsing**
+
+- STEP support is basic; complex files may fail
+- Consider converting to GLTF/OBJ first
+- Check STEP AP version (AP203/AP214 recommended)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- Open3D for 3D processing capabilities
-- Trimesh for mesh manipulation
-- FAISS for efficient similarity search
-- Three.js community for 3D visualization
+- **Three.js**: 3D rendering engine
+- **OpenCascade.js**: STEP file parsing inspiration
+- **3Dfindit.com**: Inspiration for geometric search
+- Open source community
 
-## Citation
+## Contact
 
-If you use this software in your research, please cite:
+For questions, issues, or contributions:
 
-```bibtex
-@software{3dgeosearch,
-  title={3D GeoSearch: Open Source Geometric Search Engine},
-  author={Your Name},
-  year={2025},
-  url={https://github.com/yourusername/3d-geosearch}
-}
-```
+- GitHub Issues: [Create an issue]
+- Discussions: [Join the discussion]
 
-## Support
+---
 
-- 📧 Email: support@example.com
-- 💬 Discussions: GitHub Discussions
-- 🐛 Issues: GitHub Issues
-- 📖 Documentation: [Wiki](https://github.com/yourusername/3d-geosearch/wiki)
+**Built with ❤️ for the engineering and aerospace community**

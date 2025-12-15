@@ -1,0 +1,16 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "files.exclude": {
+    "node_modules": true,
+    "*.db": true
+  },
+  "search.exclude": {
+    "node_modules": true,
+    "uploads": true,
+    "*.db": true
+  }
+}
