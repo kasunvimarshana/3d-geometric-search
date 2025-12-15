@@ -141,16 +141,43 @@ export class SectionTree {
   }
 
   /**
-   * Highlights nodes in the tree
+   * Highlights nodes in the tree with smooth transitions
    * @param {string[]} nodeIds - Node IDs to highlight
    */
   highlightNodes(nodeIds) {
-    // Clear previous highlights
-    this.container.querySelectorAll(".tree-node-header").forEach((el) => {
-      el.classList.remove("selected", "focused");
+    // Get all headers for dehighlight animation
+    const allHeaders = this.container.querySelectorAll(
+      ".tree-node-header.selected, .tree-node-header.focused"
+    );
+
+    // Apply dehighlight animation to previously selected nodes
+    allHeaders.forEach((el) => {
+      if (
+        !nodeIds.some(
+          (id) => el.closest("[data-node-id]")?.dataset.nodeId === id
+        )
+      ) {
+        el.classList.add("dehighlight");
+
+        // Remove dehighlight class after animation completes
+        setTimeout(() => {
+          el.classList.remove("selected", "focused", "dehighlight");
+        }, 400);
+      }
     });
 
-    // Apply new highlights
+    // Remove immediate highlights from non-selected nodes
+    this.container.querySelectorAll(".tree-node-header").forEach((el) => {
+      const nodeId = el.closest("[data-node-id]")?.dataset.nodeId;
+      if (!nodeIds.includes(nodeId)) {
+        // Don't remove classes immediately if dehighlight is active
+        if (!el.classList.contains("dehighlight")) {
+          el.classList.remove("selected", "focused");
+        }
+      }
+    });
+
+    // Apply new highlights with smooth animation
     nodeIds.forEach((nodeId) => {
       const nodeElement = this.container.querySelector(
         `[data-node-id="${nodeId}"]`
@@ -158,7 +185,13 @@ export class SectionTree {
       if (nodeElement) {
         const header = nodeElement.querySelector(".tree-node-header");
         if (header) {
-          header.classList.add("selected");
+          // Remove dehighlight if present
+          header.classList.remove("dehighlight");
+
+          // Add selected class - CSS animation will handle the visual effect
+          requestAnimationFrame(() => {
+            header.classList.add("selected");
+          });
         }
       }
     });

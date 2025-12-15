@@ -21,6 +21,7 @@ export class SceneRenderer {
     this.highlightedObjects = new Set();
     this.selectedObjects = new Set();
     this.hiddenObjects = new Set();
+    this.highlightAnimations = new Map(); // Track highlight animations
 
     this.init();
   }
@@ -208,46 +209,119 @@ export class SceneRenderer {
   }
 
   /**
-   * Highlights a node
+   * Highlights a node with smooth transition
    * @param {ModelNode} node - Node to highlight
    */
   highlightNode(node) {
     if (!node || !node._threeObject) return;
 
     const object = node._threeObject;
+
+    // Cancel any existing dehighlight animation for this object
+    if (this.highlightAnimations.has(object)) {
+      cancelAnimationFrame(this.highlightAnimations.get(object));
+      this.highlightAnimations.delete(object);
+    }
+
     this.highlightedObjects.add(object);
 
     if (object.isMesh) {
-      // Store original material
+      // Store original material if not already stored
       if (!object.userData.originalMaterial) {
         object.userData.originalMaterial = object.material;
       }
 
-      // Apply highlight material
+      // Create highlight material with smooth transition
       const highlightMaterial = new THREE.MeshStandardMaterial({
         color: 0xffff00,
         emissive: 0xffaa00,
-        emissiveIntensity: 0.3,
+        emissiveIntensity: 0.5,
         metalness: 0.5,
         roughness: 0.5,
+        transparent: true,
+        opacity: 1,
       });
+
+      // Animate highlight with pulse effect
+      const startTime = Date.now();
+      const animateHighlight = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / 300, 1); // 300ms transition
+
+        if (object.material === highlightMaterial) {
+          // Pulse emissive intensity
+          const pulse = 0.3 + Math.sin(elapsed / 200) * 0.2;
+          highlightMaterial.emissiveIntensity = 0.5 + pulse * progress;
+
+          if (progress < 1) {
+            const animId = requestAnimationFrame(animateHighlight);
+            this.highlightAnimations.set(object, animId);
+          }
+        }
+      };
+
       object.material = highlightMaterial;
+      animateHighlight();
     }
   }
 
   /**
-   * Removes highlight from a node
+   * Removes highlight from a node with smooth fade-out transition
    * @param {ModelNode} node - Node to unhighlight
    */
   unhighlightNode(node) {
     if (!node || !node._threeObject) return;
 
     const object = node._threeObject;
+
+    // Cancel any existing highlight animation
+    if (this.highlightAnimations.has(object)) {
+      cancelAnimationFrame(this.highlightAnimations.get(object));
+      this.highlightAnimations.delete(object);
+    }
+
     this.highlightedObjects.delete(object);
 
     if (object.isMesh && object.userData.originalMaterial) {
-      object.material = object.userData.originalMaterial;
-      delete object.userData.originalMaterial;
+      const currentMaterial = object.material;
+      const targetMaterial = object.userData.originalMaterial;
+
+      // Smooth transition from highlight to original material
+      if (currentMaterial.emissive) {
+        const startTime = Date.now();
+        const startEmissiveIntensity = currentMaterial.emissiveIntensity || 0;
+
+        const animateDehighlight = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / 400, 1); // 400ms smooth fade
+
+          if (progress < 1) {
+            // Fade out emissive intensity
+            currentMaterial.emissiveIntensity =
+              startEmissiveIntensity * (1 - progress);
+            currentMaterial.opacity = 1 - progress * 0.2; // Slight fade effect
+
+            const animId = requestAnimationFrame(animateDehighlight);
+            this.highlightAnimations.set(object, animId);
+          } else {
+            // Complete transition - restore original material
+            object.material = targetMaterial;
+
+            // Clean up
+            if (currentMaterial.dispose) {
+              currentMaterial.dispose();
+            }
+            delete object.userData.originalMaterial;
+            this.highlightAnimations.delete(object);
+          }
+        };
+
+        animateDehighlight();
+      } else {
+        // Immediate fallback if no emissive properties
+        object.material = targetMaterial;
+        delete object.userData.originalMaterial;
+      }
     }
   }
 
@@ -374,6 +448,12 @@ export class SceneRenderer {
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
     }
+
+    // Cancel all highlight animations
+    for (const animId of this.highlightAnimations.values()) {
+      cancelAnimationFrame(animId);
+    }
+    this.highlightAnimations.clear();
 
     window.removeEventListener("resize", () => this.onResize());
 

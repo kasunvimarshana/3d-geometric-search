@@ -6,6 +6,7 @@
 export class PropertiesPanel {
   constructor(container) {
     this.container = container;
+    this.highlightTimeout = null;
   }
 
   /**
@@ -108,15 +109,16 @@ export class PropertiesPanel {
   }
 
   /**
-   * Renders a property table
+   * Renders a property table with interactive highlighting
    * @param {Array} properties - Properties to display
    */
   renderPropertyTable(properties) {
     const table = document.createElement("table");
     table.className = "properties-table";
 
-    properties.forEach((prop) => {
+    properties.forEach((prop, index) => {
       const row = document.createElement("tr");
+      row.dataset.propertyIndex = index;
 
       const labelCell = document.createElement("td");
       labelCell.className = "property-label";
@@ -126,12 +128,67 @@ export class PropertiesPanel {
       valueCell.className = "property-value";
       valueCell.textContent = prop.value;
 
+      // Add click-to-highlight functionality
+      row.addEventListener("click", () => {
+        this.highlightProperty(row);
+      });
+
+      // Add smooth hover effects (handled by CSS)
+      row.addEventListener("mouseenter", () => {
+        row.style.cursor = "pointer";
+      });
+
       row.appendChild(labelCell);
       row.appendChild(valueCell);
       table.appendChild(row);
     });
 
     this.container.appendChild(table);
+  }
+
+  /**
+   * Highlights a property row with smooth animation
+   * @param {HTMLElement} row - Row to highlight
+   */
+  highlightProperty(row) {
+    // Remove previous highlights with dehighlight animation
+    const previousHighlight = this.container.querySelector(
+      ".properties-table tr.highlight"
+    );
+    if (previousHighlight && previousHighlight !== row) {
+      previousHighlight.classList.add("dehighlight");
+
+      // Use requestAnimationFrame for smooth animation
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          previousHighlight.classList.remove("highlight", "dehighlight");
+        }, 400);
+      });
+    }
+
+    // Add highlight to current row with smooth transition
+    row.classList.remove("dehighlight");
+
+    // Trigger reflow to ensure animation plays
+    void row.offsetWidth;
+
+    row.classList.add("highlight");
+
+    // Auto-remove highlight after 2.5 seconds with smooth fade
+    if (this.highlightTimeout) {
+      clearTimeout(this.highlightTimeout);
+    }
+
+    this.highlightTimeout = setTimeout(() => {
+      row.classList.add("dehighlight");
+
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          row.classList.remove("highlight", "dehighlight");
+          this.highlightTimeout = null;
+        }, 400);
+      });
+    }, 2500);
   }
 
   /**
@@ -165,9 +222,13 @@ export class PropertiesPanel {
   }
 
   /**
-   * Clears the panel
+   * Clears the panel and any active timeouts
    */
   clear() {
+    if (this.highlightTimeout) {
+      clearTimeout(this.highlightTimeout);
+      this.highlightTimeout = null;
+    }
     this.container.innerHTML = '<p class="empty-message">No selection</p>';
   }
 }

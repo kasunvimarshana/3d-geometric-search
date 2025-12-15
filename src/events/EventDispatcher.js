@@ -94,6 +94,13 @@ export class EventDispatcher {
     this.maxHistory = 100;
     this.isDispatching = false;
     this.queue = [];
+    this.priorityQueue = []; // High-priority events
+    this.debounceTimers = new Map(); // Debounce timers for events
+    this.lastEventTime = new Map(); // Track last event dispatch time
+    this.eventRetryCount = new Map(); // Track retry attempts
+    this.maxRetries = 3;
+    this.isDestroyed = false;
+    this.errorHandlers = new Set(); // Custom error handlers
   }
 
   /**
@@ -141,64 +148,144 @@ export class EventDispatcher {
   }
 
   /**
-   * Dispatches an event
+   * Dispatches an event with priority, debouncing, and retry logic
    * @param {string} type - Event type
    * @param {Object} payload - Event payload
+   * @param {Object} options - Dispatch options
    * @returns {boolean} - Success status
    */
-  dispatch(type, payload = {}) {
+  dispatch(type, payload = {}, options = {}) {
+    const {
+      priority = "normal", // 'high', 'normal', 'low'
+      debounce = 0, // Debounce delay in ms
+      throttle = 0, // Throttle delay in ms
+      retry = false, // Enable retry on failure
+      silent = false, // Suppress error logging
+    } = options;
+
     try {
+      // Check if dispatcher is destroyed
+      if (this.isDestroyed) {
+        if (!silent)
+          console.warn("Cannot dispatch event: EventDispatcher is destroyed");
+        return false;
+      }
+
       // Validate event type
       if (!Object.values(EventType).includes(type)) {
-        console.warn(`Unknown event type: ${type}`);
+        if (!silent) console.warn(`Unknown event type: ${type}`);
         return false;
       }
 
       // Validate payload
       if (!this.validatePayload(type, payload)) {
-        console.warn(`Invalid payload for event type: ${type}`, payload);
+        if (!silent)
+          console.warn(`Invalid payload for event type: ${type}`, payload);
         return false;
       }
 
-      const event = new AppEvent(type, payload);
+      // Handle debouncing
+      if (debounce > 0) {
+        return this.debounceDispatch(type, payload, debounce, options);
+      }
 
-      // Queue events if currently dispatching to prevent recursion
+      // Handle throttling
+      if (throttle > 0) {
+        const lastTime = this.lastEventTime.get(type) || 0;
+        const now = Date.now();
+        if (now - lastTime < throttle) {
+          if (!silent) console.debug(`Event ${type} throttled`);
+          return false;
+        }
+        this.lastEventTime.set(type, now);
+      }
+
+      const event = new AppEvent(type, payload);
+      event.priority = priority;
+      event.retry = retry;
+
+      // Queue high-priority events in priority queue
       if (this.isDispatching) {
-        this.queue.push(event);
+        if (priority === "high") {
+          this.priorityQueue.push(event);
+        } else {
+          this.queue.push(event);
+        }
         return true;
       }
 
+      return this.executeDispatch(event, silent);
+    } catch (error) {
+      if (!silent) console.error("Error dispatching event:", error);
+      this.handleDispatchError(error, type, payload);
+      return false;
+    }
+  }
+
+  /**
+   * Executes the actual event dispatch
+   * @private
+   */
+  executeDispatch(event, silent = false) {
+    try {
       this.isDispatching = true;
 
       // Add to history
       this.addToHistory(event);
 
       // Dispatch to listeners
-      const listeners = this.listeners.get(type);
+      const listeners = this.listeners.get(event.type);
       if (listeners && listeners.size > 0) {
-        listeners.forEach((callback) => {
+        const listenerArray = Array.from(listeners);
+
+        for (const callback of listenerArray) {
           try {
-            callback(event);
+            // Check if listener still exists (might have been removed)
+            if (listeners.has(callback)) {
+              callback(event);
+            }
           } catch (error) {
-            console.error(`Error in event listener for ${type}:`, error);
-            this.dispatch(EventType.ERROR, {
-              error,
-              message: `Event listener error: ${error.message}`,
-              context: { eventType: type },
-            });
+            if (!silent) {
+              console.error(
+                `Error in event listener for ${event.type}:`,
+                error
+              );
+            }
+
+            // Call custom error handlers
+            this.notifyErrorHandlers(error, event);
+
+            // Retry if enabled
+            if (event.retry && this.shouldRetry(event)) {
+              this.retryDispatch(event);
+            } else {
+              // Dispatch error event (but prevent infinite recursion)
+              if (event.type !== EventType.ERROR) {
+                this.dispatch(
+                  EventType.ERROR,
+                  {
+                    error,
+                    message: `Event listener error: ${error.message}`,
+                    context: { eventType: event.type, payload: event.payload },
+                  },
+                  { silent: true }
+                );
+              }
+            }
           }
-        });
+        }
       }
 
       this.isDispatching = false;
 
-      // Process queued events
+      // Process queued events (priority first)
       this.processQueue();
 
       return true;
     } catch (error) {
-      console.error("Error dispatching event:", error);
+      if (!silent) console.error("Error in executeDispatch:", error);
       this.isDispatching = false;
+      this.handleDispatchError(error, event.type, event.payload);
       return false;
     }
   }
@@ -228,29 +315,130 @@ export class EventDispatcher {
   }
 
   /**
-   * Processes queued events
+   * Processes queued events with priority handling
    */
   processQueue() {
-    while (this.queue.length > 0 && !this.isDispatching) {
-      const event = this.queue.shift();
-      this.isDispatching = true;
+    let processed = 0;
+    const maxProcess = 10; // Prevent infinite loops
 
-      const listeners = this.listeners.get(event.type);
-      if (listeners && listeners.size > 0) {
-        listeners.forEach((callback) => {
-          try {
-            callback(event);
-          } catch (error) {
-            console.error(
-              `Error in queued event listener for ${event.type}:`,
-              error
-            );
-          }
-        });
+    while (
+      (this.priorityQueue.length > 0 || this.queue.length > 0) &&
+      !this.isDispatching &&
+      processed < maxProcess
+    ) {
+      // Process high-priority events first
+      const event =
+        this.priorityQueue.length > 0
+          ? this.priorityQueue.shift()
+          : this.queue.shift();
+
+      if (event) {
+        this.executeDispatch(event);
+        processed++;
       }
-
-      this.isDispatching = false;
     }
+
+    // If still events in queue, schedule next batch
+    if (this.priorityQueue.length > 0 || this.queue.length > 0) {
+      setTimeout(() => this.processQueue(), 0);
+    }
+  }
+
+  /**
+   * Debounces event dispatch
+   * @private
+   */
+  debounceDispatch(type, payload, delay, options) {
+    // Clear existing timer
+    if (this.debounceTimers.has(type)) {
+      clearTimeout(this.debounceTimers.get(type));
+    }
+
+    // Set new timer
+    const timer = setTimeout(() => {
+      this.debounceTimers.delete(type);
+      this.dispatch(type, payload, { ...options, debounce: 0 });
+    }, delay);
+
+    this.debounceTimers.set(type, timer);
+    return true;
+  }
+
+  /**
+   * Checks if event should be retried
+   * @private
+   */
+  shouldRetry(event) {
+    const retryKey = `${event.type}-${event.id}`;
+    const retryCount = this.eventRetryCount.get(retryKey) || 0;
+
+    if (retryCount >= this.maxRetries) {
+      this.eventRetryCount.delete(retryKey);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Retries event dispatch
+   * @private
+   */
+  retryDispatch(event) {
+    const retryKey = `${event.type}-${event.id}`;
+    const retryCount = this.eventRetryCount.get(retryKey) || 0;
+    this.eventRetryCount.set(retryKey, retryCount + 1);
+
+    const delay = Math.min(100 * Math.pow(2, retryCount), 3000); // Exponential backoff
+
+    setTimeout(() => {
+      console.debug(
+        `Retrying event ${event.type} (attempt ${retryCount + 1}/${
+          this.maxRetries
+        })`
+      );
+      this.executeDispatch(event);
+    }, delay);
+  }
+
+  /**
+   * Handles dispatch errors
+   * @private
+   */
+  handleDispatchError(error, type, payload) {
+    this.notifyErrorHandlers(error, { type, payload });
+
+    // Reset dispatching flag to prevent deadlock
+    this.isDispatching = false;
+  }
+
+  /**
+   * Notifies custom error handlers
+   * @private
+   */
+  notifyErrorHandlers(error, event) {
+    this.errorHandlers.forEach((handler) => {
+      try {
+        handler(error, event);
+      } catch (e) {
+        console.error("Error in error handler:", e);
+      }
+    });
+  }
+
+  /**
+   * Registers a custom error handler
+   * @param {Function} handler - Error handler function
+   * @returns {Function} - Unsubscribe function
+   */
+  onError(handler) {
+    if (typeof handler !== "function") {
+      console.warn("Invalid error handler");
+      return () => {};
+    }
+
+    this.errorHandlers.add(handler);
+    return () => this.errorHandlers.delete(handler);
   }
 
   /**
@@ -290,6 +478,30 @@ export class EventDispatcher {
   clear() {
     this.listeners.clear();
     this.queue = [];
+    this.priorityQueue = [];
+
+    // Clear all debounce timers
+    for (const timer of this.debounceTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.debounceTimers.clear();
+
+    this.lastEventTime.clear();
+    this.eventRetryCount.clear();
+  }
+
+  /**
+   * Destroys the event dispatcher and cleans up all resources
+   */
+  destroy() {
+    if (this.isDestroyed) return;
+
+    this.isDestroyed = true;
+    this.clear();
+    this.eventHistory = [];
+    this.errorHandlers.clear();
+
+    console.debug("EventDispatcher destroyed");
   }
 
   /**
@@ -309,13 +521,14 @@ export class EventDispatcher {
 export const eventDispatcher = new EventDispatcher();
 
 /**
- * Helper function to dispatch events
+ * Helper function to dispatch events with options
  * @param {string} type - Event type
  * @param {Object} payload - Event payload
+ * @param {Object} options - Dispatch options
  * @returns {boolean}
  */
-export function dispatch(type, payload) {
-  return eventDispatcher.dispatch(type, payload);
+export function dispatch(type, payload, options = {}) {
+  return eventDispatcher.dispatch(type, payload, options);
 }
 
 /**
