@@ -1,34 +1,28 @@
-/**
- * CONTRIBUTING.md
- * 
- * Guidelines for contributing to the project.
- */
-
 # Contributing to 3D Geometric Search
 
-Thank you for considering contributing to this project! This document provides guidelines and best practices for contributors.
+Thank you for your interest in contributing! This document provides guidelines and instructions for contributing to the project.
 
 ## Code of Conduct
 
-- Be respectful and constructive
-- Welcome newcomers and help them learn
-- Focus on what is best for the community
-- Show empathy towards others
+- Be respectful and inclusive
+- Focus on constructive feedback
+- Help others learn and grow
+- Follow the code style and conventions
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Git
+- Node.js 16+ and npm 7+
+- Modern browser with WebGL support
+- Git for version control
 - Code editor (VS Code recommended)
-- Basic knowledge of TypeScript and 3D graphics
 
 ### Setup Development Environment
 
 ```bash
-# Clone the repository
-git clone https://github.com/kasunvimarshana/3d-geometric-search.git
+# Clone repository
+git clone https://github.com/yourusername/3d-geometric-search.git
 cd 3d-geometric-search
 
 # Install dependencies
@@ -36,286 +30,558 @@ npm install
 
 # Start development server
 npm run dev
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+```
+
+## Project Structure
+
+```
+src/
+├── core/           # Domain logic and models
+├── events/         # Event system
+├── loaders/        # File format loaders
+├── renderer/       # Three.js rendering
+├── state/          # State management
+├── ui/             # UI components
+├── utils/          # Utilities
+└── index.js        # Entry point
 ```
 
 ## Development Workflow
 
-### 1. Create a Branch
+### 1. Pick an Issue
+
+- Check [Issues](https://github.com/yourusername/3d-geometric-search/issues)
+- Comment to claim an issue
+- Ask questions if unclear
+
+### 2. Create a Branch
 
 ```bash
 git checkout -b feature/your-feature-name
 # or
-git checkout -b fix/issue-description
+git checkout -b fix/bug-description
 ```
 
-### 2. Make Changes
+### 3. Make Changes
 
-Follow the project's architecture and coding standards (see below).
+- Follow code style (see below)
+- Write tests for new features
+- Update documentation
+- Keep commits atomic and focused
 
-### 3. Test Your Changes
+### 4. Test Your Changes
 
 ```bash
-# Run type checking
-npm run type-check
-
-# Run linting
-npm run lint
-
-# Run tests (when available)
+# Run tests
 npm test
+
+# Manual testing
+npm run dev
+# Test in browser
+
+# Build check
+npm run build
 ```
 
-### 4. Commit Changes
-
-Use clear, descriptive commit messages:
+### 5. Commit Changes
 
 ```bash
-git commit -m "feat: add support for FBX file format"
-git commit -m "fix: resolve section highlighting issue"
-git commit -m "docs: update API documentation"
+git add .
+git commit -m "feat: add new feature"
+# or
+git commit -m "fix: resolve bug"
 ```
 
-Commit message prefixes:
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `style:` Code style changes (formatting, etc.)
-- `refactor:` Code refactoring
-- `test:` Test additions or changes
-- `chore:` Build process or tooling changes
+**Commit Message Format:**
 
-### 5. Push and Create Pull Request
+```
+<type>: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+Types:
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Code style (formatting)
+- `refactor`: Code refactoring
+- `test`: Tests
+- `chore`: Maintenance
+
+### 6. Push and Create PR
 
 ```bash
-git push origin your-branch-name
+git push origin feature/your-feature-name
 ```
 
-Then create a pull request on GitHub with:
-- Clear title and description
-- Reference to related issues
-- Screenshots/videos if applicable
+Then create a Pull Request on GitHub.
 
-## Coding Standards
+## Code Style
 
-### Architecture Principles
+### JavaScript Style
 
-Follow Clean Architecture:
-- **Domain Layer**: Pure business logic, no dependencies
-- **Application Layer**: Use cases and orchestration
-- **Infrastructure Layer**: External implementations
-- **Presentation Layer**: UI and user interactions
+**Use ES6+ features:**
 
-### TypeScript Guidelines
+```javascript
+// Good
+const model = { id: 1, name: "Model" };
+const items = array.map((x) => x * 2);
 
-```typescript
-// ✅ Good: Explicit types, clear naming
-interface ModelMetadata {
-  readonly filename: string;
-  readonly format: ModelFormat;
-  readonly loadedAt: Date;
+// Avoid
+var model = { id: 1, name: "Model" };
+var items = [];
+for (var i = 0; i < array.length; i++) {
+  items.push(array[i] * 2);
 }
+```
 
-// ❌ Bad: Implicit any, unclear naming
-function process(data) {
-  // ...
-}
+**Use destructuring:**
 
-// ✅ Good: Explicit return type
-function calculateBounds(sections: ModelSection[]): BoundingBox {
-  // ...
-}
+```javascript
+// Good
+const { id, name } = model;
+const [first, second] = array;
 
-// ❌ Bad: Missing return type
-function calculateBounds(sections: ModelSection[]) {
-  // ...
-}
+// Avoid
+const id = model.id;
+const name = model.name;
+```
+
+**Use template literals:**
+
+```javascript
+// Good
+const message = `Model ${name} loaded`;
+
+// Avoid
+const message = "Model " + name + " loaded";
+```
+
+**Avoid mutation:**
+
+```javascript
+// Good
+const newArray = [...array, newItem];
+const newObject = { ...object, key: value };
+
+// Avoid
+array.push(newItem);
+object.key = value;
 ```
 
 ### Naming Conventions
 
-- **Classes**: PascalCase (`ModelService`, `ThreeJSRenderer`)
-- **Interfaces**: PascalCase with `I` prefix (`IModelLoader`, `IRenderer`)
-- **Functions/Methods**: camelCase (`loadModel`, `selectSection`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_FILE_SIZE`, `DEFAULT_CAMERA_POSITION`)
-- **Files**: Match class name (`ModelService.ts`, `IModelLoader.ts`)
+**Variables and functions: camelCase**
 
-### Code Organization
+```javascript
+const modelId = 123;
+function loadModel() {}
+```
 
-```typescript
-// File structure
-// 1. Imports (grouped by source)
-import { External } from 'external-lib';
-import { Domain } from '@domain/models';
-import { Application } from '@application/services';
+**Classes: PascalCase**
 
-// 2. Interfaces and types
-interface LocalInterface {
+```javascript
+class ModelLoader {}
+class EventDispatcher {}
+```
+
+**Constants: UPPER_SNAKE_CASE**
+
+```javascript
+const MAX_FILE_SIZE = 1000000;
+const DEFAULT_TIMEOUT = 5000;
+```
+
+**Private properties: underscore prefix**
+
+```javascript
+class Component {
+  constructor() {
+    this._internalState = {};
+  }
+}
+```
+
+### Documentation
+
+**Use JSDoc for functions:**
+
+```javascript
+/**
+ * Loads a 3D model from file
+ * @param {File} file - File to load
+ * @returns {Promise<Model3D>} Loaded model
+ * @throws {Error} If file format is unsupported
+ */
+async function loadModel(file) {
   // ...
 }
+```
 
-// 3. Constants
-const CONSTANT_VALUE = 10;
+**Document complex algorithms:**
 
-// 4. Class implementation
-export class MyClass {
-  // Constructor
-  constructor() {}
-  
-  // Public methods
-  public publicMethod(): void {}
-  
-  // Private methods
-  private privateMethod(): void {}
+```javascript
+// Calculate bounding box using AABB algorithm
+// See: https://en.wikipedia.org/wiki/Minimum_bounding_box
+function calculateBounds(vertices) {
+  // ...
 }
 ```
 
-### Error Handling
+### File Organization
 
-```typescript
-// ✅ Good: Specific error types, meaningful messages
-try {
-  const result = await this.loader.load(options);
-} catch (error) {
-  if (error instanceof FileNotFoundError) {
-    throw new Error(`File not found: ${options.filename}`);
-  }
-  throw new Error(`Failed to load model: ${error.message}`);
-}
+**One export per file for classes:**
 
-// ❌ Bad: Silent failures, generic errors
-try {
-  const result = await this.loader.load(options);
-} catch (error) {
-  console.log('Error');
+```javascript
+// ModelLoader.js
+export class ModelLoader {
+  // ...
 }
 ```
 
-### Event Handling
+**Group related functions:**
 
-```typescript
-// ✅ Good: Type-safe events, clear payload
-this.eventBus.publish(new ModelLoadedEvent({
-  filename: file.name,
-  sectionCount: model.getAllSections().length,
-  format: model.metadata.format,
-}));
-
-// ❌ Bad: Untyped events
-this.eventBus.publish({ type: 'loaded', data: model });
+```javascript
+// utils.js
+export function functionA() {}
+export function functionB() {}
 ```
 
-### Comments and Documentation
+**Imports at top:**
 
-```typescript
-/**
- * Loads a 3D model from the specified file.
- * 
- * @param file - The file to load
- * @returns Promise that resolves when loading is complete
- * @throws {Error} If the file format is unsupported
- * 
- * @example
- * ```typescript
- * await modelService.loadModel(file);
- * ```
- */
-async loadModel(file: File): Promise<void> {
-  // Implementation...
-}
-
-// Inline comments for complex logic
-// Calculate the center point of the bounding box
-const center = new Vector3(
-  (box.min.x + box.max.x) / 2,
-  (box.min.y + box.max.y) / 2,
-  (box.min.z + box.max.z) / 2
-);
+```javascript
+import { EventType } from "./events/EventDispatcher.js";
+import { createModel } from "./core/types.js";
+import * as THREE from "three";
 ```
 
-### CSS Guidelines
-
-```css
-/* Use CSS custom properties for theming */
-:root {
-  --color-primary: #3498db;
-  --spacing-md: 16px;
-}
-
-/* Follow BEM-like naming for clarity */
-.tree-node-content {
-  /* Block */
-}
-
-.tree-node-content.selected {
-  /* Modifier */
-}
-
-/* Avoid deep nesting */
-/* ❌ Bad */
-.sidebar .panel .tree .node .content {
-}
-
-/* ✅ Good */
-.tree-node-content {
-}
-```
-
-## Testing
+## Testing Guidelines
 
 ### Unit Tests
 
-Test individual components in isolation:
+Test individual functions and classes in isolation.
 
-```typescript
-describe('ModelService', () => {
-  it('should load a valid model', async () => {
-    const service = new ModelService(loader, renderer, eventBus);
-    await service.loadModel(mockFile);
-    expect(service.getCurrentModel()).toBeDefined();
+```javascript
+import { describe, it, expect } from "vitest";
+import { createModel } from "../src/core/types.js";
+
+describe("createModel", () => {
+  it("should create a model with default values", () => {
+    const model = createModel();
+    expect(model.id).toBeDefined();
+    expect(model.name).toBe("Untitled Model");
+  });
+
+  it("should use provided values", () => {
+    const model = createModel({ name: "Test" });
+    expect(model.name).toBe("Test");
   });
 });
 ```
 
 ### Integration Tests
 
-Test interactions between components:
+Test component interactions.
 
-```typescript
-describe('Model Loading Flow', () => {
-  it('should update UI after model loads', async () => {
-    // Test complete workflow
+```javascript
+describe("Model Loading", () => {
+  it("should load and render a glTF file", async () => {
+    const loader = new GltfLoader();
+    const model = await loader.load(testFile);
+
+    expect(model).toBeDefined();
+    expect(model.format).toBe("gltf");
+    expect(model.root).toBeDefined();
   });
 });
 ```
 
-## Documentation
+### Test Coverage
 
-- Update README.md for user-facing changes
-- Update ARCHITECTURE.md for architectural changes
-- Add JSDoc comments for public APIs
-- Include examples in documentation
+- Aim for > 80% coverage
+- Focus on critical paths
+- Test error cases
+- Mock external dependencies
 
-## Pull Request Checklist
+## Adding New Features
 
-Before submitting a PR, ensure:
+### New File Format Support
 
-- [ ] Code follows project architecture and style guidelines
-- [ ] All tests pass
-- [ ] TypeScript compiles without errors
-- [ ] Linting passes without errors
-- [ ] Documentation is updated
-- [ ] Commit messages are clear and descriptive
-- [ ] PR description explains the changes
-- [ ] Related issues are referenced
+1. **Create Loader**
 
-## Questions or Issues?
+```javascript
+// src/loaders/NewFormatLoader.js
+import { BaseLoader } from "./BaseLoader.js";
 
-- Open an issue on GitHub
-- Check existing issues and discussions
-- Review architecture documentation
+export class NewFormatLoader extends BaseLoader {
+  constructor() {
+    super();
+    this.supportedFormats = ["newformat"];
+  }
 
-## License
+  async load(file) {
+    const data = await this.readAsArrayBuffer(file);
+    return this.parse(data, file.name);
+  }
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+  async parse(data, filename) {
+    // Parse format
+    return convertToModel();
+  }
+}
+```
 
-Thank you for contributing! 🎉
+2. **Register in Factory**
+
+```javascript
+// src/loaders/LoaderFactory.js
+import { NewFormatLoader } from "./NewFormatLoader.js";
+
+this.loaders = [
+  // ...
+  new NewFormatLoader(),
+];
+```
+
+3. **Add Tests**
+
+```javascript
+describe("NewFormatLoader", () => {
+  it("should load .newformat files", async () => {
+    // Test implementation
+  });
+});
+```
+
+4. **Update Documentation**
+
+- README.md - Add to supported formats
+- ARCHITECTURE.md - Document format specifics
+
+### New Event Type
+
+1. **Add to EventType enum**
+
+```javascript
+// src/events/EventDispatcher.js
+export const EventType = {
+  // ...
+  NEW_FEATURE_EVENT: "feature:new",
+};
+```
+
+2. **Add validation schema (if needed)**
+
+```javascript
+const EventSchemas = {
+  [EventType.NEW_FEATURE_EVENT]: ["requiredField"],
+};
+```
+
+3. **Create action**
+
+```javascript
+// src/state/actions.js
+export function triggerNewFeature(data) {
+  dispatch(EventType.NEW_FEATURE_EVENT, data);
+}
+```
+
+4. **Handle in Application**
+
+```javascript
+on(EventType.NEW_FEATURE_EVENT, (event) => {
+  // Handle event
+});
+```
+
+### New UI Component
+
+1. **Create Component**
+
+```javascript
+// src/ui/NewComponent.js
+export class NewComponent {
+  constructor(container) {
+    this.container = container;
+  }
+
+  render(data) {
+    // Render logic
+  }
+
+  clear() {
+    this.container.innerHTML = "";
+  }
+}
+```
+
+2. **Add styles**
+
+```css
+/* src/styles/main.css */
+.new-component {
+  /* Styles */
+}
+```
+
+3. **Integrate**
+
+```javascript
+// src/index.js
+this.newComponent = new NewComponent(element);
+```
+
+## Pull Request Guidelines
+
+### Before Submitting
+
+- [ ] Code follows style guide
+- [ ] Tests pass
+- [ ] New tests added for new features
+- [ ] Documentation updated
+- [ ] No console.log or debugger statements
+- [ ] Build succeeds
+- [ ] No linting errors
+
+### PR Description Template
+
+```markdown
+## Description
+
+Brief description of changes
+
+## Type of Change
+
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+
+How was this tested?
+
+## Screenshots
+
+If UI changes, add screenshots
+
+## Checklist
+
+- [ ] Tests pass
+- [ ] Documentation updated
+- [ ] Code reviewed
+```
+
+### Review Process
+
+1. Automated checks must pass
+2. At least one approval required
+3. Address review comments
+4. Squash commits before merge
+
+## Reporting Issues
+
+### Bug Report Template
+
+```markdown
+**Describe the bug**
+Clear description
+
+**To Reproduce**
+Steps to reproduce:
+
+1. Go to '...'
+2. Click on '...'
+3. See error
+
+**Expected behavior**
+What should happen
+
+**Screenshots**
+If applicable
+
+**Environment:**
+
+- OS: [e.g. Windows 10]
+- Browser: [e.g. Chrome 95]
+- Version: [e.g. 1.0.0]
+
+**Additional context**
+Any other information
+```
+
+### Feature Request Template
+
+```markdown
+**Is your feature request related to a problem?**
+Clear description
+
+**Describe the solution**
+How you'd like it to work
+
+**Describe alternatives**
+Other solutions considered
+
+**Additional context**
+Any other information
+```
+
+## Release Process
+
+### Versioning
+
+Follow Semantic Versioning (semver):
+
+- MAJOR: Breaking changes
+- MINOR: New features (backwards compatible)
+- PATCH: Bug fixes
+
+### Release Checklist
+
+1. Update version in package.json
+2. Update CHANGELOG.md
+3. Run full test suite
+4. Create release branch
+5. Build and test production bundle
+6. Create GitHub release
+7. Publish to npm (if applicable)
+
+## Resources
+
+### Documentation
+
+- [Architecture Guide](ARCHITECTURE.md)
+- [API Reference](docs/api.md)
+- [Three.js Docs](https://threejs.org/docs/)
+
+### Tools
+
+- [VS Code](https://code.visualstudio.com/)
+- [Chrome DevTools](https://developer.chrome.com/docs/devtools/)
+- [Git](https://git-scm.com/)
+
+### Learning
+
+- [JavaScript Guide](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide)
+- [ES6 Features](http://es6-features.org/)
+- [Three.js Examples](https://threejs.org/examples/)
+
+## Questions?
+
+- Open an issue for bugs/features
+- Start a discussion for questions
+- Check existing issues first
+- Be patient and respectful
+
+Thank you for contributing!

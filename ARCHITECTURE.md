@@ -1,295 +1,504 @@
-/**
- * ARCHITECTURE.md
- * 
- * Comprehensive architecture documentation for the 3D Geometric Search application.
- */
+# Architecture Documentation
 
-# Architecture Overview
+## Overview
 
-This document describes the architecture of the 3D Geometric Search application, which is built using **Clean Architecture** principles with strict separation of concerns.
+This is a production-grade 3D geometric search application built with clean architecture principles. The system is designed for stability, maintainability, and scalability.
 
-## Design Principles
+## Core Principles
 
 ### SOLID Principles
 
-- **Single Responsibility**: Each class has one reason to change
-- **Open/Closed**: Open for extension, closed for modification
-- **Liskov Substitution**: Implementations are substitutable for their interfaces
-- **Interface Segregation**: Clients depend only on interfaces they use
-- **Dependency Inversion**: High-level modules don't depend on low-level modules
+- **Single Responsibility**: Each module has one clear purpose
+- **Open/Closed**: Components are extensible without modification
+- **Liskov Substitution**: All loaders implement the same interface
+- **Interface Segregation**: Focused, minimal interfaces
+- **Dependency Inversion**: Depend on abstractions, not concretions
 
-### Additional Principles
+### Design Patterns
 
-- **DRY** (Don't Repeat Yourself): No code duplication
-- **Separation of Concerns**: Clear boundaries between layers
-- **Clean Code**: Self-documenting, readable, maintainable code
-- **Event-Driven**: Centralized, predictable event handling
+- **Factory Pattern**: LoaderFactory for creating format loaders
+- **Observer Pattern**: Event system for loose coupling
+- **Singleton Pattern**: StateManager, EventDispatcher
+- **Strategy Pattern**: Different loaders for different formats
 
-## Layer Architecture
+## Architecture Layers
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Presentation Layer                    │
-│  (UI Components, Controllers, Views, User Interactions)  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│                   Application Layer                      │
-│    (Use Cases, Services, Orchestration, Business Logic)  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│                     Domain Layer                         │
-│   (Models, Interfaces, Events, Core Business Logic)     │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│                  Infrastructure Layer                    │
-│    (3D Loaders, Renderers, External Libraries, I/O)     │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│                 Presentation Layer              │
+│  (UI Components, User Interactions)             │
+│  - SectionTree                                  │
+│  - PropertiesPanel                              │
+│  - Button handlers                              │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│             Application Layer                   │
+│  (Orchestration, Event Handling)                │
+│  - Application (main.js)                        │
+│  - EventDispatcher                              │
+│  - StateManager                                 │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│              Domain Layer                       │
+│  (Business Logic, Core Models)                  │
+│  - Model3D, ModelNode types                     │
+│  - GeometricFeatures                            │
+│  - Model utilities                              │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│          Infrastructure Layer                   │
+│  (External Services, I/O)                       │
+│  - Loaders (glTF, OBJ, STL)                     │
+│  - SceneRenderer (Three.js)                     │
+│  - SearchEngine                                 │
+└─────────────────────────────────────────────────┘
 ```
 
-## Domain Layer
+## Module Structure
 
-The innermost layer containing core business logic and entities.
+### Core (`/src/core`)
 
-### Responsibilities
-- Define domain models (Model, ModelSection)
-- Declare contracts via interfaces (IModelLoader, IRenderer, IEventBus)
-- Define domain events for state changes
-- No external dependencies
+Domain models and business logic, independent of UI and infrastructure.
 
-### Key Components
+**Files:**
 
-**Models**
-- `Model`: Core 3D model entity with sections and metadata
-- `ModelSection`: Hierarchical component/part of a model
-- `ModelFormat`: Enumeration of supported formats
+- `types.js` - Core type definitions and factory functions
+- `modelUtils.js` - Tree traversal and manipulation utilities
+- `geometricFeatures.js` - Shape descriptor extraction
 
-**Interfaces**
-- `IModelLoader`: Contract for loading 3D models
-- `IRenderer`: Contract for 3D scene rendering
-- `IEventBus`: Contract for event management
+**Responsibilities:**
 
-**Events**
-- `DomainEvent`: Base event interface
-- Specific events: `ModelLoadedEvent`, `SectionSelectedEvent`, etc.
+- Define domain models
+- Provide pure functions for model manipulation
+- Extract geometric features for search
 
-## Application Layer
+### Events (`/src/events`)
 
-Orchestrates domain logic and coordinates operations.
+Centralized event system for decoupled communication.
 
-### Responsibilities
-- Implement use cases and business workflows
-- Coordinate between domain and infrastructure
-- Manage application state
-- No UI or infrastructure implementation details
+**Files:**
 
-### Key Services
+- `EventDispatcher.js` - Event bus with validation
+- `validators.js` - Event payload validation
 
-**EventBusService**
-- Centralized pub/sub event system
-- Safe event propagation with error handling
+**Key Features:**
+
+- Type-safe event dispatch
+- Payload validation
 - Event history tracking
+- Prevention of cascading side effects
+- Graceful error handling
 
-**ModelService**
-- Model loading and management
-- Section selection and navigation
-- Coordinates loader and renderer
+### State (`/src/state`)
 
-**ViewService**
-- Camera and view state management
-- Display options (wireframe, grid, axes)
-- Fullscreen control
+Immutable state management with centralized updates.
 
-**ModelOperationsService**
-- Complex model operations (disassembly, reassembly)
-- Model transformations and animations
+**Files:**
 
-## Infrastructure Layer
+- `StateManager.js` - State container with subscription
+- `actions.js` - Action creators for state transitions
 
-Handles external concerns and technology implementations.
+**Key Features:**
 
-### Responsibilities
-- Implement domain interfaces
-- Parse 3D file formats
-- Render 3D scenes
-- External library integration
+- Single source of truth
+- Immutable updates
+- State validation
+- History tracking
+- Reactive UI updates
 
-### Key Components
+### Loaders (`/src/loaders`)
 
-**Loaders**
-- `CompositeModelLoader`: Aggregates format-specific loaders
-- `GLTFModelLoader`: glTF/GLB format support (preferred)
-- `OBJModelLoader`: OBJ/MTL format support
-- `STLModelLoader`: STL format support
-- `STEPModelLoader`: STEP/CAD format placeholder
+Format-specific parsers following Strategy pattern.
 
-**Renderers**
-- `ThreeJSRenderer`: Three.js-based 3D rendering implementation
-- Scene management, lighting, camera control
-- Mesh highlighting and selection
+**Files:**
 
-## Presentation Layer
+- `BaseLoader.js` - Abstract base class
+- `GltfLoader.js` - glTF/GLB support
+- `ObjLoader.js` - OBJ support
+- `StlLoader.js` - STL support
+- `StepLoader.js` - STEP placeholder
+- `LoaderFactory.js` - Factory for loader selection
 
-User interface and interaction handling.
+**Extension:**
+To add a new format:
 
-### Responsibilities
-- Render UI components
-- Handle user input
-- Display application state
-- No business logic
+1. Create new loader extending BaseLoader
+2. Implement `load()` and `parse()` methods
+3. Register in LoaderFactory
 
-### Key Components
+### Renderer (`/src/renderer`)
 
-**Components**
-- `SectionTreeComponent`: Hierarchical model structure display
-- `PropertiesPanelComponent`: Section property display
-- `LoadingOverlayComponent`: Loading state feedback
-- `StatusBarComponent`: Status and information display
+Three.js integration and 3D visualization.
 
-**Controllers**
-- `ApplicationController`: Main coordinator
-- Binds UI events to services
-- Updates UI based on domain events
+**Files:**
+
+- `SceneRenderer.js` - Scene management and rendering
+
+**Responsibilities:**
+
+- Initialize Three.js scene
+- Handle camera controls
+- Apply visual effects (highlighting, isolation)
+- Process user interactions (clicking, selecting)
+
+### UI (`/src/ui`)
+
+Presentation components with minimal coupling.
+
+**Files:**
+
+- `SectionTree.js` - Hierarchical model browser
+- `PropertiesPanel.js` - Property inspector
+
+**Characteristics:**
+
+- Pure presentation logic
+- State-driven rendering
+- Event-driven updates
+
+### Utils (`/src/utils`)
+
+Cross-cutting concerns and helpers.
+
+**Files:**
+
+- `InteractionManager.js` - Disassembly, isolation logic
+- `SearchEngine.js` - Geometric similarity search
 
 ## Event Flow
 
-```
-User Action
-    ↓
-UI Component
-    ↓
-Application Controller
-    ↓
-Application Service
-    ↓
-Domain Model (state change)
-    ↓
-Domain Event Published
-    ↓
-Event Bus
-    ↓
-Subscribed Handlers (UI, Services)
-    ↓
-UI Update
-```
-
-## Dependency Direction
-
-Dependencies flow **inward** toward the domain:
+### Model Loading
 
 ```
-Presentation → Application → Domain ← Infrastructure
+User uploads file
+     ↓
+Application.loadModelFile()
+     ↓
+LoaderFactory.loadModel()
+     ↓
+dispatch(MODEL_LOAD_SUCCESS)
+     ↓
+StateManager.setModel()
+     ↓
+UI components re-render
+     ↓
+SceneRenderer.loadModel()
 ```
 
-- Presentation depends on Application
-- Application depends on Domain
-- Infrastructure depends on Domain (implements interfaces)
-- Domain depends on nothing (pure business logic)
+### Node Selection
 
-## File Format Support
+```
+User clicks node in tree
+     ↓
+SectionTree.onNodeClick()
+     ↓
+actions.selectNodes()
+     ↓
+StateManager.setSelection()
+     ↓
+dispatch(SELECTION_CHANGE)
+     ↓
+Application.onSelectionChange()
+     ↓
+PropertiesPanel.render()
+     ↓
+SectionTree.highlightNodes()
+```
 
-### Primary Format: glTF/GLB
-- Web-optimized, binary format
-- Supports materials, textures, animations
-- Industry standard for real-time rendering
+### Disassembly
 
-### CAD Format: STEP (ISO 10303)
-- Standardized CAD data exchange
-- AP203, AP214, AP242 support planned
-- Requires specialized parsing (OpenCascade.js)
-
-### Legacy Formats
-- **OBJ/MTL**: Geometry and materials
-- **STL**: Simple mesh format for 3D printing
-
-## State Management
-
-State is managed through:
-1. **Domain Models**: Authoritative state source
-2. **Event Bus**: State change notifications
-3. **Services**: State coordination and business rules
-4. **UI Components**: View state only (no business state)
+```
+User clicks Disassemble
+     ↓
+Application.disassemble()
+     ↓
+InteractionManager.disassemble()
+     ↓
+dispatch(DISASSEMBLE)
+     ↓
+StateManager.setDisassembled(true)
+     ↓
+UI updates (button states)
+```
 
 ## Error Handling
 
-- **Graceful degradation**: Errors don't crash the app
-- **User feedback**: Clear error messages in UI
-- **Logging**: Errors logged to console
-- **Validation**: Input validation at boundaries
-- **Safe defaults**: Fallback behavior when operations fail
+### Validation Layers
+
+1. **Event Validation**: Events are validated before dispatch
+2. **State Validation**: State updates are validated before commit
+3. **Payload Validation**: Required fields are checked
+4. **Type Safety**: Runtime type checking where appropriate
+
+### Error Recovery
+
+- Errors don't crash the application
+- Invalid operations are rejected gracefully
+- User is notified via error overlay
+- State remains consistent
+
+### Error Flow
+
+```
+Error occurs
+     ↓
+Try-catch boundary
+     ↓
+normalizeError()
+     ↓
+dispatch(ERROR)
+     ↓
+StateManager.setError()
+     ↓
+UI shows error overlay
+     ↓
+User dismisses
+     ↓
+StateManager.clearError()
+```
+
+## State Management
+
+### State Structure
+
+```javascript
+{
+  model: Model3D | null,
+  selectedNodeIds: string[],
+  focusedNodeId: string | null,
+  highlightedNodeIds: string[],
+  isolatedNodeId: string | null,
+  isDisassembled: boolean,
+  isFullscreen: boolean,
+  isLoading: boolean,
+  error: string | null,
+  searchResults: Array,
+  viewMode: string
+}
+```
+
+### Update Pattern
+
+```javascript
+// Read
+const state = stateManager.getState();
+
+// Update (immutable)
+stateManager.setState({
+  selectedNodeIds: [...newSelection],
+});
+
+// Subscribe
+const unsubscribe = stateManager.subscribe((state) => {
+  updateUI(state);
+});
+```
 
 ## Testing Strategy
 
 ### Unit Tests
-- Domain models and business logic
-- Service orchestration
-- Component behavior
+
+- Core utilities (traversal, bounds calculation)
+- Event validation
+- State transitions
+- Geometric feature extraction
 
 ### Integration Tests
-- Loader implementations
-- Renderer integration
-- Event flow
+
+- Loader → Model conversion
+- Event → State → UI updates
+- User interactions → State changes
 
 ### E2E Tests
-- Complete user workflows
-- Model loading and visualization
-- Navigation and operations
+
+- File upload → Display
+- Node selection → Property display
+- Disassembly → Visual update
 
 ## Performance Considerations
 
-- **Lazy loading**: Load models on demand
-- **Efficient rendering**: Three.js optimizations
-- **Event throttling**: Prevent excessive updates
-- **Memory management**: Proper cleanup and disposal
-- **Large model handling**: Progressive loading strategies
+### Optimization Points
+
+1. **Event Queue**: Prevents recursion in event handling
+2. **Lazy Rendering**: Components only render when state changes
+3. **Tree Virtualization**: (Future) For large hierarchies
+4. **Feature Caching**: Geometric features cached after extraction
+5. **Three.js Optimization**: Reuse materials, minimize draw calls
+
+### Scalability
+
+- Handles models with 1000+ nodes efficiently
+- Search index supports 100+ models
+- Event history limited to prevent memory growth
+- State history limited to 50 entries
+
+## Security Considerations
+
+1. **File Validation**: Check file types before loading
+2. **Event Whitelisting**: Only known event types are processed
+3. **State Validation**: Prevent invalid state transitions
+4. **Error Sanitization**: Don't expose stack traces to users
+5. **XSS Prevention**: No innerHTML with user data
 
 ## Extensibility
 
-The architecture supports easy extension:
-
-### Adding New File Formats
-1. Implement `IModelLoader` interface
-2. Register with `CompositeModelLoader`
-3. No changes to other layers required
-
 ### Adding New Features
-1. Define domain events if needed
-2. Add service methods
-3. Create UI components
-4. Wire up in controller
 
-### Replacing Renderer
-1. Implement `IRenderer` interface
-2. Swap implementation in bootstrap
-3. No changes to application or domain layers
+#### New Event Type
 
-## Security
+```javascript
+// 1. Add to EventType enum
+export const EventType = {
+  // ...
+  NEW_EVENT: "new:event",
+};
 
-- **Input validation**: File type and size checks
-- **Sandboxed parsing**: Isolated loader execution
-- **No eval()**: Safe code execution only
-- **CORS**: Proper cross-origin handling
+// 2. Add validation schema
+const EventSchemas = {
+  [EventType.NEW_EVENT]: ["requiredField"],
+};
 
-## Build and Deployment
+// 3. Listen for event
+on(EventType.NEW_EVENT, (event) => {
+  // Handle event
+});
+```
 
-- **TypeScript**: Strict type checking
-- **Vite**: Fast bundling and HMR
-- **ESLint**: Code quality enforcement
-- **Prettier**: Consistent code formatting
-- **Tree-shaking**: Minimal bundle size
+#### New File Format
+
+```javascript
+// 1. Create loader
+class NewFormatLoader extends BaseLoader {
+  constructor() {
+    super();
+    this.supportedFormats = ["newformat"];
+  }
+
+  async load(file) {
+    // Implementation
+  }
+}
+
+// 2. Register in factory
+const loaders = [
+  // ...
+  new NewFormatLoader(),
+];
+```
+
+#### New UI Component
+
+```javascript
+export class NewComponent {
+  constructor(container) {
+    this.container = container;
+  }
+
+  render(data) {
+    // Render logic
+  }
+}
+
+// Integrate in Application
+this.newComponent = new NewComponent(element);
+```
 
 ## Future Enhancements
 
-1. **WebAssembly**: STEP parser using OpenCascade
-2. **Web Workers**: Off-main-thread parsing
-3. **IndexedDB**: Local model caching
-4. **Collaboration**: Multi-user viewing
-5. **Annotations**: Markup and measurements
-6. **Export**: Screenshot and model export
-7. **Advanced Selection**: Multi-select, search
-8. **Animation**: Playback of animated models
+### Planned Features
+
+1. **Undo/Redo**: Event sourcing for time travel
+2. **WebWorker Search**: Offload search to background thread
+3. **Persistent State**: Save/restore workspace
+4. **Collaborative Editing**: Real-time multi-user
+5. **Advanced Search**: Filters, tags, metadata
+6. **Export Options**: Screenshot, measurements
+7. **STEP Support**: Full opencascade.js integration
+8. **Annotations**: Add notes to models
+9. **Comparison View**: Side-by-side model comparison
+10. **Cloud Storage**: Save models to cloud
+
+## Maintenance Guidelines
+
+### Code Quality
+
+- Follow ESLint rules
+- Maintain test coverage > 80%
+- Document complex algorithms
+- Use TypeScript for type safety (future)
+
+### Versioning
+
+- Semantic versioning (MAJOR.MINOR.PATCH)
+- Changelog for all releases
+- Migration guides for breaking changes
+
+### Dependencies
+
+- Keep dependencies up to date
+- Audit for security vulnerabilities
+- Minimize dependency count
+- Lock versions for stability
+
+## Deployment
+
+### Build Process
+
+```bash
+npm install
+npm run build
+npm run preview  # Test production build
+```
+
+### Environment Variables
+
+- None required for basic operation
+- Optional: API endpoints for cloud features
+
+### Browser Support
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+### Performance Budget
+
+- Initial load: < 3s
+- Time to interactive: < 5s
+- Bundle size: < 1MB (excluding Three.js)
+
+## Troubleshooting
+
+### Common Issues
+
+**Model not loading**
+
+- Check file format is supported
+- Verify file is not corrupted
+- Check browser console for errors
+
+**Slow performance**
+
+- Model too large (> 100k vertices)
+- Browser hardware acceleration disabled
+- Too many nodes in hierarchy
+
+**Selection not working**
+
+- Check event listeners are registered
+- Verify state is updating
+- Check Three.js raycasting
+
+## Conclusion
+
+This architecture provides a solid foundation for a production 3D application. It's:
+
+- **Maintainable**: Clear structure, separation of concerns
+- **Testable**: Decoupled components, pure functions
+- **Scalable**: Can handle growth in complexity and data
+- **Robust**: Graceful error handling, validated state
+- **Extensible**: Easy to add features without breaking existing code

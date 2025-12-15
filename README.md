@@ -1,35 +1,32 @@
 # 3D Geometric Search
 
-A professional 3D geometric search and visualization application built with clean architecture principles, supporting industry-standard 3D file formats.
+A professional, open-source web application for 3D geometric search and visualization, supporting industry-standard formats including glTF/GLB, STEP, OBJ/MTL, and STL.
 
 ## Features
 
-- **Industry-Standard Format Support**: glTF/GLB, STEP (ISO 10303), OBJ/MTL, STL
-- **Clean Architecture**: Strict separation of concerns with domain, application, infrastructure, and presentation layers
-- **Interactive Visualization**: Section navigation, highlighting, zoom, disassembly/reassembly
-- **Professional UI**: Minimal, clean interface focused on usability and performance
-- **Robust Event Handling**: Centralized, predictable event management
-- **Type-Safe**: Built with TypeScript for maximum reliability
+- **Format Support**: glTF/GLB (preferred), STEP (ISO 10303), OBJ/MTL, STL
+- **Interactive 3D Viewer**: Real-time rendering with Three.js
+- **Model Hierarchy**: Explore nested sections and components
+- **Model Operations**: Disassembly, reassembly, isolation, highlighting
+- **Navigation**: Bidirectional focus, zoom, pan, rotate
+- **Clean Architecture**: SOLID principles, separation of concerns
+- **Robust Event System**: Centralized, validated event handling
+- **Professional UI**: Minimal, accessible, performance-focused
 
 ## Architecture
 
+The application follows clean code architecture with clear separation of concerns:
+
 ```
 src/
-├── domain/           # Core business logic and entities
-│   ├── models/       # Domain models
-│   ├── interfaces/   # Contracts and abstractions
-│   └── events/       # Domain events
-├── application/      # Application services and use cases
-│   ├── services/     # Business logic orchestration
-│   └── usecases/     # Specific application operations
-├── infrastructure/   # External concerns (3D loaders, parsers)
-│   ├── loaders/      # 3D format loaders
-│   ├── parsers/      # Format-specific parsers
-│   └── adapters/     # External library adapters
-└── presentation/     # UI components and view logic
-    ├── components/   # UI components
-    ├── controllers/  # View controllers
-    └── styles/       # CSS styles
+├── core/           # Domain models and business logic
+├── events/         # Event system and dispatcher
+├── loaders/        # 3D format parsers
+├── renderer/       # Three.js scene management
+├── state/          # Application state management
+├── ui/             # UI components and interactions
+├── utils/          # Shared utilities
+└── index.js        # Application entry point
 ```
 
 ## Getting Started
@@ -52,34 +49,26 @@ npm run dev
 npm run build
 ```
 
-### Preview Production Build
+### Test
 
 ```bash
-npm run preview
+npm test
 ```
-
-## Supported Formats
-
-- **glTF/GLB** (preferred): Modern, web-optimized format for real-time rendering
-- **STEP** (.stp, .step): CAD format (AP203, AP214, AP242)
-- **OBJ/MTL**: Geometry and material definitions
-- **STL**: 3D printing and manufacturing
 
 ## Usage
 
-1. Click "Load Model" to select a 3D file
-2. Navigate the model structure in the sidebar
+1. Click "Upload Model" to load a 3D file
+2. Explore the model hierarchy in the sidebar
 3. Select sections to highlight and focus
-4. Use view controls to zoom, rotate, and fit the view
-5. Try disassemble/reassemble operations for complex models
+4. Use disassemble/reassemble for exploded views
+5. Isolate sections to focus on specific components
 
-## Design Principles
+## Technical Stack
 
-- **SOLID**: Single responsibility, open/closed, dependency inversion
-- **DRY**: No code duplication, reusable components
-- **Clean Code**: Readable, maintainable, self-documenting
-- **Separation of Concerns**: Clear boundaries between layers
-- **Event-Driven**: Predictable, centralized event handling
+- **Three.js**: 3D rendering engine
+- **Vite**: Build tool and dev server
+- **Vanilla JavaScript**: No framework dependencies
+- **ES Modules**: Modern JavaScript architecture
 
 ## License
 

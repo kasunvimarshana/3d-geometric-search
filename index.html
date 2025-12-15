@@ -3,108 +3,83 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Professional 3D geometric search and visualization application"
-    />
     <title>3D Geometric Search</title>
-    <link rel="stylesheet" href="/src/presentation/styles/main.css" />
+    <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
     <div id="app">
       <header class="app-header">
         <h1 class="app-title">3D Geometric Search</h1>
         <div class="app-controls">
-          <button id="load-model-btn" class="btn btn-primary" title="Load 3D Model">
-            Load Model
-          </button>
-          <button id="reset-view-btn" class="btn btn-secondary" title="Reset View">
-            Reset View
-          </button>
-          <button id="fullscreen-btn" class="btn btn-secondary" title="Toggle Fullscreen">
+          <button id="upload-btn" class="btn btn-primary">Upload Model</button>
+          <input
+            type="file"
+            id="file-input"
+            accept=".gltf,.glb,.obj,.stl,.step,.stp"
+            style="display: none"
+          />
+          <button id="fullscreen-btn" class="btn btn-secondary">
             Fullscreen
           </button>
+          <button id="reset-btn" class="btn btn-secondary">Reset View</button>
         </div>
       </header>
 
-      <main class="app-main">
-        <aside class="sidebar">
-          <section class="section-panel">
-            <h2 class="panel-title">Model Structure</h2>
+      <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-section">
+            <h2 class="sidebar-title">Model Hierarchy</h2>
             <div id="section-tree" class="section-tree"></div>
-          </section>
-
-          <section class="section-panel">
-            <h2 class="panel-title">Properties</h2>
-            <div id="properties-panel" class="properties-panel"></div>
-          </section>
-        </aside>
-
-        <section class="viewport-container">
-          <div id="viewport" class="viewport"></div>
-          <div id="loading-overlay" class="loading-overlay hidden">
-            <div class="loading-spinner"></div>
-            <p class="loading-text">Loading model...</p>
           </div>
-        </section>
 
-        <aside class="control-panel">
-          <section class="section-panel">
-            <h2 class="panel-title">View Controls</h2>
-            <div class="control-group">
-              <button id="zoom-in-btn" class="btn btn-icon" title="Zoom In">+</button>
-              <button id="zoom-out-btn" class="btn btn-icon" title="Zoom Out">−</button>
-              <button id="fit-view-btn" class="btn btn-block" title="Fit to View">Fit View</button>
-            </div>
-          </section>
+          <div class="sidebar-section">
+            <h2 class="sidebar-title">Properties</h2>
+            <div id="properties-panel" class="properties-panel"></div>
+          </div>
 
-          <section class="section-panel">
-            <h2 class="panel-title">Display Options</h2>
-            <div class="control-group">
-              <label class="control-label">
-                <input type="checkbox" id="wireframe-toggle" />
-                <span>Wireframe</span>
-              </label>
-              <label class="control-label">
-                <input type="checkbox" id="grid-toggle" checked />
-                <span>Grid</span>
-              </label>
-              <label class="control-label">
-                <input type="checkbox" id="axes-toggle" checked />
-                <span>Axes</span>
-              </label>
-            </div>
-          </section>
-
-          <section class="section-panel">
-            <h2 class="panel-title">Operations</h2>
-            <div class="control-group">
-              <button id="disassemble-btn" class="btn btn-block" title="Disassemble Model">
+          <div class="sidebar-section">
+            <h2 class="sidebar-title">Actions</h2>
+            <div class="action-buttons">
+              <button id="disassemble-btn" class="btn btn-action" disabled>
                 Disassemble
               </button>
-              <button id="reassemble-btn" class="btn btn-block" title="Reassemble Model">
+              <button id="reassemble-btn" class="btn btn-action" disabled>
                 Reassemble
               </button>
+              <button id="isolate-btn" class="btn btn-action" disabled>
+                Isolate
+              </button>
+              <button id="show-all-btn" class="btn btn-action" disabled>
+                Show All
+              </button>
             </div>
-          </section>
+          </div>
         </aside>
-      </main>
 
-      <footer class="app-footer">
-        <div class="status-bar">
-          <span id="status-text" class="status-text">Ready</span>
-          <span id="model-info" class="model-info"></span>
-        </div>
-      </footer>
+        <main class="viewer-container">
+          <div id="viewer" class="viewer"></div>
+          <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p class="loading-text">Loading model...</p>
+          </div>
+          <div id="error-overlay" class="error-overlay hidden">
+            <div class="error-content">
+              <h3 class="error-title">Error</h3>
+              <p id="error-message" class="error-message"></p>
+              <button id="dismiss-error-btn" class="btn btn-primary">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <div id="status-bar" class="status-bar">
+        <span id="status-text">Ready</span>
+        <span id="stats-text"></span>
+      </div>
     </div>
 
-    <input
-      type="file"
-      id="file-input"
-      accept=".gltf,.glb,.obj,.stl,.stp,.step"
-      class="hidden-file-input"
-    />
-
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/index.js"></script>
   </body>
 </html>

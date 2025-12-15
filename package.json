@@ -1,43 +1,34 @@
 {
   "name": "3d-geometric-search",
-  "version": "2.0.0",
-  "description": "Professional 3D geometric search and visualization application with industry-standard format support",
-  "main": "dist/index.js",
+  "version": "1.0.0",
+  "description": "Open-source 3D geometric search application with support for glTF/GLB, STEP, OBJ/MTL, and STL formats",
   "type": "module",
+  "main": "src/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .ts,.tsx",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\"",
     "test": "vitest",
-    "type-check": "tsc --noEmit"
+    "lint": "eslint src --ext .js"
   },
   "keywords": [
     "3d",
-    "geometry",
-    "visualization",
-    "three.js",
+    "geometric-search",
     "gltf",
     "step",
-    "cad",
-    "viewer"
+    "obj",
+    "stl",
+    "three.js",
+    "visualization"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "three": "^0.160.0",
-    "three-stdlib": "^2.29.0"
+    "three": "^0.160.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.2",
-    "@types/three": "^0.160.0",
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^6.19.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.2.4",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.11",
-    "vitest": "^1.2.0"
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.56.0"
   }
 }
