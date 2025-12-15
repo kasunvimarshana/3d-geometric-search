@@ -1,253 +1,299 @@
-# 3D Geometric Search Engine
+# 3D Geometric Search
 
-An open-source web application for searching and matching 3D models based on geometric similarity. Inspired by 3Dfindit.com, this tool enables engineers and designers to find similar parts by shape rather than text metadata.
+A professional, clean, and scalable 3D model viewer and geometric search application built with modern web technologies. Supports industry-standard 3D formats with a focus on performance, maintainability, and user experience.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+## ✨ Features
 
-## Features
+### 🎯 Core Functionality
 
-- **Multi-Format Support**: Upload and process glTF/GLB, STEP (AP203/AP214/AP242), OBJ/MTL, and STL files
-- **Geometric Analysis**: Extract shape descriptors including surface area, volume, bounding box, sphericity, and more
-- **Similarity Search**: Find similar models using advanced geometric feature comparison
-- **Interactive 3D Visualization**: View and rotate models in real-time using Three.js
-- **Drag & Drop Interface**: Intuitive UI for uploading and exploring 3D models
-- **Open Source**: Fully MIT licensed with no proprietary dependencies
+- **Multi-Format Support**: glTF/GLB, OBJ/MTL, STL, and STEP (CAD) formats
+- **Hierarchical Navigation**: Browse nested model sections with intuitive tree view
+- **Property Inspection**: View detailed properties of selected model sections
+- **Interactive Selection**: Click-to-select sections with visual highlighting
+- **Smooth Highlighting**: Graceful hover effects with smooth transitions
 
-## Supported File Formats
+### 🎨 Visualization
 
-| Format        | Extensions      | Description                                |
-| ------------- | --------------- | ------------------------------------------ |
-| glTF          | `.gltf`, `.glb` | GL Transmission Format (preferred for web) |
-| STEP          | `.step`, `.stp` | ISO 10303 (AP203, AP214, AP242)            |
-| Wavefront OBJ | `.obj`, `.mtl`  | Common 3D model format                     |
-| STL           | `.stl`          | Stereolithography format                   |
+- **3D Rendering**: High-quality rendering with Three.js
+- **Camera Controls**: Orbit, pan, zoom with smooth animations
+- **Lighting System**: Professional 3-point lighting setup
+- **Material System**: Support for various material types and properties
 
-## Architecture
+### 🔧 Advanced Features
+
+- **Model Disassembly**: Explode view for assembly analysis
+- **Section Isolation**: Focus on specific parts
+- **Bidirectional Navigation**: Navigate up/down the hierarchy
+- **View Reset**: Quickly return to default view
+- **Fullscreen Mode**: Immersive viewing experience
+- **Multi-Selection**: Select multiple sections with Ctrl/Cmd
+
+## 🏗️ Architecture
+
+### Clean Architecture Principles
 
 ```
-├── Frontend (HTML/CSS/JavaScript)
-│   ├── Three.js for 3D rendering
-│   ├── Drag-drop upload interface
-│   └── Search results visualization
-│
-├── Backend (Node.js/Express)
-│   ├── File upload handling
-│   ├── Format parsers
-│   └── REST API
-│
-├── Geometric Engine
-│   ├── Feature extraction
-│   ├── Shape descriptors
-│   └── Similarity algorithms
-│
-└── Database (SQLite)
-    └── Model metadata storage
+src/
+├── domain/              # Core domain models and events
+│   ├── types.ts        # Domain types and interfaces
+│   └── events.ts       # Domain event definitions
+├── core/               # Core application logic
+│   ├── EventBus.ts     # Centralized event system
+│   └── StateManager.ts # State management
+├── loaders/            # File format loaders
+│   ├── IModelLoader.ts # Loader interface
+│   ├── GLTFModelLoader.ts
+│   ├── OBJModelLoader.ts
+│   ├── STLModelLoader.ts
+│   └── ModelLoaderFactory.ts
+├── components/         # UI components
+│   ├── ModelViewer.ts  # 3D viewer component
+│   ├── NavigationPanel.ts
+│   ├── PropertiesPanel.ts
+│   └── ControlPanel.ts
+├── styles/             # CSS styles
+│   └── main.css
+├── Application.ts      # Main application class
+└── index.ts           # Entry point
 ```
 
-## Installation
+### Design Patterns
+
+- **SOLID Principles**: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+- **Observer Pattern**: Event-driven architecture with EventBus
+- **State Pattern**: Centralized state management with immutable updates
+- **Factory Pattern**: Dynamic loader instantiation based on file type
+- **Singleton Pattern**: Global state and event bus instances
+
+### Key Design Decisions
+
+1. **Separation of Concerns**: Clear boundaries between domain, core, loaders, and UI
+2. **Event-Driven Architecture**: All state changes propagate through events
+3. **Immutable State**: State updates create new objects, preventing bugs
+4. **Type Safety**: Full TypeScript coverage with strict mode
+5. **DRY Principle**: Reusable components and utilities
+6. **Error Handling**: Graceful degradation and user-friendly error messages
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js >= 18.0.0
-- npm or yarn
+- Node.js 18+ and npm/yarn
+- Modern web browser with WebGL support
 
-### Quick Start
-
-1. **Clone the repository**
+### Installation
 
 ```bash
-git clone <your-repo-url>
+# Clone the repository
+git clone https://github.com/yourusername/3d-geometric-search.git
 cd 3d-geometric-search
-```
 
-2. **Install dependencies**
-
-```bash
+# Install dependencies
 npm install
 ```
 
-3. **Start the server**
+### Development
 
 ```bash
-npm start
-```
-
-4. **Open your browser**
-
-```
-http://localhost:3000
-```
-
-### Development Mode
-
-```bash
+# Start development server
 npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run linter
+npm run lint
+
+# Run tests
+npm run test
 ```
 
-## Usage
+### Usage
 
-### Uploading Models
+1. **Load a Model**: Click "Load Model" button and select a 3D file
+2. **Navigate**: Use the left panel to browse model sections
+3. **Select**: Click on sections to view their properties
+4. **Inspect**: View detailed properties in the right panel
+5. **Control View**: Use mouse to orbit, zoom, and pan
+6. **Disassemble**: Click "Disassemble" to explode the model
 
-1. Drag and drop a 3D file (`.gltf`, `.glb`, `.step`, `.stp`, `.obj`, `.stl`) onto the upload area
-2. The system will automatically:
-   - Parse the geometry
-   - Extract geometric features
-   - Generate a 3D preview
-   - Store the model in the database
+## 🎮 Controls
 
-### Searching for Similar Models
+### Mouse Controls
 
-1. Select an uploaded model or upload a new query model
-2. Click "Find Similar"
-3. Browse ranked results based on geometric similarity
-4. View detailed comparisons and feature breakdowns
+- **Left Click + Drag**: Rotate camera
+- **Right Click + Drag**: Pan camera
+- **Scroll Wheel**: Zoom in/out
+- **Click Section**: Select section
 
-### Template Shapes
+### Keyboard Shortcuts
 
-Select from pre-defined geometric primitives:
+- **Ctrl/Cmd + Click**: Multi-select sections
+- **F**: Toggle fullscreen
+- **R**: Reset view
+- **Esc**: Clear selection
 
-- Cube
-- Sphere
-- Cylinder
-- Cone
-- Torus
-- Custom shapes
+## 📦 Supported Formats
 
-## Geometric Features
+### glTF/GLB (Preferred)
 
-The system extracts the following features for similarity comparison:
+- Modern, web-optimized format
+- Supports PBR materials
+- Efficient binary encoding (GLB)
+- Animation support
+- Industry standard for web 3D
 
-### Primary Descriptors
+### OBJ/MTL
 
-- **Surface Area**: Total surface area in square units
-- **Volume**: Enclosed volume in cubic units
-- **Bounding Box**: Axis-aligned minimum bounding box dimensions
-- **Sphericity**: Measure of how sphere-like the shape is
-- **Compactness**: Surface area to volume ratio
+- Widely supported legacy format
+- Simple text-based geometry
+- Material library support
+- Good for simple models
 
-### Advanced Descriptors
+### STL
 
-- **Principal Axes**: Orientation via PCA (Principal Component Analysis)
-- **Aspect Ratios**: Dimensional proportions (length/width/height)
-- **Convex Hull**: Convexity measure
-- **Shape Distribution**: D2 shape function (distance distribution)
-- **Curvature Statistics**: Mean, Gaussian, and principal curvatures
-- **Topological Features**: Euler characteristic, genus
+- Stereolithography format
+- Common in 3D printing
+- Simple triangle mesh
+- Binary and ASCII variants
 
-### Similarity Metrics
+### STEP (Planned)
 
-Multiple algorithms for ranking similarity:
+- CAD industry standard
+- ISO 10303 compliance
+- Precise geometric data
+- Assembly support
 
-- **Euclidean Distance**: L2 norm in feature space
-- **Cosine Similarity**: Angle-based similarity
-- **Weighted Feature Distance**: Custom weights per feature
-- **Shape Context Matching**: Histogram-based comparison
+## 🎨 UI/UX Design
 
-## API Documentation
+### Design Philosophy
 
-### REST Endpoints
+- **Clean & Minimal**: No decorative or fancy effects
+- **Professional**: Suitable for engineering and design workflows
+- **Consistent**: Uniform spacing, typography, and visual hierarchy
+- **Accessible**: High contrast, readable fonts
+- **Responsive**: Adapts to different screen sizes
 
-#### Upload Model
+### Color Palette
 
-```http
-POST /api/upload
-Content-Type: multipart/form-data
+- **Background**: Dark theme (#1a1a1a, #2a2a2a, #333333)
+- **Text**: Light gray (#e0e0e0, #b0b0b0)
+- **Accent**: Blue (#00aaff) for selection
+- **Highlight**: Orange (#ffaa00) for hover
+- **Success**: Green (#00dd88)
+- **Error**: Red (#ff4444)
 
-Body: file (3D model file)
-Response: { modelId, features, preview }
+## 🔧 Configuration
+
+### Build Configuration
+
+- **Bundler**: Vite for fast builds and HMR
+- **TypeScript**: Strict mode for type safety
+- **Module System**: ES Modules
+- **Target**: ES2020 for modern browsers
+
+### Extending the Application
+
+#### Adding a New File Format
+
+1. Create a new loader implementing `IModelLoader`:
+
+```typescript
+export class MyFormatLoader extends BaseModelLoader {
+  readonly supportedFormats: FileFormat[] = ["myformat" as FileFormat];
+
+  async load(
+    filePath: string,
+    fileData: ArrayBuffer | string
+  ): Promise<Model3D> {
+    // Implementation
+  }
+}
 ```
 
-#### Search Similar
+2. Register the loader:
 
-```http
-POST /api/search
-Content-Type: application/json
+```typescript
+import { ModelLoaderFactory } from "./loaders/ModelLoaderFactory";
+import { MyFormatLoader } from "./loaders/MyFormatLoader";
 
-Body: { modelId, threshold, limit }
-Response: { results: [{ modelId, similarity, features }] }
+ModelLoaderFactory.registerLoader(new MyFormatLoader());
 ```
 
-#### Get Model
+#### Adding Custom Events
 
-```http
-GET /api/models/:id
-Response: { modelId, filename, features, uploadDate }
+1. Define event type in `domain/events.ts`:
+
+```typescript
+export enum EventType {
+  CUSTOM_EVENT = "custom:event",
+}
+
+export interface CustomEvent extends BaseEvent {
+  type: EventType.CUSTOM_EVENT;
+  data: any;
+}
 ```
 
-#### List Models
+2. Listen to events:
 
-```http
-GET /api/models
-Response: { models: [...] }
+```typescript
+eventBus.on(EventType.CUSTOM_EVENT, (event) => {
+  // Handle event
+});
 ```
 
-#### Delete Model
+## 🧪 Testing
 
-```http
-DELETE /api/models/:id
-Response: { success: true }
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
 ```
 
-## Configuration
+## 📊 Performance
 
-Create a `.env` file for custom configuration:
+### Optimization Strategies
 
-```env
-PORT=3000
-UPLOAD_DIR=./uploads
-MAX_FILE_SIZE=50000000
-DATABASE_PATH=./database/models.db
-ENABLE_CORS=true
-```
+- **Lazy Loading**: Load components on demand
+- **Code Splitting**: Separate bundles for optimal loading
+- **Tree Shaking**: Remove unused code
+- **Minification**: Compress production builds
+- **Caching**: Browser and CDN caching strategies
 
-## Project Structure
+### Best Practices
 
-```
-3d-geometric-search/
-├── server.js                 # Main server entry point
-├── package.json              # Dependencies
-├── README.md                 # This file
-├── LICENSE                   # MIT License
-│
-├── public/                   # Frontend files
-│   ├── index.html           # Main UI
-│   ├── styles.css           # Styling
-│   ├── app.js               # Frontend logic
-│   └── viewer.js            # 3D visualization
-│
-├── src/                      # Backend source
-│   ├── parsers/             # File format parsers
-│   │   ├── gltf-parser.js
-│   │   ├── step-parser.js
-│   │   ├── obj-parser.js
-│   │   └── stl-parser.js
-│   │
-│   ├── geometric/           # Geometric analysis
-│   │   ├── feature-extractor.js
-│   │   ├── descriptors.js
-│   │   └── similarity.js
-│   │
-│   ├── database/            # Database layer
-│   │   └── db.js
-│   │
-│   └── utils/               # Utilities
-│       └── validators.js
-│
-├── uploads/                 # Uploaded files (gitignored)
-├── database/                # SQLite database
-└── examples/                # Example models
-```
+- Use instanced rendering for repeated geometry
+- Implement LOD (Level of Detail) for complex models
+- Dispose unused resources properly
+- Debounce expensive operations
+- Use Web Workers for heavy computations
 
-## Performance Considerations
+## 🛠️ Troubleshooting
 
-- **Browser-Based**: Small datasets (<100 models) can run entirely in the browser
-- **Server-Side**: Large datasets leverage backend processing and indexing
-- **Chunked Upload**: Large files are uploaded in chunks to prevent timeouts
-- **Caching**: Feature vectors are cached to speed up repeat searches
-- **Indexing**: SQLite indexes on geometric features for faster queries
+### Common Issues
 
-## Contributing
+**Issue**: Model doesn't load
+
+- **Solution**: Check file format is supported and file is not corrupted
+
+**Issue**: Slow performance with large models
+
+- **Solution**: Consider simplifying the model or implementing LOD
+
+**Issue**: Sections not highlighting
+
+- **Solution**: Ensure meshes have proper IDs and materials
+
+## 🤝 Contributing
 
 Contributions are welcome! Please follow these guidelines:
 
@@ -257,70 +303,55 @@ Contributions are welcome! Please follow these guidelines:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### Development Guidelines
+### Code Standards
 
-- Follow ESLint rules
-- Write tests for new features
-- Update documentation
-- Use meaningful commit messages
+- Follow TypeScript best practices
+- Maintain test coverage above 80%
+- Use meaningful variable and function names
+- Document complex logic with comments
+- Follow existing code style
 
-## Roadmap
+## 📄 License
 
-- [ ] Advanced STEP file parsing (AP242 with PMI)
-- [ ] Machine learning-based shape matching
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- **Three.js**: Excellent 3D rendering library
+- **Vite**: Fast build tool and development server
+- **TypeScript**: Type-safe JavaScript
+
+## 📞 Support
+
+For issues, questions, or suggestions:
+
+- Open an issue on GitHub
+- Email: support@example.com
+- Documentation: https://docs.example.com
+
+## 🗺️ Roadmap
+
+### Version 2.1
+
+- [ ] STEP file format support
+- [ ] Advanced material editor
+- [ ] Measurement tools
+- [ ] Cross-section views
+
+### Version 2.2
+
+- [ ] Collaborative features
 - [ ] Cloud storage integration
-- [ ] Batch processing API
-- [ ] Export to various formats
-- [ ] Real-time collaborative viewing
-- [ ] Mobile app support
+- [ ] AR/VR support
+- [ ] Advanced search and filtering
 
-## Known Limitations
+### Version 3.0
 
-- **STEP Parsing**: Complex STEP files may require external libraries (OpenCascade.js)
-- **File Size**: Browser parsing limited to ~50MB files
-- **Precision**: Similarity is approximate and may need fine-tuning
-- **Format Coverage**: Some rare CAD formats not yet supported
-
-## Troubleshooting
-
-### Common Issues
-
-**Q: Models not displaying in viewer**
-
-- Check browser console for errors
-- Ensure file format is supported
-- Verify file is not corrupted
-
-**Q: Slow search performance**
-
-- Reduce dataset size
-- Enable server-side processing
-- Check database indexes
-
-**Q: STEP files not parsing**
-
-- STEP support is basic; complex files may fail
-- Consider converting to GLTF/OBJ first
-- Check STEP AP version (AP203/AP214 recommended)
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- **Three.js**: 3D rendering engine
-- **OpenCascade.js**: STEP file parsing inspiration
-- **3Dfindit.com**: Inspiration for geometric search
-- Open source community
-
-## Contact
-
-For questions, issues, or contributions:
-
-- GitHub Issues: [Create an issue]
-- Discussions: [Join the discussion]
+- [ ] Real-time collaboration
+- [ ] Plugin system
+- [ ] Custom shaders
+- [ ] Performance analytics
 
 ---
 
-**Built with ❤️ for the engineering and aerospace community**
+**Built with ❤️ using modern web technologies**

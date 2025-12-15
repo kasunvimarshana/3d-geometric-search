@@ -1,32 +1,13 @@
-# Node modules
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Database
-*.db
-*.sqlite
-database/*.db
-
-# Uploaded files
-uploads/*
-!uploads/.gitkeep
 
 # Build outputs
 dist/
 build/
-*.bundle.js
+*.log
 
 # IDE
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+.vscode/
 .idea/
 *.swp
 *.swo
@@ -36,11 +17,10 @@ build/
 .DS_Store
 Thumbs.db
 
-# Logs
-logs/
-*.log
+# Environment
+.env
+.env.local
+.env.*.local
 
-# Temp files
-tmp/
-temp/
-*.tmp
+# TypeScript
+*.tsbuildinfo
