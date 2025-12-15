@@ -1,6 +1,6 @@
 # E3D Viewer
 
-A clean, modern JavaScript end-to-end 3D application inspired by industry-standard geometric search viewers. Prioritizes glTF/GLB, supports STEP (AP203/214/242) via WebAssembly, and remains compatible with OBJ/MTL and STL. Designed with SOLID, DRY, separation of concerns, and clean architecture.
+A clean, modern Angular-based 3D application inspired by industry-standard geometric search viewers. Prioritizes glTF/GLB, supports STEP (AP203/214/242) via WebAssembly, and remains compatible with OBJ/MTL and STL. Designed with SOLID, DRY, separation of concerns, and clean architecture.
 
 ## Features
 
@@ -11,25 +11,36 @@ A clean, modern JavaScript end-to-end 3D application inspired by industry-standa
 - Zoom/fit-to-selection and fit-to-all; reset view
 - Fullscreen toggle
 - Disassembly/reassembly animation (exploded view)
-- Centralized state via Redux Toolkit (listener middleware)
-- Predictable, uni-directional event orchestration
+- Centralized state management via Angular Services with RxJS
+- Predictable, uni-directional data flow
 
 ## Architecture
 
-- `src/core`: domain logic, services, registries (no UI deps)
-- `src/infrastructure`: format loaders, Three.js adapters
-- `src/app`: Redux store, slices, and listener-based side effects
-- `src/presentation`: React UI and R3F viewport (pure presentation)
+The application follows Angular best practices with a clean, layered architecture:
+
+- **`src/app`**: Angular application layer
+  - **`components/`**: Angular standalone components (Toolbar, Viewport, Hotkeys)
+  - **`services/`**: State management services (ModelService, ViewerService, UIService)
+  - Configuration files for routing and application bootstrap
+- **`src/core`**: Domain logic, services, registries (framework-agnostic)
+  - **`domain/`**: Business logic and model tree structures
+  - **`registry/`**: Model registry for managing 3D objects
+  - **`services/`**: Core services like fit-to-view calculations
+- **`src/infrastructure`**: Format loaders, Three.js adapters
+  - **`loaders/`**: File format loaders (glTF, OBJ, STL, STEP)
+- **`src/styles.css`**: Global application styles
+
+The core and infrastructure layers are preserved from the original implementation and remain framework-agnostic, making them reusable across different frontend frameworks.
 
 ## Getting Started
 
 ```bash
 # Node.js 18+ recommended
 npm install
-npm run dev
+npm start
 ```
 
-Dev server prints the URL (e.g., http://localhost:5175). Use “Open Model” or drag-and-drop files into the viewport.
+Dev server will be available at http://localhost:4200. Use "Open Model" or drag-and-drop files into the viewport.
 
 ### Loading Models
 
@@ -38,10 +49,18 @@ Dev server prints the URL (e.g., http://localhost:5175). Use “Open Model” or
 - STL: Single file `.stl`.
 - STEP: `.stp/.step` requires optional dependency (see below).
 
+## Build
+
+```bash
+npm run build
+```
+
+Build artifacts will be stored in the `dist/` directory.
+
 ## Tests
 
 ```bash
-npm run test
+npm test
 ```
 
 ## Notes on STEP Support
@@ -68,6 +87,14 @@ Large files may take time and memory. Errors are reported gracefully.
 - I: Isolate selection
 - Esc/E: Clear isolation
 - R: Reset view
+
+## Technology Stack
+
+- **Angular 19**: Modern standalone components with signal-based reactivity
+- **RxJS**: Reactive state management
+- **Three.js**: 3D rendering engine
+- **TypeScript**: Type-safe development
+- **Angular CLI**: Build tooling and development server
 
 ## License
 
