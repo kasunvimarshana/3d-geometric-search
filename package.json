@@ -1,0 +1,34 @@
+{
+  "name": "3d-geometric-search",
+  "version": "1.0.0",
+  "description": "Open-source 3D geometric search application with support for glTF/GLB, STEP, OBJ/MTL, and STL formats",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "lint": "eslint src --ext .js"
+  },
+  "keywords": [
+    "3d",
+    "geometric-search",
+    "gltf",
+    "step",
+    "obj",
+    "stl",
+    "three.js",
+    "visualization"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.56.0"
+  }
+}
