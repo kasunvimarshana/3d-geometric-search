@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loader Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ddd;
+      }
+      .success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+      }
+      .error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+      }
+      .pending {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Loader Import Test</h1>
+    <div id="results"></div>
+
+    <script type="module">
+      const results = document.getElementById('results');
+
+      function addResult(name, status, message) {
+        const div = document.createElement('div');
+        div.className = `test ${status}`;
+        div.innerHTML = `<strong>${name}:</strong> ${message}`;
+        results.appendChild(div);
+      }
+
+      async function testLoader(name, path) {
+        addResult(name, 'pending', 'Testing...');
+        try {
+          const module = await import(path);
+          const keys = Object.keys(module);
+          addResult(name, 'success', `✓ Loaded successfully. Exports: ${keys.join(', ')}`);
+
+          // Test if we can instantiate
+          if (keys.length > 0) {
+            const AdapterClass = module[keys[0]];
+            const instance = new AdapterClass();
+            addResult(
+              `${name} Instance`,
+              'success',
+              `✓ Instantiated successfully: ${instance.constructor.name}`
+            );
+          }
+        } catch (error) {
+          addResult(name, 'error', `✗ Failed: ${error.message}`);
+          console.error(`${name} error:`, error);
+        }
+      }
+
+      async function testSection() {
+        addResult('Section', 'pending', 'Testing...');
+        try {
+          const { Section } = await import('./src/core/Section.js');
+          const section = new Section('test-1', 'Test Section', 'part');
+          addResult(
+            'Section',
+            'success',
+            `✓ Section class loaded and instantiated: ${section.name}`
+          );
+        } catch (error) {
+          addResult('Section', 'error', `✗ Failed: ${error.message}`);
+          console.error('Section error:', error);
+        }
+      }
+
+      async function runTests() {
+        await testSection();
+        await testLoader('BaseLoader', './src/loaders/BaseLoader.js');
+        await testLoader('GLTFLoader', './src/loaders/GLTFLoader.js');
+        await testLoader('OBJLoader', './src/loaders/OBJLoader.js');
+        await testLoader('STLLoader', './src/loaders/STLLoader.js');
+        await testLoader('STEPLoader', './src/loaders/STEPLoader.js');
+        await testLoader('LoaderFactory', './src/loaders/LoaderFactory.js');
+
+        addResult(
+          'All Tests',
+          'success',
+          '✓ All loader tests completed. Check above for any errors.'
+        );
+      }
+
+      runTests();
+    </script>
+  </body>
+</html>

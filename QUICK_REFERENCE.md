@@ -1,225 +1,258 @@
 # Quick Reference
 
-## 🚀 Commands
+## Commands
 
 ```bash
 npm install          # Install dependencies
-npm run dev          # Start dev server (localhost:3000)
+npm run dev          # Start development server (http://localhost:3000)
 npm run build        # Build for production
 npm run preview      # Preview production build
-npm run lint         # Run ESLint
-npm run test         # Run tests
+npm run lint         # Check code quality
+npm run format       # Format code
 ```
 
-## 📁 Key Files
+## Key Files
 
-| File                            | Purpose                |
-| ------------------------------- | ---------------------- |
-| `src/domain/types.ts`           | Core domain types      |
-| `src/domain/events.ts`          | Event definitions      |
-| `src/core/EventBus.ts`          | Event system           |
-| `src/core/StateManager.ts`      | State management       |
-| `src/components/ModelViewer.ts` | 3D rendering           |
-| `src/Application.ts`            | Main app orchestration |
-| `src/index.ts`                  | Entry point            |
+| File | Purpose |
+|------|---------|
+| `src/index.js` | Application entry point |
+| `src/Application.js` | Main application orchestrator |
+| `src/core/` | Domain models (Model, Section, Camera, Selection) |
+| `src/state/` | State management |
+| `src/engine/` | 3D rendering (Engine, SceneManager) |
+| `src/loaders/` | File format loaders |
+| `src/events/` | Event orchestration |
+| `src/ui/` | UI components |
 
-## 🎯 Core Concepts
-
-### Event Flow
+## Architecture Layers
 
 ```
-User Action → Component → StateManager → Event → All Listeners → UI Update
+UI Components
+     ↕ (events)
+Event Orchestrator
+     ↕
+State Manager ←→ Engine (3D) ←→ Scene Manager
+     ↕                              ↕
+Domain Models                   Three.js
 ```
 
-### State Management
+## State Management
 
-```typescript
-// Get state
+```javascript
+// Get current state
 const state = stateManager.getState();
 
 // Subscribe to changes
-stateManager.subscribe((state) => {
-  console.log("State changed:", state);
-});
+const unsubscribe = stateManager.subscribe(
+  (state) => { /* handle change */ },
+  ['model', 'selection']
+);
 
 // Update state
-stateManager.selectSection(sectionId);
+StateActions.setModel(model);
+StateActions.selectSection(sectionId);
 ```
 
-### Event Bus
-
-```typescript
-// Listen to event
-eventBus.on(EventType.MODEL_LOADED, (event) => {
-  console.log("Model:", event.model);
-});
-
-// Emit event
-eventBus.emit({
-  type: EventType.MODEL_LOADED,
-  timestamp: new Date(),
-  model: myModel,
-});
-```
-
-## 🎨 Styling
-
-### CSS Variables
-
-```css
---bg-primary: #1a1a1a;
---bg-secondary: #2a2a2a;
---text-primary: #e0e0e0;
---accent-primary: #00aaff;
---accent-secondary: #ffaa00;
---spacing-md: 16px;
---transition-normal: 250ms ease;
-```
-
-### Common Classes
-
-- `.btn` - Button
-- `.btn-primary` - Primary button
-- `.section-item` - Tree item
-- `.property-row` - Property table row
-- `.empty-state` - Empty state message
-
-## 🎮 User Controls
-
-| Action       | Control             |
-| ------------ | ------------------- |
-| Rotate       | Left click + drag   |
-| Pan          | Right click + drag  |
-| Zoom         | Scroll wheel        |
-| Select       | Click section       |
-| Multi-select | Ctrl/Cmd + click    |
-| Reset view   | Click "Reset View"  |
-| Fullscreen   | Click "Fullscreen"  |
-| Disassemble  | Click "Disassemble" |
-
-## 🔧 Common Tasks
-
-### Add Event Type
-
-```typescript
-// In domain/events.ts
-export enum EventType {
-  MY_EVENT = "my:event",
-}
-
-export interface MyEvent extends BaseEvent {
-  type: EventType.MY_EVENT;
-  data: string;
-}
-```
-
-### Add Loader
-
-```typescript
-// Create MyLoader.ts
-export class MyLoader extends BaseModelLoader {
-  readonly supportedFormats = ['myformat'];
-  async load(path, data) { /* ... */ }
-}
-
-// Register in ModelLoaderFactory.ts
-private static loaders = [
-  new MyLoader(),
-  // ...
-];
-```
-
-### Add UI Control
-
-```typescript
-// In ControlPanel.ts
-this.container.querySelector("#btnNew")?.addEventListener("click", () => {
-  this.stateManager.doSomething();
-});
-```
-
-## 📊 Supported Formats
-
-| Format | Extension | Type              |
-| ------ | --------- | ----------------- |
-| glTF   | .gltf     | Web-optimized     |
-| GLB    | .glb      | Binary glTF       |
-| OBJ    | .obj      | Wavefront         |
-| STL    | .stl      | Stereolithography |
-
-## 🎯 Event Types
-
-| Event                   | When                      |
-| ----------------------- | ------------------------- |
-| `MODEL_LOADING`         | Model load started        |
-| `MODEL_LOADED`          | Model loaded successfully |
-| `MODEL_LOAD_ERROR`      | Load failed               |
-| `SECTION_SELECTED`      | Section selected          |
-| `SECTION_DESELECTED`    | Selection cleared         |
-| `SECTION_HIGHLIGHTED`   | Hover started             |
-| `SECTION_DEHIGHLIGHTED` | Hover ended               |
-| `VIEW_STATE_CHANGED`    | Camera/zoom changed       |
-| `VIEW_RESET`            | View reset to default     |
-| `MODEL_DISASSEMBLED`    | Exploded view             |
-| `MODEL_REASSEMBLED`     | Collapsed view            |
-
-## 🐛 Debugging
+## Events
 
 ```javascript
-// Browser console
+// Emit event
+await eventOrchestrator.emit('section:select', { sectionId });
 
-// Get state
-StateManager.getInstance().getState();
-
-// Monitor events
-EventBus.getInstance().on("*", (e) => console.log(e));
-
-// Check listeners
-EventBus.getInstance().getListenerCount();
+// Available events:
+// - model:load, model:clear
+// - section:select, section:deselect, section:highlight
+// - section:focus, section:isolate, section:show-all
+// - camera:reset, camera:fit
+// - view:fullscreen, view:mode
+// - model:disassemble, model:reassemble
+// - ui:toggle-sidebar, ui:toggle-properties
 ```
 
-## 📖 Documentation
+## Adding New Loader
 
-| File                        | Content                     |
-| --------------------------- | --------------------------- |
-| `README.md`                 | User guide, features, setup |
-| `ARCHITECTURE.md`           | System design, patterns     |
-| `DEVELOPMENT.md`            | Dev guide, examples         |
-| `IMPLEMENTATION_SUMMARY.md` | What's included             |
+```javascript
+// 1. Create loader
+export class MyLoader extends BaseLoader {
+  constructor() {
+    super();
+    this.supportedExtensions = ['ext'];
+  }
+  
+  async load(file) {
+    // Parse and return Model
+  }
+}
 
-## 🎨 Design Tokens
-
-```typescript
-// Spacing
-xs: 4px, sm: 8px, md: 16px, lg: 24px, xl: 32px
-
-// Font sizes
-xs: 11px, sm: 12px, md: 14px, lg: 16px, xl: 20px
-
-// Colors
-Primary: #00aaff (Blue)
-Secondary: #ffaa00 (Orange)
-Success: #00dd88 (Green)
-Error: #ff4444 (Red)
+// 2. Register in LoaderFactory
+this.loaders.push(new MyLoader());
 ```
 
-## 🔗 Useful Links
+## Creating UI Component
 
-- [Three.js Docs](https://threejs.org/docs/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [Vite Guide](https://vitejs.dev/guide/)
+```javascript
+export class MyComponent extends Component {
+  render() {
+    return this.createElement('div', 'my-class');
+  }
+  
+  afterMount() {
+    // Setup subscriptions
+    this.unsubscribe = stateManager.subscribe(...);
+  }
+  
+  beforeUnmount() {
+    // Cleanup
+    if (this.unsubscribe) this.unsubscribe();
+  }
+}
+```
 
-## 💡 Tips
+## Keyboard Shortcuts
 
-1. Use TypeScript's type system - let it help you
-2. Follow the event-driven pattern consistently
-3. Keep state immutable
-4. Dispose resources properly
-5. Test edge cases
-6. Check console for errors
-7. Use browser DevTools
-8. Read the documentation
+| Key | Action |
+|-----|--------|
+| `F` | Fit to screen |
+| `R` | Reset camera |
+| `Esc` | Deselect / Exit fullscreen |
 
----
+## Supported Formats
 
-**Quick Start**: `npm install && npm run dev` 🚀
+| Format | Extensions | Support Level |
+|--------|-----------|---------------|
+| glTF/GLB | `.gltf`, `.glb` | ✓ Full |
+| OBJ/MTL | `.obj`, `.mtl` | ✓ Full |
+| STL | `.stl` | ✓ Full |
+| STEP | `.step`, `.stp` | ⚠ Partial |
+
+## Debugging
+
+```javascript
+// Access app instance (browser console)
+window.app
+
+// Inspect state
+window.app.stateManager.getState()
+
+// Access 3D scene
+window.app.engine.scene
+window.app.engine.camera
+
+// View loaded meshes
+window.app.sceneManager.meshMap
+```
+
+## Common Tasks
+
+### Load Model Programmatically
+```javascript
+const file = // File object
+await window.app.loadFile(file);
+```
+
+### Select Section
+```javascript
+await window.app.eventOrchestrator.emit('section:select', { 
+  sectionId: 'section_123' 
+});
+```
+
+### Focus on Section
+```javascript
+await window.app.eventOrchestrator.emit('section:focus', { 
+  sectionId: 'section_123' 
+});
+```
+
+### Clear Model
+```javascript
+await window.app.eventOrchestrator.emit('model:clear');
+```
+
+## Project Structure
+
+```
+geometric-search/
+├── src/
+│   ├── core/           # Domain models
+│   ├── state/          # State management
+│   ├── engine/         # 3D rendering
+│   ├── loaders/        # File loaders
+│   ├── events/         # Event system
+│   ├── ui/             # Components
+│   ├── utils/          # Utilities
+│   ├── styles/         # CSS
+│   ├── Application.js  # Main app
+│   └── index.js        # Entry point
+├── index.html
+├── package.json
+├── vite.config.js
+└── *.md                # Documentation
+```
+
+## Documentation
+
+| Document | Content |
+|----------|---------|
+| `README.md` | Quick start guide |
+| `ARCHITECTURE.md` | Architecture details |
+| `USER_GUIDE.md` | User instructions |
+| `DEVELOPMENT.md` | Developer guide |
+| `PROJECT_SUMMARY.md` | Complete overview |
+| `QUICK_REFERENCE.md` | This file |
+
+## Design Principles
+
+- **SOLID**: Single responsibility, open/closed, etc.
+- **DRY**: Don't repeat yourself
+- **Separation of Concerns**: Clear layer boundaries
+- **Clean Code**: Readable, maintainable, documented
+
+## Performance Tips
+
+- Material caching enabled
+- Dispose geometries/materials when done
+- Batch state updates when possible
+- Use specific state subscriptions
+- Limit model complexity (< 10k polygons ideal)
+
+## Browser Requirements
+
+- Chrome 90+, Edge 90+, Firefox 88+, Safari 14+
+- WebGL 2.0 support required
+- Modern JavaScript (ES6+)
+
+## Code Style
+
+- ES6+ modules
+- camelCase for variables/functions
+- PascalCase for classes
+- UPPER_SNAKE_CASE for constants
+- JSDoc comments
+- 2-space indentation
+
+## Error Handling
+
+All operations include:
+- Input validation
+- Try-catch blocks
+- Error state in StateManager
+- User-friendly error messages
+- Console logging for debugging
+
+## Memory Management
+
+Always cleanup:
+- `component.unmount()` - removes listeners
+- `engine.dispose()` - clears Three.js resources
+- `unsubscribe()` - removes state subscriptions
+- Material/geometry disposal
+
+## Next Steps
+
+1. Read `README.md` for quick start
+2. Run `npm install && npm run dev`
+3. Load a test model
+4. Explore `USER_GUIDE.md` for features
+5. Check `ARCHITECTURE.md` for details
+6. See `DEVELOPMENT.md` for extending

@@ -1,407 +1,379 @@
 # Development Guide
 
-## Quick Start
+## Project Structure
+
+```
+geometric-search/
+├── src/
+│   ├── core/              # Domain models
+│   │   ├── Model.js
+│   │   ├── Section.js
+│   │   ├── Camera.js
+│   │   └── Selection.js
+│   ├── state/             # State management
+│   │   ├── StateManager.js
+│   │   └── StateActions.js
+│   ├── engine/            # 3D rendering
+│   │   ├── Engine.js
+│   │   └── SceneManager.js
+│   ├── loaders/           # File format loaders
+│   │   ├── BaseLoader.js
+│   │   ├── GLTFLoader.js
+│   │   ├── OBJLoader.js
+│   │   ├── STLLoader.js
+│   │   ├── STEPLoader.js
+│   │   └── LoaderFactory.js
+│   ├── events/            # Event orchestration
+│   │   └── EventOrchestrator.js
+│   ├── ui/                # UI components
+│   │   ├── Component.js
+│   │   ├── Toolbar.js
+│   │   ├── SectionTree.js
+│   │   ├── PropertiesPanel.js
+│   │   ├── Viewer.js
+│   │   └── LoadingOverlay.js
+│   ├── utils/             # Utilities
+│   │   ├── helpers.js
+│   │   └── validators.js
+│   ├── styles/            # CSS
+│   │   └── main.css
+│   ├── Application.js     # Main app class
+│   └── index.js           # Entry point
+├── index.html
+├── package.json
+├── vite.config.js
+├── README.md
+├── ARCHITECTURE.md
+└── USER_GUIDE.md
+```
+
+## Development Setup
+
+### Prerequisites
+
+- Node.js 16+ and npm
+- Modern browser with WebGL 2.0 support
+- Git
 
 ### Initial Setup
 
 ```bash
+# Clone repository
+git clone <repository-url>
+cd geometric-search
+
 # Install dependencies
 npm install
 
-# Start development server (opens automatically at http://localhost:3000)
+# Start development server
 npm run dev
 ```
 
-### Project Structure
+### Development Server
 
-```
-3d-geometric-search/
-├── src/
-│   ├── domain/              # Core business logic
-│   │   ├── types.ts         # Domain types
-│   │   └── events.ts        # Event definitions
-│   ├── core/                # Core services
-│   │   ├── EventBus.ts      # Event system
-│   │   └── StateManager.ts  # State management
-│   ├── loaders/             # File format loaders
-│   │   ├── IModelLoader.ts
-│   │   ├── GLTFModelLoader.ts
-│   │   ├── OBJModelLoader.ts
-│   │   ├── STLModelLoader.ts
-│   │   └── ModelLoaderFactory.ts
-│   ├── components/          # UI components
-│   │   ├── ModelViewer.ts
-│   │   ├── NavigationPanel.ts
-│   │   ├── PropertiesPanel.ts
-│   │   └── ControlPanel.ts
-│   ├── styles/
-│   │   └── main.css
-│   ├── Application.ts       # Main app
-│   └── index.ts            # Entry point
-├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
-```
+The development server runs on `http://localhost:3000` with:
+- Hot module replacement
+- Source maps
+- Error overlay
 
-## Development Workflow
+## Coding Standards
 
-### Adding a New Feature
+### JavaScript Style
 
-1. **Define Domain Types** (if needed)
+- ES6+ modules
+- Camel case for variables and functions
+- Pascal case for classes
+- Constants in UPPER_SNAKE_CASE
+- Comprehensive JSDoc comments
 
-   - Add types in `src/domain/types.ts`
-   - Add events in `src/domain/events.ts`
+### File Organization
 
-2. **Update State Management** (if needed)
+- One class per file
+- File name matches class name
+- Index files for exports
+- Related files in same directory
 
-   - Add state properties in `StateManager`
-   - Add state mutation methods
+### Code Quality
 
-3. **Implement Core Logic**
+```bash
+# Lint code
+npm run lint
 
-   - Create new service/utility files
-   - Follow single responsibility principle
-
-4. **Update UI Components**
-
-   - Modify existing components or create new ones
-   - Subscribe to relevant state changes
-   - Emit events for user actions
-
-5. **Test and Validate**
-   - Test in development mode
-   - Check error handling
-   - Validate edge cases
-
-### Code Standards
-
-#### TypeScript
-
-```typescript
-// ✅ Good: Explicit types, clear names
-interface ModelSection {
-  id: string;
-  name: string;
-  type: "assembly" | "part" | "mesh" | "group";
-}
-
-// ❌ Bad: Any types, unclear names
-interface MS {
-  i: any;
-  n: any;
-}
+# Format code
+npm run format
 ```
 
-#### Functions
+## Architecture Patterns
 
-```typescript
-// ✅ Good: Single responsibility, clear intent
-function selectSection(sectionId: string): void {
-  const section = getSection(sectionId);
-  if (!section) return;
+### Domain Models (Core)
 
-  section.selected = true;
-  emitSelectionEvent(section);
-}
-
-// ❌ Bad: Multiple responsibilities
-function doStuff(id: string): void {
-  // Too many things happening
-}
-```
-
-#### Event Handling
-
-```typescript
-// ✅ Good: Type-safe events
-eventBus.on(EventType.MODEL_LOADED, (event: ModelLoadedEvent) => {
-  console.log("Model loaded:", event.model.name);
-});
-
-// ❌ Bad: Unsafe, unclear
-eventBus.on("loaded", (e: any) => {
-  console.log(e);
-});
-```
-
-## Testing
-
-### Unit Testing
-
-```typescript
-// Example unit test
-import { describe, it, expect } from "vitest";
-import { StateManager } from "./StateManager";
-
-describe("StateManager", () => {
-  it("should initialize with default state", () => {
-    const manager = StateManager.getInstance();
-    const state = manager.getState();
-
-    expect(state.model).toBeNull();
-    expect(state.loading).toBe(false);
-  });
-});
-```
-
-### Manual Testing Checklist
-
-- [ ] Load glTF model
-- [ ] Load OBJ model
-- [ ] Load STL model
-- [ ] Select sections
-- [ ] Multi-select with Ctrl
-- [ ] Hover highlighting
-- [ ] View properties
-- [ ] Zoom in/out
-- [ ] Reset view
-- [ ] Disassemble model
-- [ ] Fullscreen mode
-- [ ] Error handling
-
-## Debugging
-
-### Console Logging
-
-The application logs important events to console:
+Pure business logic with no external dependencies:
 
 ```javascript
-// Enable verbose logging (in browser console)
-localStorage.setItem("debug", "true");
-
-// Disable verbose logging
-localStorage.removeItem("debug");
-```
-
-### Event Inspection
-
-```javascript
-// Monitor all events (in browser console)
-const eventBus = window.EventBus?.getInstance();
-eventBus.on("*", (event) => console.log("Event:", event));
-```
-
-### State Inspection
-
-```javascript
-// Check current state (in browser console)
-const stateManager = window.StateManager?.getInstance();
-console.log(stateManager.getState());
-```
-
-## Common Tasks
-
-### Adding a New File Format
-
-1. Create loader:
-
-```typescript
-// src/loaders/MyFormatLoader.ts
-import { BaseModelLoader } from "./IModelLoader";
-import type { Model3D, FileFormat } from "../domain/types";
-
-export class MyFormatLoader extends BaseModelLoader {
-  readonly supportedFormats: FileFormat[] = ["myformat" as FileFormat];
-
-  async load(
-    filePath: string,
-    fileData: ArrayBuffer | string
-  ): Promise<Model3D> {
-    // Parse file
-    // Create Model3D structure
-    // Return model
+export class Model {
+  constructor(id, name, formatType) {
+    this.id = id;
+    this.name = name;
+    this.formatType = formatType;
+  }
+  
+  addSection(section) {
+    // Business logic only
   }
 }
 ```
 
-2. Register loader:
+### State Management
 
-```typescript
-// In ModelLoaderFactory.ts
-import { MyFormatLoader } from "./MyFormatLoader";
+Centralized state with observer pattern:
 
-export class ModelLoaderFactory {
-  private static loaders: IModelLoader[] = [
-    new GLTFModelLoader(),
-    new OBJModelLoader(),
-    new STLModelLoader(),
-    new MyFormatLoader(), // Add here
-  ];
-}
+```javascript
+// Subscribe to changes
+const unsubscribe = stateManager.subscribe(
+  (state) => console.log(state),
+  ['model']
+);
+
+// Update state
+StateActions.setModel(model);
 ```
 
-### Adding a New Event
+### Event Orchestration
 
-1. Define event type:
+All cross-layer communication through events:
 
-```typescript
-// src/domain/events.ts
-export enum EventType {
-  MY_CUSTOM_EVENT = "my:custom:event",
-}
-
-export interface MyCustomEvent extends BaseEvent {
-  type: EventType.MY_CUSTOM_EVENT;
-  data: string;
-}
-```
-
-2. Emit event:
-
-```typescript
-eventBus.emit({
-  type: EventType.MY_CUSTOM_EVENT,
-  timestamp: new Date(),
-  data: "Hello",
+```javascript
+await eventOrchestrator.emit('section:select', { 
+  sectionId: 'section_123' 
 });
 ```
 
-3. Listen to event:
+### UI Components
 
-```typescript
-eventBus.on(EventType.MY_CUSTOM_EVENT, (event) => {
-  console.log("Custom event:", event.data);
-});
-```
+Component lifecycle and state subscription:
 
-### Adding a UI Control
-
-1. Add button in ControlPanel:
-
-```typescript
-// src/components/ControlPanel.ts
-private initializeUI(): void {
-  this.container.innerHTML = `
-    ...
-    <button id="btnMyAction" class="btn">
-      <span class="icon">🎯</span>
-      My Action
-    </button>
-    ...
-  `;
+```javascript
+export class MyComponent extends Component {
+  render() {
+    return this.createElement('div', 'my-component');
+  }
+  
+  afterMount() {
+    this.unsubscribe = stateManager.subscribe(
+      this.handleStateChange.bind(this)
+    );
+  }
+  
+  beforeUnmount() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+  }
 }
 ```
 
-2. Add event listener:
+## Adding Features
 
-```typescript
-private attachEventListeners(): void {
-  this.container.querySelector('#btnMyAction')?.addEventListener('click', () => {
-    this.handleMyAction();
+### New File Format
+
+1. Create loader class:
+
+```javascript
+export class MyFormatLoader extends BaseLoader {
+  constructor() {
+    super();
+    this.supportedExtensions = ['myformat'];
+  }
+  
+  async load(file) {
+    // Parse file
+    // Return Model instance
+  }
+}
+```
+
+2. Register in LoaderFactory:
+
+```javascript
+this.loaders = [
+  // ... existing loaders
+  new MyFormatLoader(),
+];
+```
+
+### New UI Component
+
+1. Create component class:
+
+```javascript
+export class MyComponent extends Component {
+  render() {
+    return this.createElement('div', 'my-component');
+  }
+}
+```
+
+2. Mount in Application:
+
+```javascript
+this.components.myComponent = new MyComponent();
+this.components.myComponent.mount(container);
+```
+
+### New Event Handler
+
+1. Register handler:
+
+```javascript
+this.registerHandler('my:event', this.handleMyEvent.bind(this));
+```
+
+2. Implement handler:
+
+```javascript
+async handleMyEvent({ payload }) {
+  // Handle event
+  StateActions.updateState(/* ... */);
+}
+```
+
+## Testing
+
+### Unit Tests
+
+Test core domain logic and utilities:
+
+```javascript
+import { Model } from '../src/core/Model.js';
+
+describe('Model', () => {
+  it('should create model with valid properties', () => {
+    const model = new Model('id', 'name', 'gltf');
+    expect(model.id).toBe('id');
   });
-}
+});
+```
 
-private handleMyAction(): void {
-  // Handle action
-  this.stateManager.updateSomeState();
+### Integration Tests
+
+Test layer interactions:
+
+```javascript
+describe('EventOrchestrator', () => {
+  it('should update state on section selection', async () => {
+    await orchestrator.emit('section:select', { sectionId: 'test' });
+    const state = stateManager.getState();
+    expect(state.selection.has('test')).toBe(true);
+  });
+});
+```
+
+## Debugging
+
+### State Inspection
+
+Access global app instance in console:
+
+```javascript
+// Check current state
+console.log(window.app.stateManager.getState());
+
+// Check loaded model
+console.log(window.app.sceneManager);
+```
+
+### Event Tracing
+
+Add logging to event orchestrator:
+
+```javascript
+async emit(eventName, payload) {
+  console.log(`Event: ${eventName}`, payload);
+  // ... rest of implementation
 }
+```
+
+### Scene Inspection
+
+Access Three.js scene:
+
+```javascript
+window.app.engine.scene
+window.app.engine.camera
+window.app.sceneManager.meshMap
 ```
 
 ## Performance Optimization
 
-### Profiling
+### State Updates
 
-```javascript
-// Profile rendering (in browser console)
-performance.mark("render-start");
-// ... render code ...
-performance.mark("render-end");
-performance.measure("render", "render-start", "render-end");
-console.log(performance.getEntriesByName("render"));
-```
+- Batch related updates
+- Use skipHistory option for transient changes
+- Filter subscriptions to specific paths
+
+### Rendering
+
+- Enable material caching
+- Limit draw calls
+- Use instancing for repeated geometry
+- Implement level-of-detail (LOD)
 
 ### Memory Management
 
-- Always dispose Three.js objects when done
-- Unsubscribe from events when components unmount
-- Clear intervals and animation frames
+- Dispose geometries and materials
+- Clear mesh map on model unload
+- Unsubscribe from state changes
+- Remove event listeners
 
-### Bundle Size
+## Build and Deployment
 
-```bash
-# Analyze bundle size
-npm run build
-npx vite-bundle-visualizer
-```
-
-## Deployment
-
-### Build for Production
+### Production Build
 
 ```bash
 npm run build
 ```
 
-### Deploy to Static Host
+Output in `dist/` directory.
 
-```bash
-# The dist/ folder contains the production build
-# Upload to: Netlify, Vercel, GitHub Pages, etc.
+### Optimization
+
+- Code splitting
+- Tree shaking
+- Minification
+- Asset optimization
+
+### Deployment
+
+Deploy `dist/` contents to static hosting:
+- Netlify
+- Vercel
+- GitHub Pages
+- AWS S3 + CloudFront
+
+## Contributing
+
+### Pull Request Process
+
+1. Fork repository
+2. Create feature branch
+3. Implement changes with tests
+4. Update documentation
+5. Submit pull request
+
+### Commit Messages
+
+```
+type(scope): brief description
+
+Detailed explanation if needed
+
+Closes #issue-number
 ```
 
-### Environment Variables
-
-```bash
-# Create .env file
-VITE_API_URL=https://api.example.com
-VITE_ENABLE_ANALYTICS=true
-```
-
-Access in code:
-
-```typescript
-const apiUrl = import.meta.env.VITE_API_URL;
-```
-
-## Troubleshooting
-
-### Build Errors
-
-**Error**: `Cannot find module 'three'`
-
-```bash
-npm install three @types/three
-```
-
-**Error**: `Unexpected token`
-
-- Check TypeScript syntax
-- Ensure tsconfig.json is correct
-
-### Runtime Errors
-
-**Error**: Model doesn't load
-
-- Check console for errors
-- Verify file format is supported
-- Check file size limits
-
-**Error**: Components not rendering
-
-- Check if containers exist in DOM
-- Verify initialization order
-- Check for JavaScript errors
+Types: feat, fix, docs, style, refactor, test, chore
 
 ## Resources
 
 - [Three.js Documentation](https://threejs.org/docs/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [Vite Guide](https://vitejs.dev/guide/)
-- [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
-
-## Getting Help
-
-- Check the README.md for general information
-- See ARCHITECTURE.md for system design
-- Open an issue on GitHub
-- Contact the development team
-
-## Contributing
-
-See the main README.md for contribution guidelines.
-
----
-
-Happy coding! 🚀
+- [glTF Specification](https://www.khronos.org/gltf/)
+- [Web Graphics Best Practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API)
