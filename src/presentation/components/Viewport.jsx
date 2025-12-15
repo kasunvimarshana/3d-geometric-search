@@ -145,13 +145,13 @@ export default function Viewport () {
         <SceneContent />
       </Canvas>
       {dragging && (
-        <div className='overlay' style={{ pointerEvents: 'none' }}>Drop files to load</div>
+        <div className='overlay' style={{ pointerEvents: 'none' }}>{/* Drop files to load */}</div>
       )}
       {!hasModel && !dragging && (
         <div className='dropzone'>
           <div>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Drop files to load</div>
-            <div style={{ opacity: 0.8 }}>Supports .glb, .gltf, .obj+.mtl (+textures), .stl, .stp/.step</div>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>{/*Drop files to load*/}</div>
+            <div style={{ opacity: 0.8 }}>{/*Supports .glb, .gltf, .obj+.mtl (+textures), .stl, .stp/.step*/}</div>
           </div>
         </div>
       )}

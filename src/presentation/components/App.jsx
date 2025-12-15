@@ -29,7 +29,7 @@ export default function App () {
         <ErrorBoundary>
           <Viewport />
           <Hotkeys />
-          <StatusPanel />
+          {/* <StatusPanel /> */}
         </ErrorBoundary>
         {status === 'loading' && (
           <div className='overlay'>

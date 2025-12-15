@@ -24,16 +24,16 @@ export default function Toolbar () {
       <button className='btn' onClick={() => inputRef.current?.click()}>Open Model</button>
       <input ref={inputRef} type='file' accept='.glb,.gltf,.bin,.obj,.mtl,.stl,.stp,.step,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tga,.ktx2,.dds' multiple onChange={onFile} />
       <button className='btn' onClick={() => dispatch(fitToAll())}>Fit All</button>
-      <button className='btn' disabled={!selected} onClick={() => dispatch(fitToSelection())}>Fit Selection</button>
+      {/* <button className='btn' disabled={!selected} onClick={() => dispatch(fitToSelection())}>Fit Selection</button> */}
       <button className='btn' onClick={() => dispatch(resetView())}>Reset View</button>
       <button className='btn' onClick={() => dispatch(toggleFullscreen())}>Fullscreen</button>
-      <button className='btn' disabled={!selected} onClick={() => dispatch(isolateSection({ nodeId: selected }))}>Isolate</button>
-      <button className='btn' disabled={!isolated} onClick={() => dispatch(clearIsolation())}>Clear Isolation</button>
-      <button className='btn' onClick={() => dispatch(disassemble({ factor: 1 }))}>Disassemble</button>
-      <button className='btn' onClick={() => dispatch(reassemble())}>Reassemble</button>
-      <button className='btn' onClick={() => dispatch(refreshScene())}>Refresh</button>
-      <button className='btn' onClick={() => dispatch(clearCamera())}>Clear Camera</button>
-      <button className='btn' title='Help (?)' onClick={() => dispatch(toggleHelp())}>?</button>
+      {/* <button className='btn' disabled={!selected} onClick={() => dispatch(isolateSection({ nodeId: selected }))}>Isolate</button> */}
+      {/* <button className='btn' disabled={!isolated} onClick={() => dispatch(clearIsolation())}>Clear Isolation</button> */}
+      {/* <button className='btn' onClick={() => dispatch(disassemble({ factor: 1 }))}>Disassemble</button> */}
+      {/* <button className='btn' onClick={() => dispatch(reassemble())}>Reassemble</button> */}
+      {/* <button className='btn' onClick={() => dispatch(refreshScene())}>Refresh</button> */}
+      {/* <button className='btn' onClick={() => dispatch(clearCamera())}>Clear Camera</button> */}
+      {/* <button className='btn' title='Help (?)' onClick={() => dispatch(toggleHelp())}>?</button> */}
     </div>
   )
 }
