@@ -1,35 +1,35 @@
-# 3D Geometric Search & Viewer
+# 3D Geometric Search
 
-A professional 3D geometric search and model viewer application with industry-standard format support.
+A professional, open-source web application for 3D geometric search and visualization, supporting industry-standard formats including glTF/GLB, STEP, OBJ/MTL, and STL.
 
 ## Features
 
-- **Industry-Standard Format Support**: glTF/GLB (preferred), STEP (ISO 10303), OBJ/MTL, STL
-- **Section Management**: Navigate, isolate, and highlight model sections
-- **Interactive Viewer**: Zoom, pan, rotate, full-screen mode
-- **Dynamic Model Updates**: Disassembly and reassembly with synchronized state
-- **Clean Architecture**: SOLID principles, separation of concerns, modular design
-- **Robust Event System**: Centralized event orchestration with proper validation
-- **Professional UI**: Minimal, consistent, performance-focused interface
+- **Format Support**: glTF/GLB (preferred), STEP (ISO 10303), OBJ/MTL, STL
+- **Interactive 3D Viewer**: Real-time rendering with Three.js
+- **Model Hierarchy**: Explore nested sections and components
+- **Model Operations**: Disassembly, reassembly, isolation, highlighting
+- **Navigation**: Bidirectional focus, zoom, pan, rotate
+- **Clean Architecture**: SOLID principles, separation of concerns
+- **Robust Event System**: Centralized, validated event handling
+- **Professional UI**: Minimal, accessible, performance-focused
 
 ## Architecture
 
+The application follows clean code architecture with clear separation of concerns:
+
 ```
 src/
-├── core/           # Core domain logic
-├── domain/         # Domain models and interfaces
-├── infrastructure/ # File loaders, parsers, external integrations
-├── ui/             # UI components
+├── core/           # Domain models and business logic
+├── events/         # Event system and dispatcher
+├── loaders/        # 3D format parsers
+├── renderer/       # Three.js scene management
+├── state/          # Application state management
+├── ui/             # UI components and interactions
 ├── utils/          # Shared utilities
-└── main.ts         # Application entry point
+└── index.js        # Application entry point
 ```
 
 ## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
 
 ### Installation
 
@@ -49,12 +49,26 @@ npm run dev
 npm run build
 ```
 
-## Design Principles
+### Test
 
-- **SOLID Principles**: Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion
-- **DRY**: Don't repeat yourself
-- **Separation of Concerns**: Clear boundaries between layers
-- **Clean Code**: Readable, maintainable, testable
+```bash
+npm test
+```
+
+## Usage
+
+1. Click "Upload Model" to load a 3D file
+2. Explore the model hierarchy in the sidebar
+3. Select sections to highlight and focus
+4. Use disassemble/reassemble for exploded views
+5. Isolate sections to focus on specific components
+
+## Technical Stack
+
+- **Three.js**: 3D rendering engine
+- **Vite**: Build tool and dev server
+- **Vanilla JavaScript**: No framework dependencies
+- **ES Modules**: Modern JavaScript architecture
 
 ## License
 
