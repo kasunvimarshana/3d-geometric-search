@@ -1,26 +1,36 @@
 {
-  "name": "geometric-search",
+  "name": "3d-geometric-search",
   "version": "1.0.0",
-  "description": "Professional 3D geometric search and visualization application",
-  "main": "src/index.js",
+  "description": "Professional 3D geometric search and viewer application with industry-standard format support",
   "type": "module",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .js",
-    "format": "prettier --write \"src/**/*.{js,css,html}\""
+    "lint": "eslint src --ext ts,tsx",
+    "test": "vitest"
   },
-  "keywords": ["3D", "CAD", "geometry", "visualization", "glTF", "STEP"],
+  "keywords": [
+    "3d-viewer",
+    "geometric-search",
+    "cad-viewer",
+    "threejs",
+    "glTF",
+    "STEP"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "three": "^0.160.0",
-    "three-stdlib": "^2.29.0"
+    "@types/three": "^0.160.0"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1",
     "eslint": "^8.56.0",
-    "prettier": "^3.1.1"
+    "vitest": "^1.1.3"
   }
 }
