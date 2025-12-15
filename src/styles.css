@@ -1,0 +1,103 @@
+:root {
+  --bg: #0f1115;
+  --panel: #141821;
+  --text: #e6e8ef;
+  --muted: #9aa3b2;
+  --accent: #3b82f6;
+  --border: #202432;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+}
+.layout {
+  display: grid;
+  grid-template-rows: 48px 1fr;
+  grid-template-columns: 300px 1fr;
+  grid-template-areas: "toolbar toolbar" "sidebar main";
+  height: 100%;
+}
+.toolbar {
+  grid-area: toolbar;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.btn {
+  background: #1b2030;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid var(--border);
+  overflow: auto;
+  background: #10131a;
+}
+.tree {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+}
+.tree li {
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tree li.selected {
+  background: #1a2234;
+}
+.main {
+  grid-area: main;
+  position: relative;
+}
+.viewport {
+  position: absolute;
+  inset: 0;
+}
+.overlay {
+  position: absolute;
+  right: 12px;
+  top: 56px;
+  z-index: 10;
+  background: rgba(20, 24, 33, 0.9);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.dropzone {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #2a3246;
+  color: var(--muted);
+  pointer-events: none;
+}
+.hidden {
+  display: none;
+}
+input[type="file"] {
+  display: none;
+}
