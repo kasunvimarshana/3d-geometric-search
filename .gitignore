@@ -31,3 +31,7 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# Angular
+.angular/
+.angular/cache/
