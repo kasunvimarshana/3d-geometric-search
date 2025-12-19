@@ -1,0 +1,7 @@
+<span (click)="select()">{{ node.name }}</span>
+<button (click)="highlight()">Highlight</button>
+<button (click)="isolate()">Isolate</button>
+<button (click)="toggle()">{{ expanded ? "Collapse" : "Expand" }}</button>
+<ul *ngIf="expanded && node.children?.length">
+  <li app-section-node *ngFor="let child of node.children" [node]="child"></li>
+</ul>

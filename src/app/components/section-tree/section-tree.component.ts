@@ -4,6 +4,7 @@ import { Observable } from "rxjs";
 import { SectionNode } from "../../core/state/model.types";
 import * as ModelSelectors from "../../core/state/model.selectors";
 import * as ModelActions from "../../core/state/model.actions";
+import * as ViewerActions from "../../core/state/viewer.actions";
 
 @Component({
   selector: "app-section-tree",
@@ -20,5 +21,21 @@ export class SectionTreeComponent {
 
   selectNode(node: SectionNode) {
     this.store.dispatch(ModelActions.focusNode({ nodeId: node.id }));
+  }
+
+  highlightNode(node: SectionNode) {
+    this.store.dispatch(ViewerActions.highlightById({ id: node.id }));
+  }
+
+  isolateNode(node: SectionNode) {
+    this.store.dispatch(ViewerActions.isolateById({ id: node.id }));
+  }
+
+  clearHighlight() {
+    this.store.dispatch(ViewerActions.clearHighlight());
+  }
+
+  clearIsolation() {
+    this.store.dispatch(ViewerActions.clearIsolation());
   }
 }

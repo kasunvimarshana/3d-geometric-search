@@ -1,14 +1,9 @@
 <div class="tree" *ngIf="tree$ | async as tree">
+  <div class="tree-actions">
+    <button (click)="clearHighlight()">Clear Highlight</button>
+    <button (click)="clearIsolation()">Clear Isolation</button>
+  </div>
   <ul>
-    <ng-container *ngFor="let node of tree">
-      <li (click)="selectNode(node)">{{ node.name }}</li>
-      <ng-container *ngIf="node.children?.length">
-        <ul>
-          <ng-container *ngFor="let child of node.children">
-            <li (click)="selectNode(child)">{{ child.name }}</li>
-          </ng-container>
-        </ul>
-      </ng-container>
-    </ng-container>
+    <li app-section-node *ngFor="let node of tree" [node]="node"></li>
   </ul>
 </div>

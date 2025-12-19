@@ -9,6 +9,7 @@ import { StoreDevtoolsModule } from "@ngrx/store-devtools";
 import { AppComponent } from "./app.component";
 import { ToolbarComponent } from "./components/toolbar/toolbar.component";
 import { SectionTreeComponent } from "./components/section-tree/section-tree.component";
+import { SectionNodeComponent } from "./components/section-node/section-node.component";
 import { ViewerCanvasComponent } from "./components/viewer-canvas/viewer-canvas.component";
 
 import { reducers } from "./core/state";
@@ -21,6 +22,7 @@ import { GlobalErrorHandler } from "./core/errors/global-error-handler";
     AppComponent,
     ToolbarComponent,
     SectionTreeComponent,
+    SectionNodeComponent,
     ViewerCanvasComponent,
   ],
   imports: [
