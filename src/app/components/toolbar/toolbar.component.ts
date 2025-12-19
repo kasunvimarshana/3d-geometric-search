@@ -67,4 +67,8 @@ export class ToolbarComponent {
     this.store.dispatch(ModelActions.loadModel({ files: Array.from(files) }));
     input.value = "";
   }
+
+  onClearError() {
+    this.store.dispatch(ModelActions.clearError());
+  }
 }

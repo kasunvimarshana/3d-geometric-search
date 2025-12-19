@@ -14,6 +14,8 @@ export const loadFailure = createAction(
   props<{ error: string }>()
 );
 
+export const clearError = createAction("[Model] Clear Error");
+
 export const focusNode = createAction(
   "[Model] Focus Node",
   props<{ nodeId: string }>()

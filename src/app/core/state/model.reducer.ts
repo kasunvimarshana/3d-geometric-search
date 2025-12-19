@@ -32,6 +32,10 @@ export const reducer = createReducer(
     loading: false,
     error,
   })),
+  on(ModelActions.clearError, (state) => ({
+    ...state,
+    error: undefined,
+  })),
   on(ModelActions.focusNode, (state, { nodeId }) => ({
     ...state,
     focusedNodeId: nodeId,

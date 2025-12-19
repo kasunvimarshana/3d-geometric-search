@@ -12,6 +12,26 @@
   <input id="filePicker" type="file" (change)="onFile($event)" multiple />
 </div>
 <div class="status" aria-live="polite">
-  <span class="loading" *ngIf="loading$ | async">Loading model…</span>
+  <span class="loading" *ngIf="loading$ | async">
+    <span class="spinner" aria-hidden="true"></span>
+    Loading model…
+  </span>
   <span class="error" *ngIf="error$ | async as err">{{ err }}</span>
+</div>
+
+<!-- Toast overlay for errors -->
+<div
+  class="toast"
+  *ngIf="error$ | async as err"
+  role="alert"
+  aria-live="assertive"
+>
+  <span class="toast-message">{{ err }}</span>
+  <button
+    class="toast-close"
+    (click)="onClearError()"
+    aria-label="Dismiss error"
+  >
+    ✕
+  </button>
 </div>
