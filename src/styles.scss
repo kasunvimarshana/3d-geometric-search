@@ -1,0 +1,80 @@
+/* Minimal, clean, performance-focused base styles */
+:root {
+  --bg: #0f1115;
+  --fg: #e5e7eb;
+  --muted: #9aa0a6;
+  --accent: #3b82f6;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid #2b2f36;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: 48px 1fr;
+  grid-template-areas:
+    "toolbar toolbar"
+    "sidebar canvas";
+  height: 100vh;
+}
+.toolbar {
+  grid-area: toolbar;
+  border-bottom: 1px solid #262a31;
+}
+.sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid #262a31;
+  overflow: auto;
+}
+.canvas {
+  grid-area: canvas;
+}
+
+.sidebar h3 {
+  margin: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.tree ul {
+  list-style: none;
+  padding-left: 14px;
+}
+.tree li {
+  line-height: 1.6;
+  cursor: pointer;
+}
+.tree li.selected {
+  color: var(--accent);
+}
+
+.viewer-canvas {
+  width: 100%;
+  height: calc(100vh - 48px);
+  display: block;
+}

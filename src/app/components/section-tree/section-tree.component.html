@@ -1,0 +1,14 @@
+<div class="tree" *ngIf="tree$ | async as tree">
+  <ul>
+    <ng-container *ngFor="let node of tree">
+      <li (click)="selectNode(node)">{{ node.name }}</li>
+      <ng-container *ngIf="node.children?.length">
+        <ul>
+          <ng-container *ngFor="let child of node.children">
+            <li (click)="selectNode(child)">{{ child.name }}</li>
+          </ng-container>
+        </ul>
+      </ng-container>
+    </ng-container>
+  </ul>
+</div>
