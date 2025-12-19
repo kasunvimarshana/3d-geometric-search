@@ -1,4 +1,4 @@
-<div style="display: flex; gap: 8px; align-items: center; padding: 8px 12px">
+<div class="toolbar">
   <button (click)="onReset()">Reset</button>
   <button (click)="onRefresh()">Refresh</button>
   <button (click)="onFit()">Fit</button>
@@ -8,7 +8,6 @@
   <button (click)="onClearHighlight()">Clear Highlight</button>
   <button (click)="onIsolateSelected()">Isolate Selected</button>
   <button (click)="onClearIsolation()">Clear Isolation</button>
-  <label style="margin-left: auto">
-    <input type="file" (change)="onFile($event)" multiple />
-  </label>
+  <label class="file-input" for="filePicker">Add Models</label>
+  <input id="filePicker" type="file" (change)="onFile($event)" multiple />
 </div>

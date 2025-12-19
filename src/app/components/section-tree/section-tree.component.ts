@@ -9,14 +9,17 @@ import * as ViewerActions from "../../core/state/viewer.actions";
 @Component({
   selector: "app-section-tree",
   templateUrl: "./section-tree.component.html",
+  styleUrls: ["./section-tree.component.scss"],
 })
 export class SectionTreeComponent {
   tree$: Observable<SectionNode[]>;
   selectedId$: Observable<string | null>;
+  selectedPath$: Observable<SectionNode[]>;
 
   constructor(private store: Store) {
     this.tree$ = this.store.select(ModelSelectors.selectSectionTree);
     this.selectedId$ = this.store.select(ModelSelectors.selectFocusedNodeId);
+    this.selectedPath$ = this.store.select(ModelSelectors.selectFocusedPath);
   }
 
   selectNode(node: SectionNode) {

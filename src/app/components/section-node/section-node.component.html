@@ -1,7 +1,10 @@
-<span (click)="select()">{{ node.name }}</span>
+<span (click)="select()" [class.selected]="(selectedId$ | async) === node.id">{{
+  node.name
+}}</span>
 <button (click)="highlight()">Highlight</button>
 <button (click)="isolate()">Isolate</button>
 <button (click)="toggle()">{{ expanded ? "Collapse" : "Expand" }}</button>
+<button (click)="fit()">Fit</button>
 <ul *ngIf="expanded && node.children?.length">
   <li app-section-node *ngFor="let child of node.children" [node]="child"></li>
 </ul>

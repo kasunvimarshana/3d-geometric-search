@@ -3,6 +3,11 @@
     <button (click)="clearHighlight()">Clear Highlight</button>
     <button (click)="clearIsolation()">Clear Isolation</button>
   </div>
+  <div class="breadcrumb" *ngIf="selectedPath$ | async as path">
+    <span *ngFor="let n of path; let last = last">
+      {{ n.name }}<span *ngIf="!last"> › </span>
+    </span>
+  </div>
   <ul>
     <li app-section-node *ngFor="let node of tree" [node]="node"></li>
   </ul>
