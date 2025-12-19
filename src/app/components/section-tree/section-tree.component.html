@@ -5,8 +5,12 @@
   </div>
   <div class="breadcrumb" *ngIf="selectedPath$ | async as path">
     <span *ngFor="let n of path; let last = last">
-      {{ n.name }}<span *ngIf="!last"> › </span>
+      <a href="#" (click)="selectNode(n); $event.preventDefault()">{{
+        n.name
+      }}</a
+      ><span *ngIf="!last"> › </span>
     </span>
+    <button class="reset" (click)="resetView()">Reset View</button>
   </div>
   <ul>
     <li app-section-node *ngFor="let node of tree" [node]="node"></li>

@@ -41,4 +41,8 @@ export class SectionTreeComponent {
   clearIsolation() {
     this.store.dispatch(ViewerActions.clearIsolation());
   }
+
+  resetView() {
+    this.store.dispatch(ViewerActions.resetView());
+  }
 }
