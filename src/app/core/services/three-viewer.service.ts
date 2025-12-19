@@ -426,6 +426,10 @@ export class ThreeViewerService {
     }
   }
 
+  getRootObject(): any {
+    return this.scene;
+  }
+
   resetView() {
     this.camera.position.set(2, 2, 2);
     this.controls.target.set(0, 0, 0);

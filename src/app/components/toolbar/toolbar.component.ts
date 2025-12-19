@@ -4,6 +4,8 @@ import * as ViewerActions from "../../core/state/viewer.actions";
 import * as ModelActions from "../../core/state/model.actions";
 import * as ModelSelectors from "../../core/state/model.selectors";
 import { Observable } from "rxjs";
+import { FormatConverterService } from "../../core/services/format-converter.service";
+import { ThreeViewerService } from "../../core/services/three-viewer.service";
 
 @Component({
   selector: "app-toolbar",
@@ -18,7 +20,11 @@ export class ToolbarComponent {
   progress$: Observable<number | undefined>;
   loadingFileName$: Observable<string | undefined>;
 
-  constructor(private store: Store) {
+  constructor(
+    private store: Store,
+    private converter: FormatConverterService,
+    private viewer: ThreeViewerService
+  ) {
     this.selectedId$ = this.store.select(ModelSelectors.selectFocusedNodeId);
     this.selectedId$.subscribe((id) => (this.selectedId = id));
     this.loading$ = this.store.select(ModelSelectors.selectModelLoading);
@@ -80,5 +86,37 @@ export class ToolbarComponent {
 
   onCancelLoad() {
     this.store.dispatch(ModelActions.cancelLoad());
+  }
+
+  private downloadBlob(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async onExportGLTF() {
+    const root = this.viewer.getRootObject();
+    if (!root) return;
+    const blob = await this.converter.toGLTF(root, { center: true });
+    this.downloadBlob(blob, "model.glb");
+  }
+
+  async onExportOBJ() {
+    const root = this.viewer.getRootObject();
+    if (!root) return;
+    const blob = await this.converter.toOBJ(root, { center: true });
+    this.downloadBlob(blob, "model.obj");
+  }
+
+  async onExportSTL() {
+    const root = this.viewer.getRootObject();
+    if (!root) return;
+    const blob = await this.converter.toSTL(root, { center: true });
+    this.downloadBlob(blob, "model.stl");
   }
 }

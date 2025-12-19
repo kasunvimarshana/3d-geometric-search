@@ -10,6 +10,9 @@
   <button (click)="onClearIsolation()">Clear Isolation</button>
   <label class="file-input" for="filePicker">Add Models</label>
   <input id="filePicker" type="file" (change)="onFile($event)" multiple />
+  <button (click)="onExportGLTF()">Export GLTF</button>
+  <button (click)="onExportOBJ()">Export OBJ</button>
+  <button (click)="onExportSTL()">Export STL</button>
 </div>
 
 <!-- Top overlay progress bar -->
