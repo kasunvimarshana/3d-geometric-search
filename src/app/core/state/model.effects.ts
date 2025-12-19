@@ -15,7 +15,11 @@ export class ModelEffects {
       this.actions$.pipe(
         ofType(ModelActions.loadModel),
         mergeMap(({ files }) =>
-          from(this.viewer.loadFile(files?.[0])).pipe(
+          from(
+            Array.isArray(files) && files.length > 1
+              ? this.viewer.loadFiles(files)
+              : this.viewer.loadFile(files?.[0])
+          ).pipe(
             map(() =>
               ModelActions.loadSuccess({
                 tree: this.viewer.buildSectionTree(),

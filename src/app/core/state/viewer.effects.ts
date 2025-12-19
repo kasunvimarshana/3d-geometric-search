@@ -92,11 +92,12 @@ export class ViewerEffects {
       { dispatch: false }
     );
 
-    // When user picks an object in the viewer, highlight and fit it
+    // When user picks an object in the viewer, clear highlight then highlight and fit it
     createEffect(() =>
       this.viewer.pickedObject$.pipe(
         mergeMap((id: string) =>
           of(
+            ViewerActions.clearHighlight(),
             ViewerActions.highlightById({ id }),
             ViewerActions.fitToObject({ id })
           )
@@ -110,6 +111,7 @@ export class ViewerEffects {
         ofType(ModelActions.focusNode),
         mergeMap(({ nodeId }) =>
           of(
+            ViewerActions.clearHighlight(),
             ViewerActions.highlightById({ id: nodeId }),
             ViewerActions.fitToObject({ id: nodeId })
           )

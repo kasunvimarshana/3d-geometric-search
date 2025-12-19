@@ -88,6 +88,28 @@ export class ThreeViewerService {
     throw new Error(`Unsupported format: ${ext}`);
   }
 
+  async loadFiles(files: File[]) {
+    const byExt = (ext: string) =>
+      files.find((f) => f.name.toLowerCase().endsWith(`.${ext}`));
+    const glb = byExt("glb");
+    const gltf = byExt("gltf");
+    const obj = byExt("obj");
+    const mtl = byExt("mtl");
+    const stl = byExt("stl");
+    const step = files.find((f) => /\.(step|stp)$/i.test(f.name));
+
+    if (glb) return this.loadGLTF(glb);
+    if (gltf) return this.loadGLTF(gltf);
+    if (obj) {
+      if (mtl) return this.loadOBJWithMTL(obj, mtl);
+      return this.loadOBJ(obj);
+    }
+    if (stl) return this.loadSTL(stl);
+    if (step) return this.loadSTEP(step);
+    if (files.length === 1) return this.loadFile(files[0]);
+    throw new Error("No supported files found");
+  }
+
   private async loadGLTF(file: File) {
     const url = URL.createObjectURL(file);
     const loader = new GLTFLoader();
@@ -103,6 +125,23 @@ export class ThreeViewerService {
     const text = await file.text();
     const loader = new OBJLoader();
     const obj = loader.parse(text);
+    this.clearScene();
+    this.scene.add(obj);
+    this.indexSceneObjects();
+    this.fitToScreen();
+  }
+
+  private async loadOBJWithMTL(objFile: File, mtlFile: File) {
+    const [objText, mtlText] = await Promise.all([
+      objFile.text(),
+      mtlFile.text(),
+    ]);
+    const mtlLoader = new MTLLoader();
+    const materials = mtlLoader.parse(mtlText, "");
+    materials.preload();
+    const objLoader = new OBJLoader();
+    objLoader.setMaterials(materials);
+    const obj = objLoader.parse(objText);
     this.clearScene();
     this.scene.add(obj);
     this.indexSceneObjects();

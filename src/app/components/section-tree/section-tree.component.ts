@@ -45,4 +45,8 @@ export class SectionTreeComponent {
   resetView() {
     this.store.dispatch(ViewerActions.resetView());
   }
+
+  pathIds(path: SectionNode[] | null | undefined): string[] {
+    return Array.isArray(path) ? path.map((p) => p.id) : [];
+  }
 }

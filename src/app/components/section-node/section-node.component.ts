@@ -1,4 +1,4 @@
-import { Component, Input } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges } from "@angular/core";
 import { Store } from "@ngrx/store";
 import { SectionNode } from "../../core/state/model.types";
 import * as ModelActions from "../../core/state/model.actions";
@@ -11,16 +11,19 @@ import { Observable } from "rxjs";
   templateUrl: "./section-node.component.html",
   styleUrls: ["./section-node.component.scss"],
 })
-export class SectionNodeComponent {
+export class SectionNodeComponent implements OnChanges {
   @Input() node!: SectionNode;
+  @Input() expandedPath: string[] = [];
   expanded = true;
   selectedId$: Observable<string | null>;
+  private userToggled = false;
 
   constructor(private store: Store) {
     this.selectedId$ = this.store.select(ModelSelectors.selectFocusedNodeId);
   }
 
   toggle() {
+    this.userToggled = true;
     this.expanded = !this.expanded;
   }
 
@@ -38,5 +41,11 @@ export class SectionNodeComponent {
 
   fit() {
     this.store.dispatch(ViewerActions.fitToObject({ id: this.node.id }));
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes["expandedPath"] && !this.userToggled) {
+      this.expanded = this.expandedPath?.includes(this.node.id);
+    }
   }
 }

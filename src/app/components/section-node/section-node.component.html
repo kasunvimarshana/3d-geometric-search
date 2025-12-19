@@ -6,5 +6,10 @@
 <button (click)="toggle()">{{ expanded ? "Collapse" : "Expand" }}</button>
 <button (click)="fit()">Fit</button>
 <ul *ngIf="expanded && node.children?.length">
-  <li app-section-node *ngFor="let child of node.children" [node]="child"></li>
+  <li
+    app-section-node
+    *ngFor="let child of node.children"
+    [node]="child"
+    [expandedPath]="expandedPath"
+  ></li>
 </ul>

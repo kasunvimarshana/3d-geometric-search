@@ -12,7 +12,14 @@
     </span>
     <button class="reset" (click)="resetView()">Reset View</button>
   </div>
-  <ul>
-    <li app-section-node *ngFor="let node of tree" [node]="node"></li>
-  </ul>
+  <ng-container *ngIf="selectedPath$ | async as path">
+    <ul>
+      <li
+        app-section-node
+        *ngFor="let node of tree"
+        [node]="node"
+        [expandedPath]="pathIds(path)"
+      ></li>
+    </ul>
+  </ng-container>
 </div>
