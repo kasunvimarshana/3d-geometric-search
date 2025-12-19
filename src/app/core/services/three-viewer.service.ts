@@ -6,6 +6,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { StepConverterService } from "./step-converter.service";
 
 @Injectable({ providedIn: "root" })
 export class ThreeViewerService {
@@ -19,8 +20,13 @@ export class ThreeViewerService {
   private pointer = new THREE.Vector2();
   private objectIndex = new Map<string, any>();
   private isolatedId: string | null = null;
+  private isCancelled = false;
+  private currentReader: FileReader | null = null;
 
   readonly pickedObject$ = new Subject<string>();
+  readonly loadProgress$ = new Subject<number>();
+
+  constructor(private stepConverter: StepConverterService) {}
 
   attach(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -80,6 +86,7 @@ export class ThreeViewerService {
   }
 
   async loadFile(file: File) {
+    this.isCancelled = false;
     const ext = file.name.toLowerCase().split(".").pop() || "";
     if (["gltf", "glb"].includes(ext)) return this.loadGLTF(file);
     if (ext === "obj") return this.loadOBJ(file);
@@ -110,66 +117,146 @@ export class ThreeViewerService {
     throw new Error("No supported files found");
   }
 
+  private emitProgress(p: number) {
+    const clamped = Math.max(0, Math.min(100, Math.round(p)));
+    this.loadProgress$.next(clamped);
+  }
+
+  private createLoadingManager(): any {
+    const manager = new THREE.LoadingManager();
+    manager.onStart = () => this.emitProgress(0);
+    manager.onProgress = (_item: string, loaded: number, total: number) => {
+      const pct = (loaded / Math.max(total, 1)) * 100;
+      this.emitProgress(pct);
+    };
+    manager.onLoad = () => this.emitProgress(100);
+    return manager;
+  }
+
   private async loadGLTF(file: File) {
     const url = URL.createObjectURL(file);
-    const loader = new GLTFLoader();
-    const gltf = await loader.loadAsync(url);
+    const loader = new GLTFLoader(this.createLoadingManager());
+    this.emitProgress(0);
+    const gltf = await new Promise<any>((resolve, reject) => {
+      loader.load(
+        url,
+        (g: any) => resolve(g),
+        (evt: ProgressEvent) => {
+          if (evt.lengthComputable) {
+            const pct = (evt.loaded / evt.total) * 100;
+            this.emitProgress(pct);
+          }
+        },
+        (err: any) => reject(err)
+      );
+    });
     URL.revokeObjectURL(url);
+    if (this.isCancelled) return;
     this.clearScene();
     this.scene.add(gltf.scene);
     this.indexSceneObjects();
     this.fitToScreen();
+    this.emitProgress(100);
   }
 
   private async loadOBJ(file: File) {
-    const text = await file.text();
-    const loader = new OBJLoader();
-    const obj = loader.parse(text);
-    this.clearScene();
-    this.scene.add(obj);
-    this.indexSceneObjects();
-    this.fitToScreen();
+    await new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      this.currentReader = reader;
+      reader.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          const pct = (evt.loaded / evt.total) * 100;
+          this.emitProgress(pct);
+        }
+      };
+      reader.onload = () => {
+        const text = reader.result as string;
+        const loader = new OBJLoader();
+        const obj = loader.parse(text);
+        if (this.isCancelled) {
+          resolve();
+          return;
+        }
+        this.clearScene();
+        this.scene.add(obj);
+        this.indexSceneObjects();
+        this.fitToScreen();
+        this.emitProgress(100);
+        resolve();
+      };
+      reader.onerror = () => reject(reader.error);
+      this.emitProgress(0);
+      reader.readAsText(file);
+    });
+    this.currentReader = null;
   }
 
   private async loadOBJWithMTL(objFile: File, mtlFile: File) {
+    this.emitProgress(0);
     const [objText, mtlText] = await Promise.all([
       objFile.text(),
       mtlFile.text(),
     ]);
+    this.emitProgress(50);
     const mtlLoader = new MTLLoader();
     const materials = mtlLoader.parse(mtlText, "");
     materials.preload();
     const objLoader = new OBJLoader();
     objLoader.setMaterials(materials);
     const obj = objLoader.parse(objText);
+    if (this.isCancelled) return;
     this.clearScene();
     this.scene.add(obj);
     this.indexSceneObjects();
     this.fitToScreen();
+    this.emitProgress(100);
   }
 
   private async loadSTL(file: File) {
-    const arrayBuffer = await file.arrayBuffer();
-    const loader = new STLLoader();
-    const geometry = loader.parse(arrayBuffer);
-    const material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
-    const mesh = new THREE.Mesh(geometry, material);
-    this.clearScene();
-    this.scene.add(mesh);
-    this.indexSceneObjects();
-    this.fitToScreen();
+    await new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      this.currentReader = reader;
+      reader.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          const pct = (evt.loaded / evt.total) * 100;
+          this.emitProgress(pct);
+        }
+      };
+      reader.onload = () => {
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const loader = new STLLoader();
+        const geometry = loader.parse(arrayBuffer);
+        const material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+        const mesh = new THREE.Mesh(geometry, material);
+        if (this.isCancelled) {
+          resolve();
+          return;
+        }
+        this.clearScene();
+        this.scene.add(mesh);
+        this.indexSceneObjects();
+        this.fitToScreen();
+        this.emitProgress(100);
+        resolve();
+      };
+      reader.onerror = () => reject(reader.error);
+      this.emitProgress(0);
+      reader.readAsArrayBuffer(file);
+    });
+    this.currentReader = null;
   }
 
   private async loadSTEP(file: File) {
-    // Placeholder: integrate WASM converter or server-side conversion to glTF
-    console.warn("STEP loading requires converter. Using placeholder box.");
-    const geom = new THREE.BoxGeometry(1, 1, 1);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
-    const mesh = new THREE.Mesh(geom, mat);
     this.clearScene();
-    this.scene.add(mesh);
+    this.loadProgress$.next(0);
+    const obj = await this.stepConverter.convertToObject3D(file, (p) => {
+      this.loadProgress$.next(p);
+    });
+    if (this.isCancelled) return;
+    this.scene.add(obj);
     this.indexSceneObjects();
     this.fitToScreen();
+    this.loadProgress$.next(100);
   }
 
   clearScene() {
@@ -327,6 +414,15 @@ export class ThreeViewerService {
       this.canvas.requestFullscreen().catch(() => {});
     } else {
       document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  cancelLoad() {
+    this.isCancelled = true;
+    if (this.currentReader) {
+      try {
+        this.currentReader.abort();
+      } catch {}
     }
   }
 

@@ -5,6 +5,10 @@ export const loadModel = createAction(
   "[Model] Load",
   props<{ files: File[] }>()
 );
+export const loadStart = createAction(
+  "[Model] Load Start",
+  props<{ fileName: string }>()
+);
 export const loadSuccess = createAction(
   "[Model] Load Success",
   props<{ tree: SectionNode[] }>()
@@ -15,6 +19,13 @@ export const loadFailure = createAction(
 );
 
 export const clearError = createAction("[Model] Clear Error");
+
+export const loadProgress = createAction(
+  "[Model] Load Progress",
+  props<{ progress: number }>()
+);
+
+export const cancelLoad = createAction("[Model] Cancel Load");
 
 export const focusNode = createAction(
   "[Model] Focus Node",

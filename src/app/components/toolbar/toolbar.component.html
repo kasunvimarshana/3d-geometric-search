@@ -11,12 +11,55 @@
   <label class="file-input" for="filePicker">Add Models</label>
   <input id="filePicker" type="file" (change)="onFile($event)" multiple />
 </div>
+
+<!-- Top overlay progress bar -->
+<ng-container *ngIf="loading$ | async">
+  <ng-container *ngIf="progress$ | async as p">
+    <div
+      class="top-progress"
+      aria-label="Loading progress"
+      role="progressbar"
+      [attr.aria-valuenow]="p"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <div class="top-progress-bar" [style.width.%]="p"></div>
+    </div>
+    <div class="progress-meta" aria-hidden="true">
+      <span class="progress-filename" *ngIf="loadingFileName$ | async as fname"
+        >Loading: {{ fname }}</span
+      >
+    </div>
+    <button
+      class="progress-cancel"
+      (click)="onCancelLoad()"
+      aria-label="Cancel loading"
+    >
+      Cancel
+    </button>
+  </ng-container>
+</ng-container>
 <div class="status" aria-live="polite">
   <span class="loading" *ngIf="loading$ | async">
     <span class="spinner" aria-hidden="true"></span>
     Loading model…
+    <ng-container *ngIf="progress$ | async as p">{{ p }}%</ng-container>
   </span>
   <span class="error" *ngIf="error$ | async as err">{{ err }}</span>
+  <ng-container *ngIf="loading$ | async">
+    <ng-container *ngIf="progress$ | async as p">
+      <div
+        class="progress"
+        aria-label="Loading progress"
+        role="progressbar"
+        [attr.aria-valuenow]="p"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <div class="progress-bar" [style.width.%]="p"></div>
+      </div>
+    </ng-container>
+  </ng-container>
 </div>
 
 <!-- Toast overlay for errors -->

@@ -21,6 +21,15 @@ export const selectModelError = createSelector(
   (s) => s.error
 );
 
+export const selectModelProgress = createSelector(
+  selectModelState,
+  (s) => s.progress
+);
+export const selectLoadingFileName = createSelector(
+  selectModelState,
+  (s) => s.loadingFileName
+);
+
 export const selectFocusedPath = createSelector(
   selectSectionTree,
   selectFocusedNodeId,
