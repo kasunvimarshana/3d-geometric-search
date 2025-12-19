@@ -20,8 +20,23 @@ export class ToolbarComponent {
   progress$: Observable<number | undefined>;
   loadingFileName$: Observable<string | undefined>;
   lastLoadedFileName$: Observable<string | undefined>;
+  private lastLoadedFileName?: string;
   unitScale = 1.0;
   center = true;
+  gltfBinary = true;
+  stlBinary = true;
+  gltfEmbedImages = true;
+  gltfOnlyVisible = true;
+  gltfPreset: "binary" | "json-embedded" | "json-external" = "binary";
+
+  get gltfExt(): string {
+    return this.gltfBinary ? "glb" : "gltf";
+  }
+
+  get gltfLabel(): string {
+    if (!this.gltfBinary && this.gltfPreset === "json-external") return "zip";
+    return this.gltfExt;
+  }
 
   constructor(
     private store: Store,
@@ -38,6 +53,9 @@ export class ToolbarComponent {
     );
     this.lastLoadedFileName$ = this.store.select(
       ModelSelectors.selectLastLoadedFileName
+    );
+    this.lastLoadedFileName$.subscribe(
+      (n) => (this.lastLoadedFileName = n ?? undefined)
     );
   }
 
@@ -106,22 +124,32 @@ export class ToolbarComponent {
   }
 
   private deriveBaseName(ext: string): string {
-    let base = "model";
-    const sub = this.lastLoadedFileName$;
-    // We cannot synchronously read Observable; fallback to current loading name via simple heuristic
-    // For now, prefer the displayed loading filename via DOM; otherwise default
-    // In a real app, we'd select via async pipe in template or keep last name in a service.
-    return base + "." + ext;
+    const name = this.lastLoadedFileName?.trim();
+    if (name && name.length) {
+      const idx = name.lastIndexOf(".");
+      const base = idx > 0 ? name.substring(0, idx) : name;
+      return `${base}.${ext}`;
+    }
+    return `model.${ext}`;
   }
 
   async onExportGLTF() {
     const root = this.viewer.getRootObject();
     if (!root) return;
+    if (!this.gltfBinary && this.gltfPreset === "json-external") {
+      // Package to ZIP for external assets
+      await this.exportGltfZip(root);
+      return;
+    }
     const blob = await this.converter.toGLTF(root, {
       center: this.center,
       unitScale: this.unitScale,
+      binary: this.gltfBinary,
+      embedImages: this.gltfEmbedImages,
+      onlyVisible: this.gltfOnlyVisible,
     });
-    this.downloadBlob(blob, this.deriveBaseName("glb"));
+    const ext = this.gltfBinary ? "glb" : "gltf";
+    this.downloadBlob(blob, this.deriveBaseName(ext));
   }
 
   async onExportOBJ() {
@@ -140,6 +168,7 @@ export class ToolbarComponent {
     const blob = await this.converter.toSTL(root, {
       center: this.center,
       unitScale: this.unitScale,
+      binary: this.stlBinary,
     });
     this.downloadBlob(blob, this.deriveBaseName("stl"));
   }
@@ -148,11 +177,52 @@ export class ToolbarComponent {
     if (!this.selectedId) return;
     const obj = this.viewer.getObjectById(this.selectedId);
     if (!obj) return;
+    if (!this.gltfBinary && this.gltfPreset === "json-external") {
+      await this.exportGltfZip(obj);
+      return;
+    }
     const blob = await this.converter.toGLTF(obj, {
       center: this.center,
       unitScale: this.unitScale,
+      binary: this.gltfBinary,
+      embedImages: this.gltfEmbedImages,
+      onlyVisible: this.gltfOnlyVisible,
     });
-    this.downloadBlob(blob, this.deriveBaseName("glb"));
+    const ext = this.gltfBinary ? "glb" : "gltf";
+    this.downloadBlob(blob, this.deriveBaseName(ext));
+  }
+
+  private async exportGltfZip(object: any) {
+    const pkg = await this.converter.toGLTFPackage(object, {
+      center: this.center,
+      unitScale: this.unitScale,
+      embedImages: false,
+      onlyVisible: this.gltfOnlyVisible,
+    });
+    const jszipMod: any = await import("jszip");
+    const JSZip = jszipMod.default || jszipMod;
+    const zip = new JSZip();
+    const base = this.deriveBaseName("gltf").replace(/\.gltf$/i, "");
+    zip.file(`${base}.gltf`, pkg.gltf);
+    for (const asset of pkg.assets) {
+      zip.file(asset.name, asset.blob);
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    this.downloadBlob(blob, `${base}.zip`);
+  }
+
+  onChangeGltfPreset(val: string) {
+    this.gltfPreset = val as any;
+    if (val === "binary") {
+      this.gltfBinary = true;
+      this.gltfEmbedImages = true; // ignored in binary
+    } else if (val === "json-embedded") {
+      this.gltfBinary = false;
+      this.gltfEmbedImages = true;
+    } else {
+      this.gltfBinary = false;
+      this.gltfEmbedImages = false;
+    }
   }
 
   async onExportSelectedOBJ() {
@@ -173,6 +243,7 @@ export class ToolbarComponent {
     const blob = await this.converter.toSTL(obj, {
       center: this.center,
       unitScale: this.unitScale,
+      binary: this.stlBinary,
     });
     this.downloadBlob(blob, this.deriveBaseName("stl"));
   }

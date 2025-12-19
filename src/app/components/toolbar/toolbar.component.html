@@ -10,35 +10,102 @@
   <button (click)="onClearIsolation()">Clear Isolation</button>
   <label class="file-input" for="filePicker">Add Models</label>
   <input id="filePicker" type="file" (change)="onFile($event)" multiple />
-  <select
-    aria-label="Unit scale"
-    (change)="unitScale = +$any($event.target).value"
-  >
-    <option [value]="1">Units (1:1)</option>
-    <option [value]="0.001">mm → m (0.001)</option>
-    <option [value]="0.01">cm → m (0.01)</option>
-    <option [value]="0.0254">inch → m (0.0254)</option>
-  </select>
-  <label
-    ><input
-      type="checkbox"
-      [checked]="center"
-      (change)="center = $any($event.target).checked"
-    />
-    Center at origin</label
-  >
-  <button (click)="onExportGLTF()">Export GLTF</button>
-  <button (click)="onExportOBJ()">Export OBJ</button>
-  <button (click)="onExportSTL()">Export STL</button>
-  <button (click)="onExportSelectedGLTF()" [disabled]="!(selectedId$ | async)">
-    Export Selected GLTF
-  </button>
-  <button (click)="onExportSelectedOBJ()" [disabled]="!(selectedId$ | async)">
-    Export Selected OBJ
-  </button>
-  <button (click)="onExportSelectedSTL()" [disabled]="!(selectedId$ | async)">
-    Export Selected STL
-  </button>
+  <div class="transform-group" role="group" aria-labelledby="transformOptions">
+    <h3 id="transformOptions" class="group-title">Transform options</h3>
+    <select
+      aria-label="Unit scale"
+      (change)="unitScale = +$any($event.target).value"
+    >
+      <option [value]="1">Units (1:1)</option>
+      <option [value]="0.001">mm → m (0.001)</option>
+      <option [value]="0.01">cm → m (0.01)</option>
+      <option [value]="0.0254">inch → m (0.0254)</option>
+    </select>
+    <label>
+      <input
+        type="checkbox"
+        [checked]="center"
+        (change)="center = $any($event.target).checked"
+      />
+      Center at origin
+    </label>
+  </div>
+
+  <div class="export-group" role="group" aria-labelledby="exportOptions">
+    <h3 id="exportOptions" class="group-title">Export options</h3>
+    <label
+      ><input
+        type="checkbox"
+        [checked]="gltfBinary"
+        (change)="gltfBinary = $any($event.target).checked"
+      />
+      GLTF as binary (.glb)</label
+    >
+    <select
+      aria-label="GLTF preset"
+      title="Choose GLTF export format: Binary .glb, JSON Embedded .gltf, or JSON External .gltf + assets"
+      (change)="onChangeGltfPreset($any($event.target).value)"
+    >
+      <option value="binary" [selected]="gltfPreset === 'binary'">
+        Binary (.glb)
+      </option>
+      <option value="json-embedded" [selected]="gltfPreset === 'json-embedded'">
+        JSON Embedded (.gltf)
+      </option>
+      <option value="json-external" [selected]="gltfPreset === 'json-external'">
+        JSON External (.gltf)
+      </option>
+    </select>
+    <label
+      ><input
+        type="checkbox"
+        [checked]="stlBinary"
+        (change)="stlBinary = $any($event.target).checked"
+      />
+      STL as binary (.stl)</label
+    >
+    <div class="gltf-options">
+      <label
+        ><input
+          type="checkbox"
+          [checked]="gltfEmbedImages"
+          [disabled]="gltfBinary"
+          (change)="gltfEmbedImages = $any($event.target).checked"
+        />
+        Embed images</label
+      >
+      <label
+        ><input
+          type="checkbox"
+          [checked]="gltfOnlyVisible"
+          (change)="gltfOnlyVisible = $any($event.target).checked"
+        />
+        Only visible</label
+      >
+    </div>
+    <div class="export-actions">
+      <button (click)="onExportOBJ()">Export OBJ</button>
+      <button (click)="onExportGLTF()">Export GLTF ({{ gltfLabel }})</button>
+      <button
+        (click)="onExportSelectedGLTF()"
+        [disabled]="!(selectedId$ | async)"
+      >
+        Export Selected GLTF ({{ gltfLabel }})
+      </button>
+      <button
+        (click)="onExportSelectedOBJ()"
+        [disabled]="!(selectedId$ | async)"
+      >
+        Export Selected OBJ
+      </button>
+      <button
+        (click)="onExportSelectedSTL()"
+        [disabled]="!(selectedId$ | async)"
+      >
+        Export Selected STL
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- Top overlay progress bar -->

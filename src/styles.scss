@@ -37,7 +37,7 @@ button:hover {
 .app-shell {
   display: grid;
   grid-template-columns: 280px 1fr;
-  grid-template-rows: 48px 1fr;
+  grid-template-rows: auto 1fr;
   grid-template-areas:
     "toolbar toolbar"
     "sidebar canvas";
@@ -75,6 +75,6 @@ button:hover {
 
 .viewer-canvas {
   width: 100%;
-  height: calc(100vh - 48px);
+  height: 100%;
   display: block;
 }

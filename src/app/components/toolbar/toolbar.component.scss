@@ -3,19 +3,63 @@
   gap: 8px;
   align-items: center;
   padding: 8px 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #1f2937;
 }
+
 .file-input {
   margin-left: auto;
 }
+
+.transform-group,
+.export-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  background: #0b0e12;
+}
+
+.group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0 8px 0 0;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .status {
   display: flex;
   gap: 12px;
   align-items: center;
   padding: 4px 12px;
 }
+
 .status .loading {
   color: #0ea5e9;
 }
+
 .status .loading .spinner {
   width: 12px;
   height: 12px;
@@ -26,6 +70,7 @@
   margin-right: 6px;
   animation: spin 0.8s linear infinite;
 }
+
 .status .error {
   color: #ef4444;
 }
@@ -37,6 +82,7 @@
   border-radius: 6px;
   overflow: hidden;
 }
+
 .progress .progress-bar {
   height: 100%;
   background: #3b82f6;
@@ -70,7 +116,6 @@
   cursor: pointer;
 }
 
-/* Top overlay progress bar */
 .top-progress {
   position: fixed;
   top: 0;
@@ -80,6 +125,7 @@
   background: #111827;
   z-index: 900;
 }
+
 .top-progress .top-progress-bar {
   height: 100%;
   background: #60a5fa;

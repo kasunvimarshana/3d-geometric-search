@@ -10,7 +10,6 @@
       }}</a
       ><span *ngIf="!last"> › </span>
     </span>
-    <button class="reset" (click)="resetView()">Reset View</button>
   </div>
   <ng-container *ngIf="selectedPath$ | async as path">
     <ul>
