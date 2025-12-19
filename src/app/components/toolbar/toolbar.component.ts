@@ -13,10 +13,14 @@ import { Observable } from "rxjs";
 export class ToolbarComponent {
   selectedId$: Observable<string | null>;
   private selectedId: string | null = null;
+  loading$: Observable<boolean>;
+  error$: Observable<string | undefined>;
 
   constructor(private store: Store) {
     this.selectedId$ = this.store.select(ModelSelectors.selectFocusedNodeId);
     this.selectedId$.subscribe((id) => (this.selectedId = id));
+    this.loading$ = this.store.select(ModelSelectors.selectModelLoading);
+    this.error$ = this.store.select(ModelSelectors.selectModelError);
   }
 
   onReset() {

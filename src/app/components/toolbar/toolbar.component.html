@@ -11,3 +11,7 @@
   <label class="file-input" for="filePicker">Add Models</label>
   <input id="filePicker" type="file" (change)="onFile($event)" multiple />
 </div>
+<div class="status" aria-live="polite">
+  <span class="loading" *ngIf="loading$ | async">Loading model…</span>
+  <span class="error" *ngIf="error$ | async as err">{{ err }}</span>
+</div>

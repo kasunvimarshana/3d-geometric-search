@@ -7,3 +7,15 @@
 .file-input {
   margin-left: auto;
 }
+.status {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 4px 12px;
+}
+.status .loading {
+  color: #0ea5e9;
+}
+.status .error {
+  color: #ef4444;
+}
