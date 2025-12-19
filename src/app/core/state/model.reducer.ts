@@ -9,6 +9,7 @@ export interface State {
   error?: string;
   progress?: number;
   loadingFileName?: string;
+  lastLoadedFileName?: string;
 }
 
 const initialState: State = {
@@ -32,6 +33,8 @@ export const reducer = createReducer(
     sectionTree: tree,
     progress: undefined,
     loadingFileName: undefined,
+    // Keep lastLoadedFileName for naming exports
+    lastLoadedFileName: state.lastLoadedFileName,
   })),
   on(ModelActions.loadFailure, (state, { error }) => ({
     ...state,
@@ -57,6 +60,7 @@ export const reducer = createReducer(
   on(ModelActions.loadStart, (state, { fileName }) => ({
     ...state,
     loadingFileName: fileName,
+    lastLoadedFileName: fileName,
   })),
   on(ModelActions.focusNode, (state, { nodeId }) => ({
     ...state,

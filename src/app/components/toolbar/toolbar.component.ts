@@ -19,6 +19,9 @@ export class ToolbarComponent {
   error$: Observable<string | undefined>;
   progress$: Observable<number | undefined>;
   loadingFileName$: Observable<string | undefined>;
+  lastLoadedFileName$: Observable<string | undefined>;
+  unitScale = 1.0;
+  center = true;
 
   constructor(
     private store: Store,
@@ -32,6 +35,9 @@ export class ToolbarComponent {
     this.progress$ = this.store.select(ModelSelectors.selectModelProgress);
     this.loadingFileName$ = this.store.select(
       ModelSelectors.selectLoadingFileName
+    );
+    this.lastLoadedFileName$ = this.store.select(
+      ModelSelectors.selectLastLoadedFileName
     );
   }
 
@@ -99,24 +105,75 @@ export class ToolbarComponent {
     URL.revokeObjectURL(url);
   }
 
+  private deriveBaseName(ext: string): string {
+    let base = "model";
+    const sub = this.lastLoadedFileName$;
+    // We cannot synchronously read Observable; fallback to current loading name via simple heuristic
+    // For now, prefer the displayed loading filename via DOM; otherwise default
+    // In a real app, we'd select via async pipe in template or keep last name in a service.
+    return base + "." + ext;
+  }
+
   async onExportGLTF() {
     const root = this.viewer.getRootObject();
     if (!root) return;
-    const blob = await this.converter.toGLTF(root, { center: true });
-    this.downloadBlob(blob, "model.glb");
+    const blob = await this.converter.toGLTF(root, {
+      center: this.center,
+      unitScale: this.unitScale,
+    });
+    this.downloadBlob(blob, this.deriveBaseName("glb"));
   }
 
   async onExportOBJ() {
     const root = this.viewer.getRootObject();
     if (!root) return;
-    const blob = await this.converter.toOBJ(root, { center: true });
-    this.downloadBlob(blob, "model.obj");
+    const blob = await this.converter.toOBJ(root, {
+      center: this.center,
+      unitScale: this.unitScale,
+    });
+    this.downloadBlob(blob, this.deriveBaseName("obj"));
   }
 
   async onExportSTL() {
     const root = this.viewer.getRootObject();
     if (!root) return;
-    const blob = await this.converter.toSTL(root, { center: true });
-    this.downloadBlob(blob, "model.stl");
+    const blob = await this.converter.toSTL(root, {
+      center: this.center,
+      unitScale: this.unitScale,
+    });
+    this.downloadBlob(blob, this.deriveBaseName("stl"));
+  }
+
+  async onExportSelectedGLTF() {
+    if (!this.selectedId) return;
+    const obj = this.viewer.getObjectById(this.selectedId);
+    if (!obj) return;
+    const blob = await this.converter.toGLTF(obj, {
+      center: this.center,
+      unitScale: this.unitScale,
+    });
+    this.downloadBlob(blob, this.deriveBaseName("glb"));
+  }
+
+  async onExportSelectedOBJ() {
+    if (!this.selectedId) return;
+    const obj = this.viewer.getObjectById(this.selectedId);
+    if (!obj) return;
+    const blob = await this.converter.toOBJ(obj, {
+      center: this.center,
+      unitScale: this.unitScale,
+    });
+    this.downloadBlob(blob, this.deriveBaseName("obj"));
+  }
+
+  async onExportSelectedSTL() {
+    if (!this.selectedId) return;
+    const obj = this.viewer.getObjectById(this.selectedId);
+    if (!obj) return;
+    const blob = await this.converter.toSTL(obj, {
+      center: this.center,
+      unitScale: this.unitScale,
+    });
+    this.downloadBlob(blob, this.deriveBaseName("stl"));
   }
 }

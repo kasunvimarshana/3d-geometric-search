@@ -10,9 +10,35 @@
   <button (click)="onClearIsolation()">Clear Isolation</button>
   <label class="file-input" for="filePicker">Add Models</label>
   <input id="filePicker" type="file" (change)="onFile($event)" multiple />
+  <select
+    aria-label="Unit scale"
+    (change)="unitScale = +$any($event.target).value"
+  >
+    <option [value]="1">Units (1:1)</option>
+    <option [value]="0.001">mm → m (0.001)</option>
+    <option [value]="0.01">cm → m (0.01)</option>
+    <option [value]="0.0254">inch → m (0.0254)</option>
+  </select>
+  <label
+    ><input
+      type="checkbox"
+      [checked]="center"
+      (change)="center = $any($event.target).checked"
+    />
+    Center at origin</label
+  >
   <button (click)="onExportGLTF()">Export GLTF</button>
   <button (click)="onExportOBJ()">Export OBJ</button>
   <button (click)="onExportSTL()">Export STL</button>
+  <button (click)="onExportSelectedGLTF()" [disabled]="!(selectedId$ | async)">
+    Export Selected GLTF
+  </button>
+  <button (click)="onExportSelectedOBJ()" [disabled]="!(selectedId$ | async)">
+    Export Selected OBJ
+  </button>
+  <button (click)="onExportSelectedSTL()" [disabled]="!(selectedId$ | async)">
+    Export Selected STL
+  </button>
 </div>
 
 <!-- Top overlay progress bar -->

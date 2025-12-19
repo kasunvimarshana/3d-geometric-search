@@ -30,6 +30,11 @@ export const selectLoadingFileName = createSelector(
   (s) => s.loadingFileName
 );
 
+export const selectLastLoadedFileName = createSelector(
+  selectModelState,
+  (s) => s.lastLoadedFileName
+);
+
 export const selectFocusedPath = createSelector(
   selectSectionTree,
   selectFocusedNodeId,
