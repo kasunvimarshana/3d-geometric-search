@@ -28,13 +28,30 @@ npm install
 npx ng serve -o
 ```
 
-## STEP Support
+## STEP (WASM) Converter
 
-This project ships a STEP placeholder. Integrate a converter (WASM or service)
-that produces glTF for web rendering. Suggested options:
+By default, STEP files render as a placeholder mesh. To enable a real WASM converter:
 
-- WASM: OpenCascade-based STEP → glTF (community projects)
-- Server: Convert STEP to glTF server-side, then load GLB in viewer
+1. Install one of the supported modules:
+   - `npm i occt-import-js`
+   - or `npm i @sahriai/occt-import-js`
+   - or another compatible module exposing `convertStepToObject3D(buffer, onProgress, { signal })`.
+2. Enable the feature flag in `src/app/core/config.ts`:
+
+```ts
+export const appConfig = {
+  step: {
+    useWasm: true,
+    moduleCandidates: [
+      "occt-import-js",
+      "@sahriai/occt-import-js",
+      "wasm-step-converter",
+    ],
+  },
+};
+```
+
+Cancellation is supported via `AbortSignal` and the toolbar Cancel button.
 
 ## Architecture
 

@@ -22,6 +22,7 @@ export class ThreeViewerService {
   private isolatedId: string | null = null;
   private isCancelled = false;
   private currentReader: FileReader | null = null;
+  private currentAbort: AbortController | null = null;
 
   readonly pickedObject$ = new Subject<string>();
   readonly loadProgress$ = new Subject<number>();
@@ -249,10 +250,24 @@ export class ThreeViewerService {
   private async loadSTEP(file: File) {
     this.clearScene();
     this.loadProgress$.next(0);
-    const obj = await this.stepConverter.convertToObject3D(file, (p) => {
-      this.loadProgress$.next(p);
-    });
-    if (this.isCancelled) return;
+    const abort = new AbortController();
+    this.currentAbort = abort;
+    let obj: any;
+    try {
+      obj = await this.stepConverter.convertToObject3D(
+        file,
+        (p) => {
+          this.loadProgress$.next(p);
+        },
+        { signal: abort.signal }
+      );
+    } catch {
+      // Swallow errors on cancel; keep service consistent
+      this.currentAbort = null;
+      return;
+    }
+    this.currentAbort = null;
+    if (this.isCancelled || abort.signal.aborted) return;
     this.scene.add(obj);
     this.indexSceneObjects();
     this.fitToScreen();
@@ -422,6 +437,11 @@ export class ThreeViewerService {
     if (this.currentReader) {
       try {
         this.currentReader.abort();
+      } catch {}
+    }
+    if (this.currentAbort) {
+      try {
+        this.currentAbort.abort();
       } catch {}
     }
   }
