@@ -1,4 +1,5 @@
 import { Injectable } from "@angular/core";
+import { Subject } from "rxjs";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
@@ -14,6 +15,12 @@ export class ThreeViewerService {
   private controls!: any;
   private canvas!: HTMLCanvasElement;
   private frameId: number | null = null;
+  private raycaster = new THREE.Raycaster();
+  private pointer = new THREE.Vector2();
+  private objectIndex = new Map<string, any>();
+  private isolatedId: string | null = null;
+
+  readonly pickedObject$ = new Subject<string>();
 
   attach(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -43,6 +50,7 @@ export class ThreeViewerService {
     this.controls.dampingFactor = 0.06;
 
     window.addEventListener("resize", () => this.onResize());
+    this.canvas.addEventListener("pointerdown", (e) => this.onPointerDown(e));
   }
 
   start() {
@@ -87,6 +95,7 @@ export class ThreeViewerService {
     URL.revokeObjectURL(url);
     this.clearScene();
     this.scene.add(gltf.scene);
+    this.indexSceneObjects();
     this.fitToScreen();
   }
 
@@ -96,6 +105,7 @@ export class ThreeViewerService {
     const obj = loader.parse(text);
     this.clearScene();
     this.scene.add(obj);
+    this.indexSceneObjects();
     this.fitToScreen();
   }
 
@@ -107,6 +117,7 @@ export class ThreeViewerService {
     const mesh = new THREE.Mesh(geometry, material);
     this.clearScene();
     this.scene.add(mesh);
+    this.indexSceneObjects();
     this.fitToScreen();
   }
 
@@ -118,6 +129,7 @@ export class ThreeViewerService {
     const mesh = new THREE.Mesh(geom, mat);
     this.clearScene();
     this.scene.add(mesh);
+    this.indexSceneObjects();
     this.fitToScreen();
   }
 
@@ -147,6 +159,123 @@ export class ThreeViewerService {
     this.camera.updateProjectionMatrix();
     this.controls.target.copy(center);
     this.controls.update();
+  }
+
+  fitToObject(id: string) {
+    const obj = this.objectIndex.get(id);
+    if (!obj) return;
+    const box = new THREE.Box3().setFromObject(obj);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const fitOffset = 1.4;
+    const fov = this.camera.fov * (Math.PI / 180);
+    let distance = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+    distance *= fitOffset;
+    const direction = new THREE.Vector3(1, 1, 1).normalize();
+    const newPos = center.clone().add(direction.multiplyScalar(distance));
+    this.camera.position.copy(newPos);
+    this.camera.near = maxDim / 100;
+    this.camera.far = maxDim * 100;
+    this.camera.updateProjectionMatrix();
+    this.controls.target.copy(center);
+    this.controls.update();
+  }
+
+  highlightById(id: string) {
+    const obj = this.objectIndex.get(id);
+    if (!obj) return;
+    obj.traverse((child: any) => {
+      if (child.isMesh && child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m: any) => {
+            if (m.emissive) m.emissive.setHex(0x3b82f6);
+          });
+        } else if (child.material.emissive) {
+          child.material.emissive.setHex(0x3b82f6);
+        }
+      }
+    });
+  }
+
+  clearHighlight() {
+    this.scene.traverse((child: any) => {
+      if (child.isMesh && child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m: any) => {
+            if (m.emissive) m.emissive.setHex(0x000000);
+          });
+        } else if (child.material.emissive) {
+          child.material.emissive.setHex(0x000000);
+        }
+      }
+    });
+  }
+
+  isolateById(id: string) {
+    const target = this.objectIndex.get(id);
+    if (!target) return;
+    this.isolatedId = id;
+    this.scene.traverse((obj: any) => {
+      if (obj === target) {
+        obj.visible = true;
+      } else if (obj.isObject3D) {
+        obj.visible = false;
+      }
+    });
+  }
+
+  clearIsolation() {
+    this.isolatedId = null;
+    this.scene.traverse((obj: any) => {
+      if (obj.isObject3D) obj.visible = true;
+    });
+  }
+
+  private indexSceneObjects() {
+    this.objectIndex.clear();
+    if (!this.scene) return;
+    this.scene.traverse((obj: any) => {
+      if ((obj.isMesh || obj.isGroup || obj.isObject3D) && obj.uuid) {
+        this.objectIndex.set(obj.uuid, obj);
+      }
+    });
+  }
+
+  buildSectionTree(): { id: string; name: string; children?: any[] }[] {
+    if (!this.scene) return [];
+    const build = (obj: any): any => {
+      const node = {
+        id: obj.uuid,
+        name: obj.name || obj.type,
+        children: [] as any[],
+      };
+      if (obj.children && obj.children.length) {
+        for (const child of obj.children) {
+          if (child.isLight || child.isHelper) continue;
+          node.children!.push(build(child));
+        }
+      }
+      return node;
+    };
+    return [build(this.scene)];
+  }
+
+  private onPointerDown(e: PointerEvent) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+    this.pointer.set(x, y);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const intersects = this.raycaster.intersectObjects(
+      this.scene.children,
+      true
+    );
+    if (intersects && intersects.length) {
+      const obj = intersects[0].object;
+      const id = obj.uuid;
+      if (id) this.pickedObject$.next(id);
+    }
   }
 
   zoom(delta: number) {

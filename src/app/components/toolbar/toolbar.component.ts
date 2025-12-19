@@ -2,13 +2,21 @@ import { Component } from "@angular/core";
 import { Store } from "@ngrx/store";
 import * as ViewerActions from "../../core/state/viewer.actions";
 import * as ModelActions from "../../core/state/model.actions";
+import * as ModelSelectors from "../../core/state/model.selectors";
+import { Observable } from "rxjs";
 
 @Component({
   selector: "app-toolbar",
   templateUrl: "./toolbar.component.html",
 })
 export class ToolbarComponent {
-  constructor(private store: Store) {}
+  selectedId$: Observable<string | null>;
+  private selectedId: string | null = null;
+
+  constructor(private store: Store) {
+    this.selectedId$ = this.store.select(ModelSelectors.selectFocusedNodeId);
+    this.selectedId$.subscribe((id) => (this.selectedId = id));
+  }
 
   onReset() {
     this.store.dispatch(ViewerActions.resetView());
@@ -21,6 +29,29 @@ export class ToolbarComponent {
   }
   onFullscreen() {
     this.store.dispatch(ViewerActions.toggleFullScreen());
+  }
+
+  onHighlightSelected() {
+    if (!this.selectedId) return;
+    this.store.dispatch(ViewerActions.highlightById({ id: this.selectedId }));
+  }
+
+  onClearHighlight() {
+    this.store.dispatch(ViewerActions.clearHighlight());
+  }
+
+  onIsolateSelected() {
+    if (!this.selectedId) return;
+    this.store.dispatch(ViewerActions.isolateById({ id: this.selectedId }));
+  }
+
+  onClearIsolation() {
+    this.store.dispatch(ViewerActions.clearIsolation());
+  }
+
+  onFitSelected() {
+    if (!this.selectedId) return;
+    this.store.dispatch(ViewerActions.fitToObject({ id: this.selectedId }));
   }
 
   onFile(evt: Event) {

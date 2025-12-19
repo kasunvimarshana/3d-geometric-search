@@ -8,6 +8,7 @@ import { ThreeViewerService } from "../services/three-viewer.service";
 @Injectable()
 export class ModelEffects {
   readonly load$;
+  readonly pick$;
 
   constructor(private actions$: Actions, private viewer: ThreeViewerService) {
     this.load$ = createEffect(() =>
@@ -17,7 +18,7 @@ export class ModelEffects {
           from(this.viewer.loadFile(files?.[0])).pipe(
             map(() =>
               ModelActions.loadSuccess({
-                tree: [{ id: "root", name: files?.[0]?.name ?? "model", children: [] }],
+                tree: this.viewer.buildSectionTree(),
               })
             ),
             catchError((e: any) =>
@@ -29,6 +30,13 @@ export class ModelEffects {
             )
           )
         )
+      )
+    );
+
+    // Bridge viewer picking events into model focus
+    this.pick$ = createEffect(() =>
+      this.viewer.pickedObject$.pipe(
+        map((id: string) => ModelActions.focusNode({ nodeId: id }))
       )
     );
   }

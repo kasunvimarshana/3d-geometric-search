@@ -2,7 +2,12 @@
   <button (click)="onReset()">Reset</button>
   <button (click)="onRefresh()">Refresh</button>
   <button (click)="onFit()">Fit</button>
+  <button (click)="onFitSelected()">Fit Selected</button>
   <button (click)="onFullscreen()">Full Screen</button>
+  <button (click)="onHighlightSelected()">Highlight Selected</button>
+  <button (click)="onClearHighlight()">Clear Highlight</button>
+  <button (click)="onIsolateSelected()">Isolate Selected</button>
+  <button (click)="onClearIsolation()">Clear Isolation</button>
   <label style="margin-left: auto">
     <input type="file" (change)="onFile($event)" multiple />
   </label>
