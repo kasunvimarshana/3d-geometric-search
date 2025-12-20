@@ -20,7 +20,7 @@
             "tsConfig": "tsconfig.app.json",
             "assets": ["src/favicon.ico", "src/assets"],
             "styles": ["src/styles.scss"],
-            "scripts": [],
+            "scripts": ["src/assets/step-converter-loader.js"],
             "allowedCommonJsDependencies": ["jszip"]
           }
         },

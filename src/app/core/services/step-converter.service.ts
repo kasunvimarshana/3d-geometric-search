@@ -24,41 +24,24 @@ export class StepConverterService {
     };
 
     throwIfAborted();
-    // Try dynamic import of a WASM-based STEP converter if enabled.
+    // Optional: use a globally provided converter without importing modules
+    // Attach a converter at runtime via `window.STEP_CONVERTER(buffer, onProgress, { signal })`
     if (appConfig.step.useWasm) {
       try {
         const buffer = await file.arrayBuffer();
         throwIfAborted();
-
-        const tryImportConverter = async (): Promise<any | null> => {
-          try {
-            return await import("occt-import-js");
-          } catch {}
-          try {
-            return await import("@sahriai/occt-import-js");
-          } catch {}
-          try {
-            return await import("wasm-step-converter");
-          } catch {}
-          return null;
-        };
-
-        const mod = await tryImportConverter();
-        if (mod) {
-          const fn =
-            mod?.convertStepToObject3D ||
-            mod?.ConvertStepToObject3D ||
-            mod?.convert;
-          if (typeof fn === "function") {
-            onProgress?.(5);
-            const obj = await fn(buffer, (p: number) => onProgress?.(p), {
-              signal,
-            });
-            if (obj) {
-              obj.name = file.name;
-              onProgress?.(100);
-              return obj;
-            }
+        const globalAny: any = window as any;
+        const fn =
+          globalAny?.STEP_CONVERTER || globalAny?.convertStepToObject3D;
+        if (typeof fn === "function") {
+          onProgress?.(5);
+          const obj = await fn(buffer, (p: number) => onProgress?.(p), {
+            signal,
+          });
+          if (obj) {
+            obj.name = file.name;
+            onProgress?.(100);
+            return obj;
           }
         }
       } catch {
